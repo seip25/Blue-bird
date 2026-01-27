@@ -10,12 +10,10 @@ routerUsers.get("/users", (req, res) => {
         {
             name: "John Doe",
             email: "john.doe@example.com",
-            password: "password123"
         },
         {
-            name: "Jane Doe",
-            email: "jane.doe@example.com",
-            password: "password123"
+            name: "Jane Doe2",
+            email: "jane.doe2@example.com",
         },
     ]
     res.json(users)
@@ -26,7 +24,7 @@ const loginSchema = {
     password: { required: true, min: 6 }
 };
 
-const loginValidator = new Validator(loginSchema, 'br');
+const loginValidator = new Validator(loginSchema, 'es');
 
 routerUsers.post('/login', loginValidator.middleware(), (req, res) => {
     res.json({ message: 'Login successful' });
