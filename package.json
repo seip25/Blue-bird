@@ -16,7 +16,7 @@
   "bugs": {
     "url": "https://github.com/seip25/Blue-bird/issues"
   },
-  "homepage": "https://github.com/seip25/Blue-bird#readme",
+  "homepage": "https://seip25.github.io/Blue-bird/",
   "scripts": {
     "dev": "node --watch --env-file=.env backend/index.js",
     "start": "node --env-file=.env backend/index.js",
