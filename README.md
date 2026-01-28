@@ -14,7 +14,7 @@
 
 **Blue Bird** es una estructura potente basada en **Express** y **React**. Está diseñada para ayudar a los desarrolladores a construir aplicaciones rápidas y escalables con componentes hidratados (Islas o vistas completas) y todo pre-configurado.
 
-<hr />
+ 
 
 ## 🚀 Key Features / Características Clave
 
@@ -24,7 +24,7 @@
 - 🔐 **Secure**: Integrated JWT authentication and multi-language validation.
 - 📁 **Uploads**: Easy file handling with Multer-based helpers.
 
-<hr />
+ 
 
 ## 🛠️ Quick Start / Inicio Rápido
 
