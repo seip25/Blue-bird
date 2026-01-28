@@ -1,6 +1,6 @@
-import Router from "../../core/router.js"
-import Validator from "../../core/validate.js"
-import Template from "../../core/template.js"
+import Router from "@seip/blue-bird/core/router.js"
+import Validator from "@seip/blue-bird/core/validate.js"
+import Template from "@seip/blue-bird/core/template.js"
 
 
 const routerUsers = new Router("/")

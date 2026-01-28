@@ -1,8 +1,11 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Framework js",
   "type": "module",
+  "bin": {
+    "blue-bird": "core/cli/init.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/seip25/Blue-bird.git"

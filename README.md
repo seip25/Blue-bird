@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/blue-bird.png" alt="Blue Bird Logo" width="120" />
+  <img src="https://seip25.github.io/Blue-bird/blue-bird.png" alt="Blue Bird Logo" width="120" />
   <h1>Blue Bird Framework</h1>
   <p><strong>The Future of Express & React Development</strong></p>
 
@@ -36,7 +36,7 @@ npm install @seip/blue-bird
 
 ### 2. Initialize / Inicializar
 ```bash
-npm run init
+npx blue-bird
 ```
 *This copies the base structure: `backend`, `frontend`, and `.env`.*
 *Esto copia la estructura base: `backend`, `frontend` y `.env`.*
