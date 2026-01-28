@@ -1,7 +1,7 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.1.2",
-  "description": "Framework js",
+  "version": "0.1.4",
+  "description": "Express + React opinionated framework with island architecture and built-in JWT auth",
   "type": "module",
   "bin": {
     "blue-bird": "core/cli/init.js"
@@ -11,8 +11,11 @@
     "url": "git+https://github.com/seip25/Blue-bird.git"
   },
   "keywords": [
+    "express",
+    "react",
     "framework",
-    "js"
+    "islands",
+    "vite"
   ],
   "author": "Seip25",
   "license": "MIT",

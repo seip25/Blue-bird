@@ -1,14 +1,12 @@
-# Blue-bird
-<div align="center">
-  <img src="https://seip25.github.io/Blue-bird/blue-bird.png" alt="Blue Bird Logo" width="120" />
-  <h1>Blue Bird Framework</h1>
-  <p><strong>The Future of Express & React Development</strong></p>
+# Blue Bird Framework
 
-  [![npm version](https://img.shields.io/npm/v/@seip/blue-bird.svg)](https://www.npmjs.com/package/@seip/blue-bird)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-</div>
+**The Future of Express & React Development**
 
-<hr />
+![Blue Bird Logo](https://seip25.github.io/Blue-bird/blue-bird.png)
+
+[![npm version](https://img.shields.io/npm/v/@seip/blue-bird.svg)](https://www.npmjs.com/package/@seip/blue-bird)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 ## 🌟 Introduction / Introducción
 
