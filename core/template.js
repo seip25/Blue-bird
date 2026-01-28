@@ -69,6 +69,15 @@ class Template {
         const cleanPath = p.replace(/^\//, "");
         return `${props.host}:${props.port}/${cleanPath}`;
     }
+
+    /**
+     * Renders a React component as an HTML string.
+     * @param {string} component - The React component name.
+     * @param {Object} [componentProps={}] - Props to pass to the component.
+     * @param {string} [classBody=""] - Class name to add to the body tag.
+     * @param {Array<Object>} [optionsHead=[]] - Array of objects with tag and attributes for head tags.
+     * @returns {string} The HTML string of the React component.
+     */
     static renderReact(res, component = "App", propsReact = {}, classBody = "", optionsHead = []) {
         const html = `
 <!DOCTYPE html>
@@ -183,10 +192,10 @@ class Template {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${meta.titleMeta}</title>
-    <meta name="description" content="${meta.descriptionMeta}">
-    <meta name="keywords" content="${meta.keywordsMeta}">
-    <meta name="author" content="${meta.authorMeta}">
+    <title>${meta.title}</title>
+    <meta name="description" content="${meta.description}">
+    <meta name="keywords" content="${meta.keywords}">
+    <meta name="author" content="${meta.author}">
     ${scriptsReact}
 </head>
 <body>

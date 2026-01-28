@@ -1,4 +1,4 @@
-import App from "../_core/app.js";
+import App from "../core/app.js";
 import routerUsers from "./routes/app.js";
 
 const app = new App({

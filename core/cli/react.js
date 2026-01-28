@@ -36,8 +36,8 @@ class ReactScaffold {
 
       console.log(chalk.green("React scaffolding created successfully!"));
       console.log(chalk.cyan("\nNext steps:"));
-      console.log(chalk.white("  1. Run(Blue Bird ExpressJs): ") + chalk.bold("npm run dev"));
-      console.log(chalk.white("  2. Run(Blue Bird React + Vite): ") + chalk.bold("npm run vite:dev") + chalk.gray(" (to start Vite)"));
+      console.log(chalk.white("  1. Run (Blue Bird Server): ") + chalk.bold("npm run dev"));
+      console.log(chalk.white("  2. Run (React Vite Dev): ") + chalk.bold("npm run vite:dev"));
       console.log(chalk.blue("\nBlue Bird React setup completed!"));
     } catch (error) {
       console.error(chalk.red("Fatal error during scaffolding:"), error.message);

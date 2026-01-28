@@ -1,5 +1,5 @@
 {
-  "name": "blue-bird",
+  "name": "@seip/blue-bird",
   "version": "0.0.1",
   "description": "Framework js",
   "type": "module",
@@ -20,14 +20,17 @@
   "scripts": {
     "dev": "node --watch --env-file=.env backend/index.js",
     "start": "node --env-file=.env backend/index.js",
-    "create-react-app": "node _core/cli/react.js",
-    "react": "node _core/cli/react.js"
+    "create-react-app": "node core/cli/react.js",
+    "react": "node core/cli/react.js",
+    "init": "node core/cli/init.js"
   },
   "dependencies": {
     "chalk": "^5.6.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "ejs": "^4.0.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
   }
 }

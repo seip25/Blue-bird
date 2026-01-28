@@ -1,6 +1,6 @@
-import Router from "../../_core/router.js"
-import Validator from "../../_core/validate.js"
-import Template from "../../_core/template.js"
+import Router from "../../core/router.js"
+import Validator from "../../core/validate.js"
+import Template from "../../core/template.js"
 
 
 const routerUsers = new Router("/")

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blue Bird Framework | El Futuro de Express & React">
+    <meta name="keywords" content="Blue Bird Framework, Express, React, Node.js, JavaScript">
+    <meta name="author" content="Seip">
+    <link rel="icon" href="blue-bird.ico">
+    <title>Blue Bird Framework | El Futuro de Express & React</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 1);
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at top right, #e0f2fe 0%, #ffffff 50%, #f0f9ff 100%);
+        }
+
+        pre {
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: 1.5rem 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 font-sans selection:bg-brand-200">
+
+    <!-- Header -->
+    <header class="fixed top-0 w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <svg class="w-8 h-8 text-brand-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.09-.36.18-.57.18s-.41-.09-.57-.18l-7.9-4.44c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.9-4.44c.16-.09.36-.18.57-.18s.41.09.57.18l7.9 4.44c.32.17.53.5.53.88v9z" />
+                    </svg>
+                    <span class="text-xl font-bold tracking-tight">Blue Bird <span
+                            class="text-brand-500">Framework</span></span>
+                </div>
+                <nav class="hidden md:flex gap-8 text-sm font-semibold text-slate-600">
+                    <a href="#quickstart" class="hover:text-brand-500 transition-colors">Empezar</a>
+                    <a href="#features" class="hover:text-brand-500 transition-colors">Features</a>
+                    <a href="#docs" class="hover:text-brand-500 transition-colors">Documentación</a>
+                    <a href="en.html" class="flex items-center gap-1 hover:text-brand-500 transition-colors">🇺🇸 EN</a>
+                    <a href="https://www.npmjs.com/package/@seip/blue-bird" target="_blank"
+                        class="bg-slate-900 text-white px-4 py-1.5 rounded-full hover:bg-slate-800 transition-all font-bold">NPM</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="quickstart" class="relative overflow-hidden pt-32 pb-20 hero-gradient">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                <span
+                    class="inline-block px-4 py-1.5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold uppercase tracking-widest mb-6">Versión
+                    0.0.1 - Beta</span>
+                <h1 class="text-5xl md:text-7xl font-extrabold text-slate-900 mb-6 leading-tight">
+                    El Framework JS para <br>
+                    <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-indigo-600">Desarrolladores
+                        Modernos.</span>
+                </h1>
+                <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    Una estructura potente basada en Express y React, diseñada para crear aplicaciones rápidas con
+                    componentes hidratados (Islands) y todo lo que necesitas pre-configurado.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 items-center">
+                    <a href="#docs"
+                        class="bg-brand-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-brand-200 hover:bg-brand-600 transition-all">Ver
+                        Documentación</a>
+                    <div class="flex items-center gap-2 bg-white p-2 pl-4 rounded-xl border border-slate-200 shadow-sm">
+                        <code class="text-brand-600 font-bold">npm install @seip/blue-bird</code>
+                        <button onclick="navigator.clipboard.writeText('npm install @seip/blue-bird')"
+                            class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><svg class="w-5 h-5" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
+                                </path>
+                            </svg></button>
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative elements -->
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-100/30 blur-[120px] rounded-full -z-10">
+            </div>
+        </section>
+
+        <!-- Filosofía Section -->
+        <section id="filosofia" class="py-20 bg-white">
+            <div class="max-w-4xl mx-auto px-4 text-center">
+                <h2
+                    class="text-3xl font-bold text-slate-900 mb-8 underline decoration-brand-500 decoration-4 underline-offset-8">
+                    La Filosofía Blue Bird</h2>
+                <p class="text-lg text-slate-600 leading-relaxed mb-8">
+                    ¿Cansado de configurar CORS, Body Parsers, Cookies y Routing cada vez que inicias un proyecto? Blue
+                    Bird provee una base sólida y pre-configurada para que vayas directo a la lógica, sin perder la
+                    extensibilidad pura de Express.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-brand-600 mb-2">⚡ Todo Incluido</h4>
+                        <p class="text-sm text-slate-500">Express, React (con Islas), Validaciones, JWT Auth y Uploads
+                            listos para usar.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-brand-600 mb-2">💎 Flexible</h4>
+                        <p class="text-sm text-slate-500">Usa el método `.use()` para configurar middleware de Express
+                            tal como lo haces siempre.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Grid -->
+        <section id="features" class="py-24 bg-slate-50 border-y border-slate-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold text-slate-900">Características Principales</h2>
+                    <p class="text-slate-500 mt-2">Diseñado para escalar con elegancia.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">JWT Auth Integrado</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">Generación y validación de tokens con
+                            middleware listo para proteger tus rutas API o Web.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Validación de Datos</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">Motor de validación multi-idioma con reglas
+                            predefinidas y mensajes automáticos.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Upload Helpers</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">Subida de archivos a disco facilitada por
+                            Multer, configurada para tu carpeta pública.</p>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-8 h-8" viewBox="-11.5 -10.23174 23 20.46348" fill="none"
+                                stroke="currentColor">
+                                <circle cx="0" cy="0" r="2.05" fill="currentColor" />
+                                <g stroke="currentColor" stroke-width="1" fill="none">
+                                    <ellipse rx="11" ry="4.2" />
+                                    <ellipse rx="11" ry="4.2" transform="rotate(60)" />
+                                    <ellipse rx="11" ry="4.2" transform="rotate(120)" />
+                                </g>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">React</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">React y React Router pre-configurados para
+                            SPA, Islands o páginas tradicionales.</p>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-10 h-10" viewBox="0 0 256 257" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="viteBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#41D1FF" />
+                                        <stop offset="50%" stop-color="#BD34FE" />
+                                        <stop offset="100%" stop-color="#9D5CFF" />
+                                    </linearGradient>
+                                    <linearGradient id="viteBolt" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#FFEA83" />
+                                        <stop offset="100%" stop-color="#FFC300" />
+                                    </linearGradient>
+                                </defs>
+                                <path
+                                    d="M255.153 37.938L134.897 254.647c-2.503 4.504-8.953 4.543-11.508.07L.845 37.958C-1.814 33.07 2.64 27.5 8.157 28.29l120.61 17.304a6.5 6.5 0 0 0 1.846 0L247.84 28.28c5.522-.78 9.973 4.803 7.313 9.658Z"
+                                    fill="url(#viteBg)" />
+                                <path
+                                    d="M185.432 0 94.72 18.147a3.25 3.25 0 0 0-2.61 2.662L82.16 86.746a3.25 3.25 0 0 0 4.043 3.616l25.25-6.356a3.25 3.25 0 0 1 3.98 3.813l-7.5 36.735a3.25 3.25 0 0 0 4.236 3.704l15.6-5.04a3.25 3.25 0 0 1 4.166 3.78l-11.92 56.02c-.74 3.48 3.91 5.38 5.88 2.42l1.32-1.99 73.9-147.6c1.24-2.48-.91-5.34-3.64-4.79Z"
+                                    fill="url(#viteBolt)" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Vite</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">Vite listo para usar, optimizado para
+                            desarrollo y producción.</p>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 card-hover">
+                        <div
+                            class="w-12 h-12 bg-gray-100 text-gray-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                            <svg class="w-24 h-10" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
+                                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+                                    font-family="Arial, Helvetica, sans-serif" font-size="98"
+                                    fill="currentColor">Ex</text>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">Express</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">Express pre-configurado para modo API o modo
+                            Web tradicional.</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </section>
+
+        <!-- Detailed Documentation -->
+        <section id="docs" class="py-24 bg-white">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <header class="text-center mb-20">
+                    <h2 class="text-4xl font-extrabold text-slate-900 mb-4">Referencia Técnica</h2>
+                    <p class="text-slate-500">Todo sobre la API Core de Blue Bird.</p>
+                </header>
+
+                <!--Section init App-->
+                <article id="doc-init" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm italic">Init</span>
+                        Inicializar App
+                    </h3>
+                    <p class="text-slate-600 mb-6">Inicializa tu aplicación Blue Bird.</p>
+                    <pre><code class="language-bash">npm run init</code></pre>
+                </article>
+
+                <!--Section react App-->
+                <article id="doc-react" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm italic">React</span>
+                        Configuración React
+                    </h3>
+                    <p class="text-slate-600 mb-6">Configura React para tu aplicación Blue Bird.</p>
+                    <pre><code class="language-bash">npm run react</code></pre>
+                </article>
+
+                <!--Section dev App-->
+                <article id="doc-dev" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm italic">Dev</span>
+                        Configuración Dev (Express + Vite)
+                    </h3>
+                    <p class="text-slate-600 mb-6">Inicia el servidor backend:</p>
+                    <pre><code class="language-bash">npm run dev</code></pre>
+                    <p class="text-slate-600 mb-6 mt-4">Inicia el servidor frontend (Vite):</p>
+                    <pre><code class="language-bash">npm run vite:dev</code></pre>
+                </article>
+
+
+
+                <!-- Section: App -->
+                <article id="doc-app" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm italic">App</span>
+                        Clase App principal
+                    </h3>
+                    <p class="text-slate-600 mb-6">Configuración central de tu servidor Express.</p>
+                    <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
+import routerUsers from "./routes/users.js";
+
+const app = new App({
+    port: 3000,
+    routes: [routerUsers],
+    cors: { origin: '*' }
+});
+
+// Extiende Express con .use()
+app.use(myCustomMiddleware);
+
+app.run();</code></pre>
+                    <div class="mt-8 overflow-hidden rounded-2xl border border-slate-100">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-700">
+                                    <th class="p-4">Opción</th>
+                                    <th class="p-4">Tipo</th>
+                                    <th class="p-4">Default</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">port</td>
+                                    <td class="p-4">Number</td>
+                                    <td class="p-4">3001</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">host</td>
+                                    <td class="p-4">String</td>
+                                    <td class="p-4">"http://localhost"</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">routes</td>
+                                    <td class="p-4">Array</td>
+                                    <td class="p-4">[]</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">middlewares</td>
+                                    <td class="p-4">Array</td>
+                                    <td class="p-4">[]</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">logger</td>
+                                    <td class="p-4">Boolean</td>
+                                    <td class="p-4">true</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">json</td>
+                                    <td class="p-4">Boolean</td>
+                                    <td class="p-4">true</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">static</td>
+                                    <td class="p-4">Object</td>
+                                    <td class="p-4">public (default)</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-4 font-mono text-brand-600">cookieParser</td>
+                                    <td class="p-4">Boolean</td>
+                                    <td class="p-4">true</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <!-- Section: Router -->
+                <article id="doc-router" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center text-sm italic">R</span>
+                        Router
+                    </h3>
+                    <p class="text-slate-600 mb-6">Maneja tus rutas de forma modular y límpia.</p>
+                    <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
+import Template from "@seip/blue-bird/core/template.js";
+
+const routerUsers = new Router("/")
+
+routerUsers.get("*", (req, res) => {
+    // Renderizado SPA con React
+    return Template.renderReact(res, "App", { title: "Mi Proyecto" });
+})
+
+export default routerUsers;</code></pre>
+                </article>
+
+                <!-- Section: Template -->
+                <article id="doc-template" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm italic">T</span>
+                        Template & React
+                    </h3>
+                    <p class="text-slate-600 mb-6">Renderiza vistas completas o componentes react hidratados (Islands)
+                        con un solo método.</p>
+                    <pre><code class="language-javascript">import Template from "@seip/blue-bird/core/template.js";
+
+router.get("/", (req, res) => {
+    // Renderiza el componente 'Home' con props iniciales
+    return Template.renderReact(res, "Home", { title: "Mi App" });
+});</code></pre>
+                </article>
+
+                <!-- Section: Validator -->
+                <article id="doc-validator" class="mb-24">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm italic">V</span>
+                        Validación
+                    </h3>
+                    <pre><code class="language-javascript">import Validator from "@seip/blue-bird/core/validate.js";
+
+const schema = {
+    email: { required: true, email: true },
+    password: { required: true, min: 6 }
+};
+
+const validate = new Validator(schema, 'es');
+
+router.post("/register", validate.middleware(), (req, res) => {
+    res.json({ message: "OK" });
+});</code></pre>
+                </article>
+
+                <!-- Section: Auth & Upload -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
+                    <article>
+                        <h4 class="font-bold text-slate-900 mb-4">Auth (JWT)</h4>
+                        <pre class="!m-0"><code class="language-javascript">import Auth from "...";
+Auth.generateToken(payload);
+Auth.protect(); // Middleware</code></pre>
+                    </article>
+                    <article>
+                        <h4 class="font-bold text-slate-900 mb-4">Uploads</h4>
+                        <pre class="!m-0"><code class="language-javascript">import Upload from "...";
+Upload.disk({ folder: 'img' });
+// Basado en Multer</code></pre>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white border-t border-slate-100 py-16">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex justify-center flex-wrap gap-8 text-sm font-bold text-slate-400 mb-12">
+                <a href="https://expressjs.com/" target="_blank" class="hover:text-slate-600 transition-colors">EXPRESS
+                    JS</a>
+                <a href="https://react.dev/" target="_blank" class="hover:text-slate-600 transition-colors">REACT JS</a>
+                <a href="https://vitejs.dev/" target="_blank" class="hover:text-slate-600 transition-colors">VITE</a>
+                <a href="https://ejs.co/" target="_blank" class="hover:text-slate-600 transition-colors">EJS</a>
+            </div>
+            <p class="text-slate-500 italic">Blue Bird Framework &copy; 2026. Made with ❤️ by Seip25.</p>
+        </div>
+    </footer>
+
+    <script>
+        hljs.highlightAll();
+        // Intersection Observer for scroll highlights could go here
+    </script>
+</body>
+
+</html>
