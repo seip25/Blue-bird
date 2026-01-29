@@ -28,6 +28,7 @@
     "start": "node --env-file=.env backend/index.js",
     "create-react-app": "node core/cli/react.js",
     "react": "node core/cli/react.js",
+    "component": "node core/cli/component.js",
     "init": "node core/cli/init.js"
   },
   "dependencies": {
