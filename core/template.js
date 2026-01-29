@@ -78,6 +78,12 @@ class Template {
      * @returns {string} The HTML string of the React component.
      * @example
      * const options = {
+     *  langHtml: "en",
+     *   metaTags: {
+     *      titleMeta: "Page Title",
+     *      descriptionMeta: "Page description",
+     *      keywordsMeta: "keyword1, keyword2",
+     * },
      *     head: [
      *         { tag: "meta", attrs: { name: "description", content: "Description" } },
      *         { tag: "link", attrs: { rel: "stylesheet", href: "style.css" } }
@@ -98,24 +104,33 @@ class Template {
         const classBody = options.classBody || "";
         const linkStyles = options.linkStyles || [];
         const scriptScripts = options.scriptScripts || [];
+        const langHtml = options.langHtml || props.langMeta || "en";
+        const metaTags = {
+            titleMeta: options.metaTags?.titleMeta || props.titleMeta,
+            descriptionMeta: options.metaTags?.descriptionMeta || props.descriptionMeta,
+            keywordsMeta: options.metaTags?.keywordsMeta || props.keywordsMeta,
+            authorMeta: options.metaTags?.authorMeta || props.authorMeta,
+            langMeta: options.metaTags?.langMeta || props.langMeta,
+        };
+
         const html = `
 <!DOCTYPE html>
-<html lang="${this.escapeHtml(props.langMeta)}">
+<html lang="${this.escapeHtml(langHtml)}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${this.escapeHtml(props.titleMeta)}</title>
+    <title>${this.escapeHtml(metaTags.titleMeta)}</title>
     <link rel="icon" href="favicon.ico" />
-    <meta name="description" content="${this.escapeHtml(props.descriptionMeta)}"/>
-    <meta name="keywords" content="${this.escapeHtml(props.keywordsMeta)}"/>
-    <meta name="author" content="${this.escapeHtml(props.authorMeta)}"/>
+    <meta name="description" content="${this.escapeHtml(metaTags.descriptionMeta)}"/>
+    <meta name="keywords" content="${this.escapeHtml(metaTags.keywordsMeta)}"/>
+    <meta name="author" content="${this.escapeHtml(metaTags.authorMeta)}"/>
     ${linkStyles.map(item => `<link rel="stylesheet" href="${item.href}" />`).join("")}
-    ${scriptScripts.map(item => `<script src="${item.src}"></script>`).join("")}
     ${optionsHead.map(item => `<${item.tag} ${Object.entries(item.attrs).map(([key, value]) => `${key}="${value}"`).join(" ")} />`).join("")}
 </head>
 <body class="${classBody}">
     ${this.react(component, propsReact)}
     ${this.vite_assets()}
+    ${scriptScripts.map(item => `<script src="${item.src}"></script>`).join("")}
 </body>
 </html>
         `
