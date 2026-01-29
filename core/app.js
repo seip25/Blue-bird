@@ -68,6 +68,14 @@ class App {
     use(record) {
         this.app.use(record)
     }
+    /**
+     * Sets a configuration value in the Express application.
+     * @param {string} key - The configuration key.
+     * @param {*} value - The value to set for the configuration key.
+     */
+    set (key, value) {
+        this.app.set(key, value)
+    }
 
     /**
      * Bootstraps the application by configuring global middlewares and routes.
