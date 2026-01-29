@@ -121,7 +121,6 @@ class Template {
         `
         res.type("text/html");
         res.status(200);
-        res.setHeader("Content-Type", "text/html charset=utf-8");
         return res.send(this.minifyHtml(html));
     }
 
