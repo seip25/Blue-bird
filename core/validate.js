@@ -128,6 +128,13 @@ class Validator {
      * Validates the request body against the defined schema.
      * @param {import('express').Request} req - The Express request object containing the body to validate.
      * @returns {Promise<{success: boolean, error: boolean, errors: Array<{field: string, message: string}>, message: Array<string>, html: Array<string>}>} Validation results.
+     * @example 
+     * const loginSchema = {
+     *     email: { required: true, email: true },
+     *     password: { required: true, min: 6 }
+     * };
+     * const loginValidator = new Validator(loginSchema, 'es');
+     * const result = await loginValidator.validate(req);
      */
     async validate(req) {
         const lang = this.lang_default ? this.lang_default : req?.session?.lang || "es";
@@ -260,6 +267,16 @@ class Validator {
      * Express middleware for automated validation of the request body.
      * Returns a 400 Bad Request response with validation results if errors occur.
      * @returns {Function} Express middleware function (req, res, next).
+     * @example
+     * 
+     * const loginSchema = {
+     *     email: { required: true, email: true },
+     *     password: { required: true, min: 6 }
+     * };
+     * const loginValidator = new Validator(loginSchema, 'es');
+     * routerUsers.post('/login', loginValidator.middleware(), (req, res) => {
+     *     res.json({ message: 'Login successful' });
+     * });
      */
     middleware() {
         return async (req, res, next) => {

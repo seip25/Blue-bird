@@ -74,11 +74,30 @@ class Template {
      * Renders a React component as an HTML string.
      * @param {string} component - The React component name.
      * @param {Object} [componentProps={}] - Props to pass to the component.
-     * @param {string} [classBody=""] - Class name to add to the body tag.
-     * @param {Array<Object>} [optionsHead=[]] - Array of objects with tag and attributes for head tags.
+     * @options {Object} options - Options for the template.
      * @returns {string} The HTML string of the React component.
+     * @example
+     * const options = {
+     *     head: [
+     *         { tag: "meta", attrs: { name: "description", content: "Description" } },
+     *         { tag: "link", attrs: { rel: "stylesheet", href: "style.css" } }
+     *     ],
+     *     classBody: "bg-gray-100",
+     *     linkStyles: [
+     *         { href: "style.css" }
+     *     ],
+     *     scriptScripts: [
+     *         { src: "script.js" }
+     *     ]
+     * };
+     * 
+     * Template.renderReact(res, "App", { title: "Example title" }, options);
      */
-    static renderReact(res, component = "App", propsReact = {}, classBody = "", optionsHead = []) {
+    static renderReact(res, component = "App", propsReact = {}, options = {}) {
+        const optionsHead = options.head || [];
+        const classBody = options.classBody || "";
+        const linkStyles = options.linkStyles || [];
+        const scriptScripts = options.scriptScripts || [];
         const html = `
 <!DOCTYPE html>
 <html lang="${this.escapeHtml(props.langMeta)}">
@@ -90,7 +109,9 @@ class Template {
     <meta name="description" content="${this.escapeHtml(props.descriptionMeta)}"/>
     <meta name="keywords" content="${this.escapeHtml(props.keywordsMeta)}"/>
     <meta name="author" content="${this.escapeHtml(props.authorMeta)}"/>
-    ${optionsHead.map(item => `<${item.tag} ${Object.entries(item.attrs).map(([key, value]) => `${key}="${value}"`).join(" ")}></${item.tag}>`).join("")}
+    ${linkStyles.map(item => `<link rel="stylesheet" href="${item.href}" />`).join("")}
+    ${scriptScripts.map(item => `<script src="${item.src}"></script>`).join("")}
+    ${optionsHead.map(item => `<${item.tag} ${Object.entries(item.attrs).map(([key, value]) => `${key}="${value}"`).join(" ")} />`).join("")}
 </head>
 <body class="${classBody}">
     ${this.react(component, propsReact)}
@@ -154,7 +175,7 @@ class Template {
 
                     let html = "";
                     css.forEach(cssFile => {
-                    html += `<link rel="stylesheet" href="/build/${cssFile}">`;
+                        html += `<link rel="stylesheet" href="/build/${cssFile}">`;
                     });
                     html += `<script type="module" src="/build/${file}"></script>`;
 
@@ -168,46 +189,7 @@ class Template {
         return `<!-- Vite Manifest not found at ${manifestPath} -->`;
     }
 
-    /**
-     * Renders a full HTML page with a React component as the main entry point.
-     * Useful for SPAs or full-page React modules.
-     * @param {import('express').Response} res - The Express response object.
-     * @param {string} component - The React component name.
-     * @param {Object} [componentProps={}] - Props to pass to the React component.
-     * @param {Object} [metaOverrides={}] - Metadata overrides (title, description, keywords, etc.).
-     */
-    static reactRender(res, component, componentProps = {}, metaOverrides = {}) {
-        const meta = {
-            title: props.titleMeta,
-            description: props.descriptionMeta,
-            keywords: props.keywordsMeta,
-            author: props.authorMeta,
-            lang: props.langMeta,
-            ...metaOverrides
-        };
 
-        const scriptsReact = this.vite_assets();
-        const componentHtml = this.react(component, componentProps);
-
-        const html = `
-<!DOCTYPE html>
-<html lang="${this.escapeHtml(meta.lang)}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${this.escapeHtml(meta.title)}</title>
-    <meta name="description" content="${this.escapeHtml(meta.description)}">
-    <meta name="keywords" content="${this.escapeHtml(meta.keywords)}">
-    <meta name="author" content="${this.escapeHtml(meta.author)}">
-    ${scriptsReact}
-</head>
-<body>
-    ${componentHtml}
-</body>
-</html>`;
-
-        res.send(this.minifyHtml(html));
-    }
 
     /**
      * Minifies the HTML output by removing comments and excessive whitespace.
@@ -227,13 +209,13 @@ class Template {
     * @returns {string} The escaped string.
     */
     static escapeHtml(str = "") {
-    return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
 }
 
 export default Template;

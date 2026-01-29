@@ -10,6 +10,10 @@ class Auth {
      * @param {string} [secret=process.env.JWT_SECRET] - The secret key.
      * @param {string|number} [expiresIn='24h'] - Expiration time.
      * @returns {string} The generated token.
+     * @example
+     * const token = Auth.generateToken({ id: 1 });
+     * console.log(token);
+     * 
      */
     static generateToken(payload, secret = process.env.JWT_SECRET || 'blue-bird-secret', expiresIn = '24h') {
         return jwt.sign(payload, secret, { expiresIn });
@@ -20,6 +24,10 @@ class Auth {
      * @param {string} token - The token to verify.
      * @param {string} [secret=process.env.JWT_SECRET] - The secret key.
      * @returns {Object|null} The decoded payload or null if invalid.
+     * @example
+     * const token = Auth.generateToken({ id: 1 });
+     * const decoded = Auth.verifyToken(token);
+     * console.log(decoded);
      */
     static verifyToken(token, secret = process.env.JWT_SECRET || 'blue-bird-secret') {
         try {
@@ -34,6 +42,8 @@ class Auth {
      * @param {Object} options - Options for protection.
      * @param {string} [options.redirect] - URL to redirect if not authenticated (for web routes).
      * @returns {Function} Express middleware.
+     * @example
+     * app.use(Auth.protect({ redirect: "/login" }));
      */
     static protect(options = { redirect: null }) {
         return (req, res, next) => {

@@ -27,6 +27,23 @@ class App {
      * @param {boolean} [options.urlencoded=true] - Whether to enable URL-encoded body parsing.
      * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
      * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
+     * @example 
+     * const app = new App({
+     *     routes: [],
+     *     cors: {},
+     *     middlewares: [],
+     *     port: 3000,
+     *     host: "http://localhost",
+     *     logger: true,
+     *     notFound: true,
+     *     json: true,
+     *     urlencoded: true,
+     *     static: {
+     *         path: "public",
+     *         options: {}
+     *     },
+     *     cookieParser: true,
+     * });
      */
     constructor(options = {
         routes: [],
@@ -64,6 +81,11 @@ class App {
     /**
      * Registers a custom middleware or module in the Express application.
      * @param {Function|import('express').Router} record - The middleware function or Express router to register.
+     * @example
+     * app.use((req, res, next) => {
+     *     console.log("Middleware");
+     *     next();
+     * });
      */
     use(record) {
         this.app.use(record)
@@ -72,8 +94,10 @@ class App {
      * Sets a configuration value in the Express application.
      * @param {string} key - The configuration key.
      * @param {*} value - The value to set for the configuration key.
+     * @example
+     * app.set("port", 3000);
      */
-    set (key, value) {
+    set(key, value) {
         this.app.set(key, value)
     }
 

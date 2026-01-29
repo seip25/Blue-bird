@@ -14,6 +14,8 @@ class Upload {
      * Configures storage for uploaded files.
      * @param {string} folder - The destination folder within the static path.
      * @returns {import('multer').StorageEngine}
+     * @example
+     * const storage = Upload.storage("uploads");
      */
     static storage(folder = "uploads") {
         const dest = path.join(__dirname, props.static.path, folder);
@@ -40,6 +42,8 @@ class Upload {
      * @param {number} [options.fileSize=5000000] - Max file size in bytes (default 5MB).
      * @param {Array<string>} [options.allowedTypes=[]] - Allowed mime types (e.g. ['image/png', 'image/jpeg']).
      * @returns {import('multer').Multer}
+     * @example
+     * const upload = Upload.disk({ folder: "uploads", fileSize: 5000000, allowedTypes: ["image/png", "image/jpeg"] });
      */
     static disk(options = {}) {
         const { folder = "uploads", fileSize = 5000000, allowedTypes = [] } = options;
@@ -61,6 +65,8 @@ class Upload {
      * @param {string} filename - The name of the file.
      * @param {string} [folder='uploads'] - The folder where the file is stored.
      * @returns {string} The full public URL.
+     * @example
+     * const url = Upload.url("file.jpg", "uploads");
      */
     static url(filename, folder = "uploads") {
         return `${props.host}:${props.port}/public/${folder}/${filename}`;
