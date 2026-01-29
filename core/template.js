@@ -81,14 +81,15 @@ class Template {
     static renderReact(res, component = "App", propsReact = {}, classBody = "", optionsHead = []) {
         const html = `
 <!DOCTYPE html>
-<html lang="${props.langMeta}">
+<html lang="${this.escapeHtml(props.langMeta)}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${props.titleMeta}</title>
-    <meta name="description" content="${props.descriptionMeta}">
-    <meta name="keywords" content="${props.keywordsMeta}">
-    <meta name="author" content="${props.authorMeta}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${this.escapeHtml(props.titleMeta)}</title>
+    <link rel="icon" href="favicon.ico" />
+    <meta name="description" content="${this.escapeHtml(props.descriptionMeta)}"/>
+    <meta name="keywords" content="${this.escapeHtml(props.keywordsMeta)}"/>
+    <meta name="author" content="${this.escapeHtml(props.authorMeta)}"/>
     ${optionsHead.map(item => `<${item.tag} ${Object.entries(item.attrs).map(([key, value]) => `${key}="${value}"`).join(" ")}></${item.tag}>`).join("")}
 </head>
 <body class="${classBody}">
@@ -109,8 +110,8 @@ class Template {
      * @param {Object} [componentProps={}] - Props to pass to the component.
      * @returns {string} The HTML container with data attributes for hydration.
      */
-    static react(component, componentProps = {}) {
-        const id = `react-${Math.random().toString(36).substr(2, 9)}`;
+    static react(component, componentProps = {}, divId = "root") {
+        const id = divId || `react-${Math.random().toString(36).substr(2, 9)}`;
         const propsJson = JSON.stringify(componentProps).replace(/'/g, "&apos;");
         return `<div id="${id}" data-react-component="${component}" data-props='${propsJson}'></div>`;
     }
@@ -151,10 +152,12 @@ class Template {
                     const file = entry.file;
                     const css = entry.css || [];
 
-                    let html = `<script type="module" src="/build/${file}"></script>`;
+                    let html = "";
                     css.forEach(cssFile => {
-                        html += `<link rel="stylesheet" href="/build/${cssFile}">`;
+                    html += `<link rel="stylesheet" href="/build/${cssFile}">`;
                     });
+                    html += `<script type="module" src="/build/${file}"></script>`;
+
                     return html;
                 }
             } catch (e) {
@@ -188,14 +191,14 @@ class Template {
 
         const html = `
 <!DOCTYPE html>
-<html lang="${meta.lang}">
+<html lang="${this.escapeHtml(meta.lang)}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${meta.title}</title>
-    <meta name="description" content="${meta.description}">
-    <meta name="keywords" content="${meta.keywords}">
-    <meta name="author" content="${meta.author}">
+    <title>${this.escapeHtml(meta.title)}</title>
+    <meta name="description" content="${this.escapeHtml(meta.description)}">
+    <meta name="keywords" content="${this.escapeHtml(meta.keywords)}">
+    <meta name="author" content="${this.escapeHtml(meta.author)}">
     ${scriptsReact}
 </head>
 <body>
@@ -218,6 +221,19 @@ class Template {
             .replace(/\s{2,}/g, " ")
             .trim();
     }
+    /**
+    * Escapes HTML special characters in a string to prevent XSS attacks.
+    * @param {string} str - The input string.
+    * @returns {string} The escaped string.
+    */
+    static escapeHtml(str = "") {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
 }
 
 export default Template;
