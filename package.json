@@ -29,6 +29,7 @@
     "create-react-app": "node core/cli/react.js",
     "react": "node core/cli/react.js",
     "component": "node core/cli/component.js",
+    "route": "node core/cli/route.js",
     "init": "node core/cli/init.js"
   },
   "dependencies": {

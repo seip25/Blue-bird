@@ -6,7 +6,7 @@ const __dirname = Config.dirname();
 
 class ComponentCLI {
   /**
-   * Create component structure
+   * Create component react
    * @return {void}
    * /
    */
