@@ -10,17 +10,16 @@
 
 ## 🌟 Introduction / Introducción
 
-**Blue Bird** is a powerful, opinionated structure based on **Express** and **React**. It's designed to help developers build fast, scalable applications with hydrated components (Islands or Full views) and everything pre-configured.
+**Blue Bird** is a powerful, opinionated structure based on **Express** and **React**. It's designed to help developers build fast, scalable applications,apis and everything pre-configured.
 
-**Blue Bird** es una estructura potente basada en **Express** y **React**. Está diseñada para ayudar a los desarrolladores a construir aplicaciones rápidas y escalables con componentes hidratados (Islas o vistas completas) y todo pre-configurado.
+**Blue Bird** es una estructura potente basada en **Express** y **React**. Está diseñada para ayudar a los desarrolladores a construir aplicaciones rápidas ,apis escalables   y todo pre-configurado.
 
  
 
 ## 🚀 Key Features / Características Clave
 
 - ⚡ **All-In-One**: Express, React, Vite, JWT Auth, and Validations ready to go.
-- 💎 **Flexible**: Extensible via standard Express `.use()` middleware.
-- 🏝️ **Island Architecture**: Hydrate only what you need with React.
+- 💎 **Flexible**: Extensible via standard Express `.use()` middleware. 
 - 🔐 **Secure**: Integrated JWT authentication and multi-language validation.
 - 📁 **Uploads**: Easy file handling with Multer-based helpers.
 

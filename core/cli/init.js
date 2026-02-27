@@ -66,8 +66,7 @@ class ProjectInit {
                 "dev": "node --watch --env-file=.env backend/index.js",
                 "start": "node --env-file=.env backend/index.js",
                 "react": "blue-bird react",
-                "init": "blue-bird",
-                "route":"blue-bird route"
+                "init": "blue-bird"
             };
 
             let updated = false;
