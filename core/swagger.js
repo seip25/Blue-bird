@@ -13,7 +13,7 @@ class Swagger {
                     { url: options.url }
                 ]
             },
-            apis: ["./routes/*.js"]
+            apis: ["./backend/routes/*.js"]
         };
 
         const specs = swaggerJSDoc(optionsJsDoc);

@@ -5,6 +5,7 @@ import chalk from "chalk"
 import cookieParser from "cookie-parser"
 import rateLimit from "express-rate-limit"
 import xss from "xss"
+import helmet from "helmet"
 import Config from "./config.js"
 import Logger from "./logger.js"
 import Debug from "./debug.js"
@@ -171,11 +172,19 @@ class App {
             this.app.use(limiter);
         }
         if (this.helmet) {
-            if (typeof this.helmet === "object") {
-                this.app.use(helmet(this.helmet))
-            } else {
-                this.app.use(helmet())
-            }
+
+            const defaultHelmetOptions = {
+                contentSecurityPolicy: props.debug
+                    ? false
+                    : undefined
+            };
+
+            const helmetOptions = {
+                ...defaultHelmetOptions,
+                ...(typeof this.helmet === "object" ? this.helmet : {})
+            };
+
+            this.app.use(helmet(helmetOptions));
         }
 
         if (this.xssClean) {
@@ -205,7 +214,7 @@ class App {
                     version: "1.0.0",
                     description: "Blue Bird Framework API Documentation"
                 },
-                url: `${props.host}:${props.port}`,
+                url: `${this.host}:${this.port}`,
                 route: "/docs"
             };
 
@@ -283,13 +292,31 @@ class App {
 
     xssMiddleware() {
         return (req, res, next) => {
-            if (req.body) req.body = this.sanitizeObject(req.body);
-            if (req.query) req.query = this.sanitizeObject(req.query);
-            if (req.params) req.params = this.sanitizeObject(req.params);
+
+            if (req.body && typeof req.body === "object") {
+                this.mutateSanitized(req.body);
+            }
+
+            if (req.query && typeof req.query === "object") {
+                this.mutateSanitized(req.query);
+            }
+
+            if (req.params && typeof req.params === "object") {
+                this.mutateSanitized(req.params);
+            }
+
             next();
         };
     }
-
+    mutateSanitized(obj) {
+        for (const key in obj) {
+            if (typeof obj[key] === "string") {
+                obj[key] = xss(obj[key]);
+            } else if (typeof obj[key] === "object" && obj[key] !== null) {
+                this.mutateSanitized(obj[key]);
+            }
+        }
+    }
     /**
      * Iterates through the stored routes and attaches them to the Express application instance.
      */

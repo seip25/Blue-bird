@@ -15,17 +15,7 @@ const routerUsers = new Router("/")
  *     responses:
  *       200:
  *         description: List of users
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   name:
- *                     type: string
- *                   email:
- *                     type: string
+ *        
  */
 routerUsers.get("/users", (req, res) => {
     const users = [
@@ -47,7 +37,41 @@ const loginSchema = {
 };
 
 const loginValidator = new Validator(loginSchema, 'es');
-
+ /**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Login 
+ *     tags: [Users]
+ *     description: Login with email and password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: example@email.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: 123456
+ *     responses:
+ *       200:
+ *         description: Login success
+ *         
+ *       400:
+ *         description: Error  
+ *       401:
+ *         description: Error in request
+ */
+ 
 routerUsers.post('/login', loginValidator.middleware(), (req, res) => {
     res.json({ message: 'Login successful' });
 });
