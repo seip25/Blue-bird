@@ -5,6 +5,7 @@ import chalk from "chalk"
 import cookieParser from "cookie-parser"
 import Config from "./config.js"
 import Logger from "./logger.js"
+import Debug from "./debug.js"
 
 const __dirname = Config.dirname()
 const props = Config.props()
@@ -110,15 +111,24 @@ class App {
         if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }))
         if (this.cookieParser) this.app.use(cookieParser())
         if (this.static.path) this.app.use(express.static(path.join(__dirname, this.static.path), this.static.options))
+
         this.app.use(cors(this.cors))
+
         this.middlewares.map(middleware => {
             this.app.use(middleware)
         })
+
         if (this.logger) this.middlewareLogger()
+
         this.app.use((req, res, next) => {
             res.setHeader('X-Powered-By', 'Blue Bird');
             next();
         });
+
+        if (props.debug) {
+            Debug.middlewareMetrics(this.app);
+        }
+
         this.dispatchRoutes()
 
         if (this.notFound) this.notFoundDefault()
@@ -151,9 +161,16 @@ class App {
      * Iterates through the stored routes and attaches them to the Express application instance.
      */
     dispatchRoutes() {
+        if (props.debug) {
+            const debug = new Debug();
+            const debugRouter = debug.getRouter();
+            this.app.use(debugRouter.path, debugRouter.router);
+        }
         this.routes.map(route => {
             this.app.use(route.path, route.router)
         })
+
+
     }
     /**
      * Default 404 handler for unmatched routes.
