@@ -3,18 +3,8 @@ import swaggerJSDoc from "swagger-jsdoc";
 
 class Swagger {
 
-    static init(app, optionsParam = {}) {
-        const options = {
-            ...optionsParam,
-            ...{
-                info: {
-                    title: "Blue Bird API",
-                    version: "1.0.0",
-                    description: "Blue Bird Framework API Documentation"
-                },
-                url: "http://localhost:3000"
-            }
-        }
+    static init(app, options) {
+
         const optionsJsDoc = {
             definition: {
                 openapi: "3.0.0",

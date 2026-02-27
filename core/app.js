@@ -33,7 +33,7 @@ class App {
      * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
      * @param {boolean|Object} [options.helmet=true] - Enable Helmet security headers.
      * @param {boolean} [options.xssClean=true] - Enable XSS body sanitization.
-     * @param {boolean} [options.swagger=true] - Enable swagger
+     * @param {boolean|Object} [options.swagger=true] - Enable swagger
      * @example 
      * const app = new App({
      *     routes: [],
@@ -56,7 +56,14 @@ class App {
      *         },
      *          helmet:true,
      *          xssClean:true,
-     *          swagger:true
+     *          swagger:{
+     *          info: {
+     *             title: "Blue Bird API",
+     *             version: "1.0.0",
+     *             description: "Blue Bird Framework API Documentation"
+     *            },
+     *           url : "http://localhost:8000"
+     *          }
      * });
      */
     constructor(options = {
@@ -188,8 +195,26 @@ class App {
             Debug.middlewareMetrics(this.app);
         }
         this.errorHandler();
-        
-        if (this.swagger) Swagger.init(app);
+
+        if (this.swagger) {
+
+            const defaultSwaggerOptions = {
+                info: {
+                    title: "Blue Bird API",
+                    version: "1.0.0",
+                    description: "Blue Bird Framework API Documentation"
+                },
+                url: `${props.host}:${props.port}`,
+                route: "/docs"
+            };
+
+            const swaggerOptions = {
+                ...defaultSwaggerOptions,
+                ...(typeof this.swagger === "object" ? this.swagger : {})
+            };
+
+            Swagger.init(this.app, swaggerOptions);
+        }
 
         this.dispatchRoutes()
 

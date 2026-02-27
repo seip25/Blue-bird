@@ -11,9 +11,21 @@ const routerUsers = new Router("/")
  * /users:
  *   get:
  *     summary: Get all users
+ *     tags: [Users]
  *     responses:
  *       200:
- *        description: List of users
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
  */
 routerUsers.get("/users", (req, res) => {
     const users = [
