@@ -1,7 +1,7 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.2.1",
-  "description": "Express + React opinionated framework with island architecture and built-in JWT auth",
+ "version": "0.2.1",
+  "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
   "type": "module",
   "bin": {
     "blue-bird": "core/cli/init.js"
@@ -13,8 +13,7 @@
   "keywords": [
     "express",
     "react",
-    "framework",
-    "islands",
+    "framework", 
     "vite"
   ],
   "author": "Seip25",
@@ -28,15 +27,13 @@
     "start": "node --env-file=.env backend/index.js",
     "create-react-app": "node core/cli/react.js",
     "react": "node core/cli/react.js",
-    "component": "node core/cli/component.js",
-    "route": "node core/cli/route.js",
-    "init": "node core/cli/init.js"
+    "init": "node core/cli/init.js",
+    "route": "node core/cli/route.js"
   },
   "dependencies": {
     "chalk": "^5.6.2",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "ejs": "^4.0.1",
+    "cors": "^2.8.6", 
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2"

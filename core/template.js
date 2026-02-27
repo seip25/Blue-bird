@@ -1,4 +1,3 @@
-import ejs from "ejs";
 import path from "node:path";
 import fs from "node:fs";
 import Config from "./config.js";
@@ -7,208 +6,256 @@ import Logger from "./logger.js";
 const __dirname = Config.dirname();
 const props = Config.props();
 
+const TEMPLATE_PATH = path.join(__dirname, "frontend", "index.html");
+const BASE_TEMPLATE = fs.readFileSync(TEMPLATE_PATH, "utf-8");
+let CACHE_TEMPLATE = {};
+
 /**
- * Template engine wrapper using EJS, providing helper functions and React island support.
+ * Lightweight HTML template renderer optimized for SPA environments.
  */
 class Template {
+
     /**
-     * Renders an EJS template with the provided context and helper functions.
-     * @param {string} template - The template name (without .ejs extension).
-     * @param {Object} [context={}] - Data to pass to the template.
-     * @param {import('express').Response} res - The Express response object.
-     * @returns {Promise<void>}
-     */
-    static async render(template, context = {}, res) {
+ * Renders the base HTML template for a React application using
+ * string placeholder replacement and optional in-memory caching.
+ *
+ * This method injects:
+ * - The root React component name
+ * - Serialized component props
+ * - SEO meta tags
+ * - Custom <head> tags
+ * - Stylesheets
+ * - Scripts (head and body)
+ * - Vite assets
+ *
+ * It supports basic HTML escaping, optional minification,
+ * and template caching per component.
+ *
+ * @static
+ * @method renderReact
+ *
+ * @param {import('express').Response} res
+ * Express response object used to send the generated HTML.
+ *
+ * @param {string} [component="App"]
+ * The root React component name to bootstrap on the client.
+ * This value replaces the `__COMPONENT__` placeholder in the template.
+ *
+ * @param {Object<string, any>} [componentProps={}]
+ * Props passed to the root React component.
+ * These are serialized and injected into the template
+ * via the `__PROPS__` placeholder.
+ *
+ * @param {Object} [options={}]
+ * Rendering configuration options.
+ *
+ * @param {string} [options.langHtml="en"]
+ * Value for the `<html lang="">` attribute.
+ * Falls back to metaTags.langMeta if available.
+ *
+ * @param {string} [options.classBody="body"]
+ * CSS class applied to the `<body>` tag.
+ *
+ * @param {Array<{tag:string, attrs:Object<string,string>}>} [options.head=[]]
+ * Additional custom tags injected into `<head>`.
+ * Example:
+ * `{ tag: "meta", attrs: { name: "description", content: "Example" } }`
+ *
+ * @param {Array<{href:string}>} [options.linkStyles=[]]
+ * Stylesheets injected as `<link rel="stylesheet" />` tags.
+ *
+ * @param {Array<{src:string}>} [options.scriptsInHead=[]]
+ * Script files injected inside `<head>`.
+ *
+ * @param {Array<{src:string}>} [options.scriptsInBody=[]]
+ * Script files injected before `</body>`.
+ *
+ * @param {boolean} [options.cache=true]
+ * Enables in-memory caching of the generated HTML
+ * per component name to improve performance.
+ *
+ * @param {Object} [options.metaTags]
+ * SEO metadata configuration.
+ *
+ * @param {string} [options.metaTags.titleMeta]
+ * Content for the `<title>` tag.
+ *
+ * @param {string} [options.metaTags.descriptionMeta]
+ * Content for `<meta name="description">`.
+ *
+ * @param {string} [options.metaTags.keywordsMeta]
+ * Content for `<meta name="keywords">`.
+ *
+ * @param {string} [options.metaTags.authorMeta]
+ * Content for `<meta name="author">`.
+ *
+ * @param {string} [options.metaTags.langMeta]
+ * Alternative language metadata value.
+ *
+ * @returns {void}
+ * Sends a complete HTML response to the client.
+ *
+ * @throws {Error}
+ * If template rendering fails, a 500 response is returned.
+ *
+ * @example
+ * const options = {
+ *   cache: true,
+ *   classBody: "bg-gray-100",
+ *   head: [
+ *     { tag: "meta", attrs: { name: "robots", content: "index, follow" } }
+ *   ],
+ *   linkStyles: [
+ *     { href: "/css/style.css" }
+ *   ],
+ *   scriptsInHead: [
+ *     { src: "/js/head.js" }
+ *   ],
+ *   scriptsInBody: [
+ *     { src: "/js/body.js" }
+ *   ],
+ *   metaTags: {
+ *     titleMeta: "Example Title",
+ *     descriptionMeta: "Example description",
+ *     keywordsMeta: "express, react, framework",
+ *     authorMeta: "Blue Bird",
+ *     langMeta: "en"
+ *   }
+ * };
+ *
+ * Template.renderReact(res, "App", { title: "Hello World" }, options);
+ */
+    static renderReact(res, component = "App", componentProps = {}, options = {}) {
         try {
-            const templatePath = path.join(__dirname, "templates", `${template}.ejs`);
+            const {
+                langHtml = options.langHtml || props.langMeta || "en",
+                classBody = "body",
+                head = [],
+                linkStyles = [],
+                scriptsInHead = [],
+                scriptsInBody = [],
+                cache = true,
+                metaTags = {
+                    titleMeta: options.metaTags?.titleMeta || props.titleMeta,
+                    descriptionMeta: options.metaTags?.descriptionMeta || props.descriptionMeta,
+                    keywordsMeta: options.metaTags?.keywordsMeta || props.keywordsMeta,
+                    authorMeta: options.metaTags?.authorMeta || props.authorMeta,
+                    langMeta: options.metaTags?.langMeta || props.langMeta,
+                },
+            } = options;
 
-            const helpers = {
-                asset: (file) => this.asset(file),
-                url: (p = "") => this.url(p),
-                react: (component, props = {}) => this.react(component, props),
-                vite_assets: () => this.vite_assets()
-            };
+            res.type("text/html");
+            res.status(200);
 
-            const fullContext = {
-                ...props,
-                ...helpers,
-                ...context
-            };
+            if (cache && CACHE_TEMPLATE[component]) {
+                return res.send(CACHE_TEMPLATE[component]);
+            }
 
-            const html = await ejs.renderFile(templatePath, fullContext);
-            const minifiedHtml = this.minifyHtml(html);
+            const title = this.escapeHtml(metaTags.titleMeta || "");
+            const description = this.escapeHtml(metaTags.descriptionMeta || "");
+            const keywords = this.escapeHtml(metaTags.keywordsMeta || "");
+            const author = this.escapeHtml(metaTags.authorMeta || "");
 
-            res.send(minifiedHtml);
+            const headOptions = head
+                .map(item => `<${item.tag} ${Object.entries(item.attrs).map(([k, v]) => `${k}="${v}"`).join(" ")} />`)
+                .join("");
+
+            const linkTags = linkStyles
+                .map(item => `<link rel="stylesheet" href="${item.href}" />`)
+                .join("");
+
+            const scriptsHeadTags = scriptsInHead
+                .map(item => `<script src="${item.src}"></script>`)
+                .join("");
+
+            const scriptsBodyTags = scriptsInBody
+                .map(item => `<script src="${item.src}"></script>`)
+                .join("");
+
+            const propsJson = JSON.stringify(componentProps).replace(/'/g, "&#39;");
+
+            let html = BASE_TEMPLATE
+                .replace(/__LANG__/g, this.escapeHtml(langHtml))
+                .replace(/__TITLE__/g, title)
+                .replace(/__DESCRIPTION__/g, description)
+                .replace(/__KEYWORDS__/g, keywords)
+                .replace(/__AUTHOR__/g, author)
+                .replace(/__HEAD_OPTIONS__/g, headOptions)
+                .replace(/__LINK_STYLES__/g, linkTags)
+                .replace(/__SCRIPTS_HEAD__/g, scriptsHeadTags)
+                .replace(/__CLASS_BODY__/g, classBody)
+                .replace(/__COMPONENT__/g, component)
+                .replace(/__PROPS__/g, propsJson)
+                .replace(/__VITE_ASSETS__/g, this.vite_assets())
+                .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags);
+
+            html = this.minifyHtml(html);
+            CACHE_TEMPLATE[component] = html;
+            return res.send(html);
+
         } catch (error) {
             const logger = new Logger();
             logger.error(`Template render error: ${error.message}`);
 
             if (props.debug) {
-                res.status(500).send(`<pre>${error.stack}</pre>`);
-            } else {
-                res.status(500).send("Internal Server Error");
+                console.log(error)
+                return res.status(500).send(`<pre>${error.stack}</pre>`);
             }
+
+            return res.status(500).send("Internal Server Error");
         }
     }
 
     /**
-     * Generates a URL for a static asset.
-     * @param {string} file - The asset path.
-     * @returns {string} The full asset URL.
-     */
-    static asset(file) {
-        return `${props.host}:${props.port}/public/${file.replace(/^\//, "")}`;
-    }
-
-    /**
-     * Generates a full URL for the given path.
-     * @param {string} [p=""] - The relative path.
-     * @returns {string} The full URL.
-     */
-    static url(p = "") {
-        const cleanPath = p.replace(/^\//, "");
-        return `${props.host}:${props.port}/${cleanPath}`;
-    }
-
-    /**
-     * Renders a React component as an HTML string.
-     * @param {string} component - The React component name.
-     * @param {Object} [componentProps={}] - Props to pass to the component.
-     * @options {Object} options - Options for the template.
-     * @returns {string} The HTML string of the React component.
-     * @example
-     * const options = {
-     *  langHtml: "en",
-     *   metaTags: {
-     *      titleMeta: "Page Title",
-     *      descriptionMeta: "Page description",
-     *      keywordsMeta: "keyword1, keyword2",
-     * },
-     *     head: [
-     *         { tag: "meta", attrs: { name: "description", content: "Description" } },
-     *         { tag: "link", attrs: { rel: "stylesheet", href: "style.css" } }
-     *     ],
-     *     classBody: "bg-gray-100",
-     *     linkStyles: [
-     *         { href: "style.css" }
-     *     ],
-     *     scriptScripts: [
-     *         { src: "script.js" }
-     *     ]
-     * };
-     * 
-     * Template.renderReact(res, "App", { title: "Example title" }, options);
-     */
-    static renderReact(res, component = "App", propsReact = {}, options = {}) {
-        const optionsHead = options.head || [];
-        const classBody = options.classBody || "";
-        const linkStyles = options.linkStyles || [];
-        const scriptScripts = options.scriptScripts || [];
-        const langHtml = options.langHtml || props.langMeta || "en";
-        const metaTags = {
-            titleMeta: options.metaTags?.titleMeta || props.titleMeta,
-            descriptionMeta: options.metaTags?.descriptionMeta || props.descriptionMeta,
-            keywordsMeta: options.metaTags?.keywordsMeta || props.keywordsMeta,
-            authorMeta: options.metaTags?.authorMeta || props.authorMeta,
-            langMeta: options.metaTags?.langMeta || props.langMeta,
-        };
-
-        const html = `
-<!DOCTYPE html>
-<html lang="${this.escapeHtml(langHtml)}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${this.escapeHtml(metaTags.titleMeta)}</title>
-    <link rel="icon" href="favicon.ico" />
-    <meta name="description" content="${this.escapeHtml(metaTags.descriptionMeta)}"/>
-    <meta name="keywords" content="${this.escapeHtml(metaTags.keywordsMeta)}"/>
-    <meta name="author" content="${this.escapeHtml(metaTags.authorMeta)}"/>
-    ${linkStyles.map(item => `<link rel="stylesheet" href="${item.href}" />`).join("")}
-    ${optionsHead.map(item => `<${item.tag} ${Object.entries(item.attrs).map(([key, value]) => `${key}="${value}"`).join(" ")} />`).join("")}
-</head>
-<body class="${classBody}">
-    ${this.react(component, propsReact)}
-    ${this.vite_assets()}
-    ${scriptScripts.map(item => `<script src="${item.src}"></script>`).join("")}
-</body>
-</html>
-        `
-        res.type("text/html");
-        res.status(200);
-        return res.send(this.minifyHtml(html));
-    }
-
-    /**
-     * Generates a container for a React island component.
-     * @param {string} component - The React component name.
-     * @param {Object} [componentProps={}] - Props to pass to the component.
-     * @returns {string} The HTML container with data attributes for hydration.
-     */
-    static react(component, componentProps = {}, divId = "root") {
-        const id = divId || `react-${Math.random().toString(36).substr(2, 9)}`;
-        const propsJson = JSON.stringify(componentProps).replace(/'/g, "&apos;");
-        return `<div id="${id}" data-react-component="${component}" data-props='${propsJson}'></div>`;
-    }
-
-    /**
-     * Generates script and link tags for Vite-managed assets.
-     * Handles both development (Vite dev server) and production (manifest.json) modes.
-     * @returns {string} The HTML tags for scripts and styles.
+     * Generates Vite asset tags depending on environment.
+     * @returns {string}
      */
     static vite_assets() {
 
         if (props.debug) {
             return `
-                <script type="module">
-                    import RefreshRuntime from "http://localhost:5173/build/@react-refresh";
-                    RefreshRuntime.injectIntoGlobalHook(window);
-                    window.$RefreshReg$ = () => {};
-                    window.$RefreshSig$ = () => (type) => type;
-                    window.__vite_plugin_react_preamble_installed__ = true;
-                </script>
-                <script type="module" src="http://localhost:5173/build/@vite/client"></script>
-                <script type="module" src="http://localhost:5173/build/Main.jsx"></script>`;
+<script type="module">
+import RefreshRuntime from "http://localhost:5173/build/@react-refresh";
+RefreshRuntime.injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;
+window.__vite_plugin_react_preamble_installed__ = true;
+</script>
+<script type="module" src="http://localhost:5173/build/@vite/client"></script>
+<script type="module" src="http://localhost:5173/build/Main.jsx"></script>`;
         }
 
         const buildPath = path.join(__dirname, props.static.path, "build");
         let manifestPath = path.join(buildPath, "manifest.json");
-
 
         if (!fs.existsSync(manifestPath)) {
             manifestPath = path.join(buildPath, ".vite", "manifest.json");
         }
 
         if (fs.existsSync(manifestPath)) {
-            try {
-                const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-                const entry = manifest["Main.jsx"];
-                if (entry) {
-                    const file = entry.file;
-                    const css = entry.css || [];
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+            const entry = manifest["Main.jsx"];
 
-                    let html = "";
-                    css.forEach(cssFile => {
-                        html += `<link rel="stylesheet" href="/build/${cssFile}">`;
-                    });
-                    html += `<script type="module" src="/build/${file}"></script>`;
+            if (entry) {
+                const file = entry.file;
+                const css = entry.css || [];
 
-                    return html;
-                }
-            } catch (e) {
-                return `<!-- Error parsing Vite manifest: ${e.message} -->`;
+                let html = "";
+                css.forEach(cssFile => {
+                    html += `<link rel="stylesheet" href="/build/${cssFile}">`;
+                });
+                html += `<script type="module" src="/build/${file}"></script>`;
+                return html;
             }
         }
 
-        return `<!-- Vite Manifest not found at ${manifestPath} -->`;
+        return "";
     }
 
-
-
     /**
-     * Minifies the HTML output by removing comments and excessive whitespace.
-     * @param {string} html - The raw HTML string.
-     * @returns {string} The minified HTML string.
+     * Minifies HTML output.
+     * @param {string} html
+     * @returns {string}
      */
     static minifyHtml(html) {
         return html
@@ -217,11 +264,12 @@ class Template {
             .replace(/\s{2,}/g, " ")
             .trim();
     }
+
     /**
-    * Escapes HTML special characters in a string to prevent XSS attacks.
-    * @param {string} str - The input string.
-    * @returns {string} The escaped string.
-    */
+     * Escapes HTML special characters.
+     * @param {string} str
+     * @returns {string}
+     */
     static escapeHtml(str = "") {
         return String(str)
             .replace(/&/g, "&amp;")

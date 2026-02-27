@@ -116,7 +116,7 @@ export default defineConfig({
     emptyOutDir: true,
     manifest: true,
     rollupOptions: {
-      input: path.resolve(__dirname, 'frontend/resources/js/main.jsx'),
+      input: path.resolve(__dirname, 'frontend/resources/js/Main.jsx'),
     },
   },
   server: {
@@ -146,7 +146,10 @@ export default function Home() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        email:"example@example.com",
+        password: "myPassword123"
+      }),
     })
       .then((response) => response.json())
       .then((data) => console.log('Backend response:', data))
@@ -284,7 +287,12 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
 
-export default function App(props) {
+export default function App(_props) {
+  const {
+    component,
+    props
+  } = _props;
+  
   return (
     <Router>
       <div style={{ 
@@ -348,11 +356,18 @@ const navLinkStyle = {
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-react-component]').forEach(el => {
-      const name = el.dataset.reactComponent;
-      const props = JSON.parse(el.dataset.props || '{}');
-        createRoot(el).render(<App {...props} />); 
+      const component = {
+        component:el.dataset.reactComponent
+      };
+      const props = JSON.parse(el.dataset.props || '{}'); 
+      const allProps={
+        ...props,
+        ...component
+      }
+        createRoot(el).render(<App {...allProps} />); 
     });   
 });`;
     fs.writeFileSync(file, content);

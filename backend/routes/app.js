@@ -30,11 +30,23 @@ routerUsers.post('/login', loginValidator.middleware(), (req, res) => {
     res.json({ message: 'Login successful' });
 });
 
+//Example renderReact with customized meta Tags 
+routerUsers.get("/about", (req, res) => {
+    const response = Template.renderReact(res, "About", { title: "About Example title" }, {
+        metaTags: {
+            titleMeta: "About Title",
+            descriptionMeta: "About description",
+            keywordsMeta: "About,express, react, framework",
+            authorMeta: "Blue Bird",
+            langMeta: "es"
+        }
+    });
+    return response;
+})
 
 routerUsers.get("*", (req, res) => {
     const response = Template.renderReact(res, "App", { title: "Example title" });
     return response;
-
 })
 
 
