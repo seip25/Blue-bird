@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
   "type": "module",
   "bin": {
@@ -42,6 +42,6 @@
     "multer": "^2.0.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "xss-clean": "^0.1.4"
+    "xss": "^1.0.15"
   }
 }

@@ -4,6 +4,7 @@ import path from "path"
 import chalk from "chalk"
 import cookieParser from "cookie-parser"
 import rateLimit from "express-rate-limit"
+import xss from "xss"
 import Config from "./config.js"
 import Logger from "./logger.js"
 import Debug from "./debug.js"
@@ -178,7 +179,7 @@ class App {
         }
 
         if (this.xssClean) {
-            this.app.use(xssClean())
+            this.app.use(this.xssMiddleware());
         }
         this.middlewares.map(middleware => {
             this.app.use(middleware)
@@ -260,6 +261,33 @@ class App {
                 success: false
             });
         });
+    }
+
+    sanitizeObject(obj) {
+        if (typeof obj === "string") return xss(obj);
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.sanitizeObject(item));
+        }
+
+        if (typeof obj === "object" && obj !== null) {
+            const sanitized = {};
+            for (const key in obj) {
+                sanitized[key] = this.sanitizeObject(obj[key]);
+            }
+            return sanitized;
+        }
+
+        return obj;
+    }
+
+    xssMiddleware() {
+        return (req, res, next) => {
+            if (req.body) req.body = this.sanitizeObject(req.body);
+            if (req.query) req.query = this.sanitizeObject(req.query);
+            if (req.params) req.params = this.sanitizeObject(req.params);
+            next();
+        };
     }
 
     /**
