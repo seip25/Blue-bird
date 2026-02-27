@@ -66,7 +66,9 @@ class ProjectInit {
                 "dev": "node --watch --env-file=.env backend/index.js",
                 "start": "node --env-file=.env backend/index.js",
                 "react": "blue-bird react",
-                "init": "blue-bird"
+                "init": "blue-bird",
+                "route": "blue-bird route",
+                "component": "blue-bird component"
             };
 
             let updated = false;
@@ -106,11 +108,9 @@ const initializer = new ProjectInit();
 const args = process.argv.slice(2);
 const command = args[0];
 
-if (command === "react") {
-    // Dynamically import ReactScaffold to avoid circular dependencies if any, 
-    // or just run it if it's separate.
-    import("./react.js");
-} else {
-    initializer.run();
-}
+if (command === "react") import("./react.js");
+else if (command === "route") import("./route.js")
+else if (command === "component") import("./route.js")
+else initializer.run();
+
 

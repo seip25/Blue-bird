@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
- "version": "0.2.3",
+ "version": "0.2.4",
   "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
   "type": "module",
   "bin": {
@@ -27,7 +27,9 @@
     "start": "node --env-file=.env backend/index.js",
     "create-react-app": "node core/cli/react.js",
     "react": "node core/cli/react.js",
-    "init": "node core/cli/init.js"
+    "init": "node core/cli/init.js",
+    "route": "node core/cli/route.js",
+    "component": "node core/cli/component.js"
   },
   "dependencies": {
     "chalk": "^5.6.2",
