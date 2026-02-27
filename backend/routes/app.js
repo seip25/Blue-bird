@@ -5,6 +5,16 @@ import Template from "@seip/blue-bird/core/template.js"
 
 const routerUsers = new Router("/")
 
+//Example swagger docs 
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users
+ *     responses:
+ *       200:
+ *        description: List of users
+ */
 routerUsers.get("/users", (req, res) => {
     const users = [
         {

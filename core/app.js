@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit"
 import Config from "./config.js"
 import Logger from "./logger.js"
 import Debug from "./debug.js"
+import Swagger from "./swagger.js"
 
 const __dirname = Config.dirname()
 const props = Config.props()
@@ -30,10 +31,13 @@ class App {
      * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
      * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
      * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
+     * @param {boolean|Object} [options.helmet=true] - Enable Helmet security headers.
+     * @param {boolean} [options.xssClean=true] - Enable XSS body sanitization.
+     * @param {boolean} [options.swagger=true] - Enable swagger
      * @example 
      * const app = new App({
      *     routes: [],
-     *     cors: {},
+     *     cors: {}, // { origin: "https://domain:port" }
      *     middlewares: [],
      *     port: 3000,
      *     host: "http://localhost",
@@ -49,7 +53,10 @@ class App {
      *      rateLimit: {
      *       windowMs: 10 * 60 * 1000, 
      *        max: 50
-     *    },
+     *         },
+     *          helmet:true,
+     *          xssClean:true,
+     *          swagger:true
      * });
      */
     constructor(options = {
@@ -67,7 +74,10 @@ class App {
             options: {}
         },
         cookieParser: true,
-        rateLimit: false
+        rateLimit: false,
+        helmet: false,
+        xssClean: true,
+        swagger: true
 
     }) {
         this.app = express()
@@ -83,6 +93,9 @@ class App {
         this.static = options.static || props.static
         this.cookieParser = options.cookieParser ?? true
         this.rateLimit = options.rateLimit ?? false
+        this.helmet = options.helmet ?? true
+        this.xssClean = options.xssClean ?? true
+        this.swagger = options.swagger ?? true
         this.dispatch()
 
     }
@@ -122,7 +135,9 @@ class App {
 
         this.app.use(cors(this.cors))
         if (this.rateLimit) {
-            this.app.set('trust proxy', 1);
+            if (!this.app.get('trust proxy')) {
+                this.app.set('trust proxy', 1);
+            }
             const defaultRateLimit = {
                 windowMs: 15 * 60 * 1000,
                 max: 100,
@@ -147,6 +162,17 @@ class App {
 
             this.app.use(limiter);
         }
+        if (this.helmet) {
+            if (typeof this.helmet === "object") {
+                this.app.use(helmet(this.helmet))
+            } else {
+                this.app.use(helmet())
+            }
+        }
+
+        if (this.xssClean) {
+            this.app.use(xssClean())
+        }
         this.middlewares.map(middleware => {
             this.app.use(middleware)
         })
@@ -161,7 +187,9 @@ class App {
         if (props.debug) {
             Debug.middlewareMetrics(this.app);
         }
-
+        this.errorHandler();
+        
+        if (this.swagger) Swagger.init(app);
 
         this.dispatchRoutes()
 
@@ -175,7 +203,7 @@ class App {
     middlewareLogger() {
         this.app.use((req, res, next) => {
             const method = req.method
-            const url = req.url
+            const url = req.url.replace(/(password|token|authorization)=([^&]+)/gi, "$1=***")
             const params = Object.keys(req.params).length > 0 ? ` ${JSON.stringify(req.params)}` : ""
             const ip = req.ip
             const now = new Date().toISOString()
@@ -189,6 +217,24 @@ class App {
             }
             next()
         })
+    }
+    errorHandler() {
+        this.app.use((err, req, res, next) => {
+            const logger = new Logger();
+            logger.error(err.stack || err.message);
+
+            if (props.debug) {
+                return res.status(err.status || 500).json({
+                    success: false,
+                    message: err.message,
+                    stack: err.stack
+                });
+            }
+
+            return res.status(err.status || 500).json({
+                success: false
+            });
+        });
     }
 
     /**

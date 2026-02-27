@@ -255,8 +255,7 @@ class Validator {
                 success: false,
                 error: true,
                 errors: errors,
-                message: messages,
-                html: messages.map(e => `<p class="text-red-500 text-danger">${e}</p>`)
+                message: messages 
             };
         }
 

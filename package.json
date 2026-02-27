@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
- "version": "0.2.5",
+  "version": "0.2.5",
   "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
   "type": "module",
   "bin": {
@@ -13,7 +13,7 @@
   "keywords": [
     "express",
     "react",
-    "framework", 
+    "framework",
     "vite"
   ],
   "author": "Seip25",
@@ -34,10 +34,14 @@
   "dependencies": {
     "chalk": "^5.6.2",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6", 
+    "cors": "^2.8.6",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "express-rate-limit": "^8.2.1"
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "xss-clean": "^0.1.4"
   }
 }
