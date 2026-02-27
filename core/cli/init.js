@@ -110,7 +110,7 @@ const command = args[0];
 
 if (command === "react") import("./react.js");
 else if (command === "route") import("./route.js")
-else if (command === "component") import("./route.js")
+else if (command === "component") import("./component.js")
 else initializer.run();
 
 
