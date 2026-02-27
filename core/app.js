@@ -3,6 +3,7 @@ import cors from "cors"
 import path from "path"
 import chalk from "chalk"
 import cookieParser from "cookie-parser"
+import rateLimit from "express-rate-limit"
 import Config from "./config.js"
 import Logger from "./logger.js"
 import Debug from "./debug.js"
@@ -28,6 +29,7 @@ class App {
      * @param {boolean} [options.urlencoded=true] - Whether to enable URL-encoded body parsing.
      * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
      * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
+     * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
      * @example 
      * const app = new App({
      *     routes: [],
@@ -43,7 +45,11 @@ class App {
      *         path: "public",
      *         options: {}
      *     },
-     *     cookieParser: true,
+     *      cookieParser: true,
+     *      rateLimit: {
+     *       windowMs: 10 * 60 * 1000, 
+     *        max: 50
+     *    },
      * });
      */
     constructor(options = {
@@ -61,6 +67,7 @@ class App {
             options: {}
         },
         cookieParser: true,
+        rateLimit: false
 
     }) {
         this.app = express()
@@ -69,12 +76,13 @@ class App {
         this.middlewares = options.middlewares || []
         this.port = options.port || props.port
         this.host = options.host || props.host
-        this.logger = options.logger || true
-        this.notFound = options.notFound || true
-        this.json = options.json || true
-        this.urlencoded = options.urlencoded || true
+        this.logger = options.logger ?? true
+        this.notFound = options.notFound ?? true
+        this.json = options.json ?? true
+        this.urlencoded = options.urlencoded ?? true
         this.static = options.static || props.static
-        this.cookieParser = options.cookieParser || true
+        this.cookieParser = options.cookieParser ?? true
+        this.rateLimit = options.rateLimit ?? false
         this.dispatch()
 
     }
@@ -113,7 +121,32 @@ class App {
         if (this.static.path) this.app.use(express.static(path.join(__dirname, this.static.path), this.static.options))
 
         this.app.use(cors(this.cors))
+        if (this.rateLimit) {
+            this.app.set('trust proxy', 1);
+            const defaultRateLimit = {
+                windowMs: 15 * 60 * 1000,
+                max: 100,
+                standardHeaders: true,
+                legacyHeaders: false,
+                message: {
+                    success: false,
+                    message: "Too many requests, please try again later."
+                }
+            };
+            const optionsRateLimiter = {
+                ...defaultRateLimit,
+                ...(typeof this.rateLimit === "object" ? this.rateLimit : {})
+            };
 
+            if (props.debug) {
+                optionsRateLimiter.skip = (req) =>
+                    req.path.startsWith("/debug");
+            }
+
+            const limiter = rateLimit(optionsRateLimiter);
+
+            this.app.use(limiter);
+        }
         this.middlewares.map(middleware => {
             this.app.use(middleware)
         })
@@ -128,6 +161,7 @@ class App {
         if (props.debug) {
             Debug.middlewareMetrics(this.app);
         }
+
 
         this.dispatchRoutes()
 
