@@ -136,7 +136,7 @@ class App {
      * Bootstraps the application by configuring global middlewares and routes.
      * Sets up JSON parsing, URL encoding, CORS, and custom middlewares.
      */
-    dispatch() {
+    async dispatch() {
         if (this.json) this.app.use(express.json())
         if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }))
         if (this.cookieParser) this.app.use(cookieParser())
@@ -207,7 +207,7 @@ class App {
         this.errorHandler();
 
         if (this.swagger) {
-            const Swagger = import("./swagger.js")
+            const { default: Swagger } = await import("./swagger.js")
             const defaultSwaggerOptions = {
                 info: {
                     title: "Blue Bird API",
