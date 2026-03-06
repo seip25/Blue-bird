@@ -68,7 +68,8 @@ class ProjectInit {
                 "react": "blue-bird react",
                 "init": "blue-bird",
                 "route": "blue-bird route",
-                "component": "blue-bird component"
+                "component": "blue-bird component",
+                "swagger-install": "blue-bird swagger-install"
             };
 
             let updated = false;
@@ -111,6 +112,7 @@ const command = args[0];
 if (command === "react") import("./react.js");
 else if (command === "route") import("./route.js")
 else if (command === "component") import("./component.js")
+else if (command === "swagger-install") import("./swagger.js")
 else initializer.run();
 
 

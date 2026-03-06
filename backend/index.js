@@ -4,7 +4,7 @@ import routerUsers from "./routes/app.js";
 const app = new App({
     routes: [routerUsers],
     cors: [],
-    middlewares: [], 
+    middlewares: [],
     host: "http://localhost"
 })
 

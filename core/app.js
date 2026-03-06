@@ -35,7 +35,7 @@ class App {
      * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
      * @param {boolean|Object} [options.helmet=true] - Enable Helmet security headers.
      * @param {boolean} [options.xssClean=true] - Enable XSS body sanitization.
-     * @param {boolean|Object} [options.swagger=true] - Enable swagger
+     * @param {boolean|Object} [options.swagger=false] - Enable swagger
      * @example 
      * const app = new App({
      *     routes: [],
@@ -86,7 +86,7 @@ class App {
         rateLimit: false,
         helmet: false,
         xssClean: true,
-        swagger: true
+        swagger: false
 
     }) {
         this.app = express()
@@ -104,7 +104,7 @@ class App {
         this.rateLimit = options.rateLimit ?? false
         this.helmet = options.helmet ?? true
         this.xssClean = options.xssClean ?? true
-        this.swagger = options.swagger ?? true
+        this.swagger = options.swagger ?? false
         this.dispatch()
 
     }
