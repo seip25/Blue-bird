@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
   "type": "module",
   "bin": {
