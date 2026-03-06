@@ -127,7 +127,7 @@ class Template {
  */
     static renderReact(res, component = "App", componentProps = {}, options = {}) {
         try {
-            const {
+            let {
                 langHtml = options.langHtml || props.langMeta || "en",
                 classBody = "body",
                 head = [],
@@ -135,20 +135,25 @@ class Template {
                 scriptsInHead = [],
                 scriptsInBody = [],
                 cache = true,
-                metaTags = {
-                    titleMeta: options.metaTags?.titleMeta || props.titleMeta,
-                    descriptionMeta: options.metaTags?.descriptionMeta || props.descriptionMeta,
-                    keywordsMeta: options.metaTags?.keywordsMeta || props.keywordsMeta,
-                    authorMeta: options.metaTags?.authorMeta || props.authorMeta,
-                    langMeta: options.metaTags?.langMeta || props.langMeta,
-                },
+                metaTags
             } = options;
+            const metaTagsDefault = {
+                titleMeta: props.titleMeta,
+                descriptionMeta: props.descriptionMeta,
+                keywordsMeta: props.keywordsMeta,
+                authorMeta: props.authorMeta,
+                langMeta: props.langMeta,
+            }
+            metaTags = {
+                ...metaTagsDefault,
+                ...metaTags
+            }
 
             res.type("text/html");
             res.status(200);
-
-            if (cache && CACHE_TEMPLATE[component]) {
-                return res.send(CACHE_TEMPLATE[component]);
+            const cacheKey = `${component}_${metaTags.titleMeta}`;
+            if (cache && CACHE_TEMPLATE[cacheKey]) {
+                return res.send(CACHE_TEMPLATE[cacheKey]);
             }
 
             const title = this.escapeHtml(metaTags.titleMeta || "");

@@ -1,8 +1,9 @@
 import App from "@seip/blue-bird/core/app.js";
-import routerUsers from "./routes/app.js";
+import routerApiExample from "./routes/api.js";
+import routerFrontendExample from "./routes/frontend.js";
 
 const app = new App({
-    routes: [routerUsers],
+    routes: [routerApiExample, routerFrontendExample],
     cors: [],
     middlewares: [],
     host: "http://localhost"

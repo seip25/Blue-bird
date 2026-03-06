@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'; 
+import React, { useEffect } from 'react';
 
 export default function Home() {
   useEffect(() => {
@@ -9,7 +9,7 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email:"example@example.com",
+        email: "example@example.com",
         password: "myPassword123"
       }),
     })
@@ -19,92 +19,50 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-      <header style={{ marginBottom: '3rem' }}>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
-          fontWeight: '800', 
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '1rem'
-        }}>
+    <div className='text-center p-4'>
+      <header className='mb-4'>
+        <h1 className='text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent mb-4'>
           Welcome to Blue Bird
         </h1>
-        <p style={{ fontSize: '1.25rem', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
+        <p className='text-gray-500 max-w-600px mx-auto'>
           The elegant, fast, and weightless framework for modern web development.
         </p>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '4rem' }}>
-        <a 
-          href="https://seip25.github.io/Blue-bird/" 
-          target="_blank" 
+      <div className='flex gap-4 justify-center mb-8'>
+        <a
+          href="https://seip25.github.io/Blue-bird/en.html"
+          target="_blank"
           rel="noopener noreferrer"
-          style={{
-            backgroundColor: '#2563eb',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '600',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+          className='bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-400'
         >
-          Documentation
+          Documentation (Eng)
         </a>
-        <a 
-          href="https://seip25.github.io/Blue-bird/en.html" 
-          target="_blank" 
+        <a
+          href="https://seip25.github.io/Blue-bird/"
+          target="_blank"
           rel="noopener noreferrer"
-          style={{
-            backgroundColor: 'white',
-            color: '#374151',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '600',
-            border: '1px solid #d1d5db',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#f9fafb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = 'white'}
+          className='bg-blue-50 text-blue-500 px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-100  '
         >
-          English Docs
+          Documentación (Esp)
+
         </a>
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-        gap: '2rem',
-        maxWidth: '1000px',
-        margin: '0 auto'
-      }}>
-        <div style={cardStyle}>
-          <h3>Lightweight</h3>
+      <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-1000px mx-auto'>
+        <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+          <h3 className='text-blue-500 font-semibold text-xl mb-4'>Lightweight</h3>
           <p>Built with performance and simplicity in mind.</p>
         </div>
-        <div style={cardStyle}>
-          <h3>React Powered</h3>
-          <p>Full React + Vite integration with island hydration.</p>
+        <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+          <h3 className='text-blue-500 font-semibold text-xl mb-4'>React Powered</h3>
+          <p>Full React + Vite integration .</p>
         </div>
-        <div style={cardStyle}>
-          <h3>Express Backend</h3>
+        <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+          <h3 className='text-blue-500 font-semibold text-xl mb-4'>Express Backend</h3>
           <p>Robust and scalable backend architecture.</p>
         </div>
       </div>
     </div>
   );
 }
-
-const cardStyle = {
-  padding: '1.5rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #e5e7eb',
-  textAlign: 'left',
-  backgroundColor: 'white',
-  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-};

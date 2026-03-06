@@ -1,4 +1,4 @@
-import React from 'react'; 
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -8,39 +8,28 @@ export default function App(_props) {
     component,
     props
   } = _props;
-  
+
+  console.log(`Check props and component `)
+  console.log(`Component: ${component}`)
+  console.log(props)
+
   return (
     <Router>
-      <div style={{ 
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        color: '#111827'
-      }}>
-        <nav style={{ 
-          background: 'white', 
-          padding: '1rem 2rem', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{ fontWeight: 'bold', fontSize: '1.25rem', color: '#2563eb' }}>
+      <div
+        className="bg-white text-gray-900"
+      >
+        <nav
+          className='bg-white text-gray-900 border border-gray-200 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
+        >
+          <div className='font-bold text-xl text-blue-600'>
             Blue Bird
           </div>
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <Link to="/" style={navLinkStyle}>Home</Link>
-            <Link to="/about" style={navLinkStyle}>About</Link>
+          <div className='flex justify-between items-center gap-4'>
+            <Link to="/" className='text-gray-500 hover:text-gray-900'>Home</Link>
+            <Link to="/about" className='text-gray-500 hover:text-gray-900'>About</Link>
           </div>
         </nav>
-        
-        <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Uncomment to debug props if needed */}
-          {/* <div style={{ padding: '0.5rem', background: '#ececec', fontSize: '0.75rem' }}>Props: {JSON.stringify(props)}</div> */}
-          
+        <main className='max-w-7xl mx-auto'>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
@@ -51,10 +40,3 @@ export default function App(_props) {
   );
 }
 
-const navLinkStyle = { 
-  color: '#4b5563', 
-  textDecoration: 'none', 
-  fontWeight: '500',
-  fontSize: '0.95rem',
-  transition: 'color 0.2s'
-};
