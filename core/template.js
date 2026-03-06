@@ -195,7 +195,7 @@ class Template {
                 .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags);
 
             html = this.minifyHtml(html);
-            CACHE_TEMPLATE[component] = html;
+            CACHE_TEMPLATE[cacheKey] = html;
             return res.send(html);
 
         } catch (error) {

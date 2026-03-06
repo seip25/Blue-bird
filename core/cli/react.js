@@ -78,13 +78,15 @@ class ReactScaffold {
     pkg.scripts["vite:build"] = "vite build";
 
     pkg.devDependencies = pkg.devDependencies || {};
-    pkg.devDependencies["vite"] = "^5.0.0";
-    pkg.devDependencies["@vitejs/plugin-react"] = "^4.2.0";
+    
+    pkg.devDependencies["vite"] = "^7.3.1";
+    pkg.devDependencies["@vitejs/plugin-react"] = "^4.3.4";
 
     pkg.dependencies = pkg.dependencies || {};
-    pkg.dependencies["react"] = "^18.2.0";
-    pkg.dependencies["react-dom"] = "^18.2.0";
-    pkg.dependencies["react-router-dom"] = "^6.21.0";
+    pkg.dependencies["react"] = "^19.2.4";
+    pkg.dependencies["react-dom"] = "^19.2.4";
+    pkg.dependencies["react-router-dom"] = "^7.2.0";
+
 
     fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
     console.log(chalk.gray("Updated package.json dependencies and scripts."));
