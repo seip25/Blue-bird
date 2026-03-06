@@ -1,5 +1,5 @@
-import Router from "@seip/blue-birdcore/router.js"
-import Template from "@seip/blue-birdcore/template.js"
+import Router from "@seip/blue-bird/core/router.js"
+import Template from "@seip/blue-bird/core/template.js"
 
 const routerFrontendExample = new Router();
 

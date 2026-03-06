@@ -1,5 +1,5 @@
-import Router from "@seip/blue-birdcore/router.js"
-import Validator from "@seip/blue-birdcore/validate.js"
+import Router from "@seip/blue-bird/core/router.js"
+import Validator from "@seip/blue-bird/core/validate.js"
 
 
 const routerApiExample = new Router("/")
