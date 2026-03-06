@@ -9,7 +9,7 @@ import helmet from "helmet"
 import Config from "./config.js"
 import Logger from "./logger.js"
 import Debug from "./debug.js"
-import Swagger from "./swagger.js"
+
 
 const __dirname = Config.dirname()
 const props = Config.props()
@@ -207,7 +207,7 @@ class App {
         this.errorHandler();
 
         if (this.swagger) {
-
+            const Swagger = import("./swagger.js")
             const defaultSwaggerOptions = {
                 info: {
                     title: "Blue Bird API",
