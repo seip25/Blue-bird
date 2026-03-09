@@ -1,0 +1,20 @@
+{
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "name": "Nombre Completo",
+    "submit": "Enviar",
+    "forgot_password": "¿Olvidó su contraseña?",
+    "dashboard": "Panel de Inicio",
+    "profile": "Perfil",
+    "logout": "Cerrar Sesión",
+    "language": "Idioma",
+    "success_login": "¡Inicio de sesión exitoso!",
+    "error_login": "Credenciales inválidas o límite excedido",
+    "error_general": "Ocurrió un error. Inténtelo más tarde.",
+    "search": "Buscar...",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+}

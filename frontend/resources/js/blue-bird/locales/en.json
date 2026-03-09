@@ -1,0 +1,20 @@
+{
+    "login": "Login",
+    "register": "Register",
+    "email": "Email address",
+    "password": "Password",
+    "name": "Full Name",
+    "submit": "Submit",
+    "forgot_password": "Forgot Password?",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout",
+    "language": "Language",
+    "success_login": "Logged in successfully!",
+    "error_login": "Invalid credentials or rate limit exceeded",
+    "error_general": "An error occurred. Please try again later.",
+    "search": "Search...",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+}
