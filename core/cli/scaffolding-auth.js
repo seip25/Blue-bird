@@ -5,68 +5,397 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 /**
- * Scaffolds an authentication system with Prisma, JWT, React Frontend, and i18n support.
+ * Scaffolds an authentication system with Raw DB Queries, JWT, React Frontend, and i18n support.
  */
 class ScaffoldingAuth {
     constructor() {
         this.appDir = process.cwd();
         this.backendDir = path.join(this.appDir, "backend");
         this.frontendDir = path.join(this.appDir, "frontend");
-        this.prismaDir = path.join(this.appDir, "prisma");
-        this.schemaPath = path.join(this.prismaDir, "schema.prisma");
     }
 
-    /**
-     * Entry point for running the scaffolding setup.
-     */
     async run() {
         console.log(chalk.cyan("Starting Auth Scaffolding initialization..."));
 
         try {
-            this.ensurePrismaAndModels();
+            this.setupDatabaseAndServices();
             this.createBackendRoutes();
             this.createFrontendComponents();
             this.modifyEntryFiles();
 
             console.log(chalk.blue("\nAuth Scaffolding completed successfully!"));
-            console.log(chalk.white("Important: ") + chalk.yellow("Ensure you run 'npx prisma db push' or 'npx prisma migrate dev' to update your database."));
+            console.log(chalk.white("You can use the native database connection provided in backend/databases/connection.js"));
+            console.log(chalk.white("OR we recommend using an ORM like Prisma. If you migrate to an ORM, adapt backend/databases/services/auth.service.js to use it."));
             console.log(chalk.white("Update your App.jsx to use the newly created React components."));
         } catch (error) {
             console.error(chalk.red("Error during Scaffolding Auth initialization:"), error.message);
         }
     }
 
-    /**
-     * Validates Prisma installation and appends the LoginHistory model.
-     */
-    ensurePrismaAndModels() {
-        if (!fs.existsSync(this.schemaPath)) {
-            console.log(chalk.yellow("Prisma not found, initializing..."));
-            execSync("npm run prisma", { stdio: "inherit", cwd: this.appDir });
+    setupDatabaseAndServices() {
+        const dbDir = path.join(this.backendDir, "databases");
+        const servicesDir = path.join(dbDir, "services");
+        if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+        if (!fs.existsSync(servicesDir)) fs.mkdirSync(servicesDir, { recursive: true });
+
+        const envPath = path.join(this.appDir, ".env");
+        let dbUrl = "";
+        let dialect = "sqlite";
+        let pkg = "sqlite3";
+
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, "utf-8");
+            const dbUrlMatch = envContent.match(/DATABASE_URL="?([^"\n]+)"?/);
+            if (dbUrlMatch) {
+                dbUrl = dbUrlMatch[1];
+                if (dbUrl.startsWith("mysql")) { dialect = "mysql"; pkg = "mysql2"; }
+                if (dbUrl.startsWith("postgres")) { dialect = "postgres"; pkg = "pg"; }
+            }
         }
 
-        let schemaContent = fs.readFileSync(this.schemaPath, "utf-8");
-
-        const loginHistoryModel = `
-model LoginHistory {
-  id         String   @id @default(uuid())
-  email      String
-  ip_address String
-  success    Boolean
-  created_at DateTime @default(now())
-}
-`;
-
-        if (!schemaContent.includes("model LoginHistory")) {
-            schemaContent += "\n" + loginHistoryModel;
-            fs.writeFileSync(this.schemaPath, schemaContent, "utf-8");
-            console.log(chalk.green("✓ LoginHistory model added to schema.prisma."));
+        console.log(chalk.yellow(`Detected database dialect: ${dialect}. Installing ${pkg}...`));
+        try {
+            execSync(`npm install ${pkg}`, { stdio: "inherit", cwd: this.appDir });
+        } catch (e) {
+            console.log(chalk.red(`Failed to install ${pkg}. Please install it manually.`));
         }
+
+        // Generate connection.js
+        this.generateConnectionFile(dbDir, dialect);
+        // Generate setup tables file
+        this.generateSetupTables(dbDir, dialect);
+        // Generate auth service
+        this.generateAuthService(servicesDir, dialect);
+
+        console.log(chalk.green("✓ Database connection, setup script, and services generated."));
+
+        // Suggest running the created setup files
+        console.log(chalk.yellow(`Run 'node backend/databases/setup_tables.js' to create Users and LoginHistory tables.`));
     }
 
-    /**
-     * Generates backend authentication routes and rate limiter logic.
-     */
+    generateConnectionFile(dbDir, dialect) {
+        let content = `import Config from "@seip/blue-bird/core/config.js";\n\nconst props = Config.props();\nconst dbUrl = process.env.DATABASE_URL || "file:./dev.db";\n`;
+
+        if (dialect === "sqlite") {
+            content += `import sqlite3 from 'sqlite3';\n
+class DatabaseConnection {
+    constructor() {
+        this.db = null;
+        this.dbPath = dbUrl.replace("file:", "");
+    }
+    
+    async connect(retries = 5, delay = 2000) {
+        if (this.db) return this.db;
+        for (let i = 0; i < retries; i++) {
+            try {
+                return await new Promise((resolve, reject) => {
+                    this.db = new sqlite3.Database(this.dbPath, (err) => {
+                        if (err) reject(err);
+                        else resolve(this.db);
+                    });
+                });
+            } catch (err) {
+                if (props.debug) console.log(\`[DEBUG] Database connection failed. Retrying in \${delay / 1000}s... (\${i + 1}/\${retries})\`);
+                await new Promise(res => setTimeout(res, delay));
+            }
+        }
+        const errorMsg = "Database connection failed after maximum retries.";
+        if (props.debug) console.error("[ERROR]", errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    async query(sql, params = []) {
+        await this.connect();
+        return new Promise((resolve, reject) => {
+            if (sql.trim().toLowerCase().startsWith('select')) {
+                this.db.all(sql, params, (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            } else {
+                this.db.run(sql, params, function(err) {
+                    if (err) reject(err);
+                    else resolve({ id: this.lastID, changes: this.changes });
+                });
+            }
+        });
+    }
+
+    async queryOne(sql, params = []) {
+        await this.connect();
+        return new Promise((resolve, reject) => {
+            this.db.get(sql, params, (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+    }
+}
+`;
+        } else if (dialect === "mysql") {
+            content += `import mysql from 'mysql2/promise';\n
+class DatabaseConnection {
+    constructor() {
+        this.pool = null;
+    }
+    
+    async connect(retries = 5, delay = 2000) {
+        if (this.pool) return this.pool;
+        for (let i = 0; i < retries; i++) {
+            try {
+                this.pool = mysql.createPool(dbUrl);
+                await this.pool.query('SELECT 1');
+                return this.pool;
+            } catch (err) {
+                if (props.debug) console.log(\`[DEBUG] Database connection failed. Retrying in \${delay / 1000}s... (\${i + 1}/\${retries})\`);
+                await new Promise(res => setTimeout(res, delay));
+            }
+        }
+        const errorMsg = "Database connection failed after maximum retries.";
+        if (props.debug) console.error("[ERROR]", errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    async query(sql, params = []) {
+        await this.connect();
+        const [rows] = await this.pool.query(sql, params);
+        if (sql.trim().toLowerCase().startsWith('insert') || sql.trim().toLowerCase().startsWith('update') || sql.trim().toLowerCase().startsWith('delete')) {
+            return { changes: rows.affectedRows, id: rows.insertId };
+        }
+        return rows;
+    }
+
+    async queryOne(sql, params = []) {
+        await this.connect();
+        const [rows] = await this.pool.query(sql, params);
+        return rows.length ? rows[0] : null;
+    }
+}
+`;
+        } else if (dialect === "postgres") {
+            content += `import pkg from 'pg';\nconst { Pool } = pkg;\n
+class DatabaseConnection {
+    constructor() {
+        this.pool = null;
+    }
+    
+    async connect(retries = 5, delay = 2000) {
+        if (this.pool) return this.pool;
+        for (let i = 0; i < retries; i++) {
+            try {
+                this.pool = new Pool({ connectionString: dbUrl });
+                await this.pool.query('SELECT 1');
+                return this.pool;
+            } catch (err) {
+                if (props.debug) console.log(\`[DEBUG] Database connection failed. Retrying in \${delay / 1000}s... (\${i + 1}/\${retries})\`);
+                await new Promise(res => setTimeout(res, delay));
+            }
+        }
+        const errorMsg = "Database connection failed after maximum retries.";
+        if (props.debug) console.error("[ERROR]", errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    async query(sql, params = []) {
+        await this.connect();
+        const res = await this.pool.query(sql, params);
+        if (sql.trim().toLowerCase().startsWith('insert') || sql.trim().toLowerCase().startsWith('update') || sql.trim().toLowerCase().startsWith('delete')) {
+            return { changes: res.rowCount };
+        }
+        return res.rows;
+    }
+
+    async queryOne(sql, params = []) {
+        await this.connect();
+        const res = await this.pool.query(sql, params);
+        return res.rows.length ? res.rows[0] : null;
+    }
+}
+`;
+        }
+
+        content += `\nconst db = new DatabaseConnection();\nexport default db;\n`;
+        fs.writeFileSync(path.join(dbDir, "connection.js"), content, "utf-8");
+    }
+
+    generateSetupTables(dbDir, dialect) {
+        let content = `import db from './connection.js';\n\nasync function setup() {\n`;
+
+        let usersTable = "";
+        let historyTable = "";
+
+        if (dialect === "sqlite") {
+            usersTable = `
+            await db.query(\`
+                CREATE TABLE IF NOT EXISTS User (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    password TEXT NOT NULL,
+                    password_token TEXT,
+                    remember_token TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+
+            historyTable = `
+            await db.query(\`
+                CREATE TABLE IF NOT EXISTS LoginHistory (
+                    id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    success INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+        } else if (dialect === "mysql") {
+            usersTable = `
+            await db.query(\`
+                CREATE TABLE IF NOT EXISTS User (
+                    id VARCHAR(36) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    password VARCHAR(255) NOT NULL,
+                    password_token VARCHAR(255),
+                    remember_token VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+
+            historyTable = `
+             await db.query(\`
+                CREATE TABLE IF NOT EXISTS LoginHistory (
+                    id VARCHAR(36) PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    success BOOLEAN NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+        } else if (dialect === "postgres") {
+            usersTable = `
+            await db.query(\`
+                CREATE TABLE IF NOT EXISTS "User" (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    password VARCHAR(255) NOT NULL,
+                    password_token VARCHAR(255),
+                    remember_token VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+
+            historyTable = `
+             await db.query(\`
+                CREATE TABLE IF NOT EXISTS "LoginHistory" (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    email VARCHAR(255) NOT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    success BOOLEAN NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            \`);`;
+        }
+
+        content += `${usersTable}\n${historyTable}\n    console.log("Tables created successfully.");\n    process.exit(0);\n}\n\nsetup().catch(err => {\n    console.error(err);\n    process.exit(1);\n});\n`;
+        fs.writeFileSync(path.join(dbDir, "setup_tables.js"), content, "utf-8");
+    }
+
+    generateAuthService(servicesDir, dialect) {
+        let content = `import db from '../connection.js';
+import crypto from 'node:crypto';
+
+export default class AuthService {
+    static async checkRateLimit(ip, email) {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+`;
+
+        if (dialect === "postgres") {
+            content += `        const sql = \`SELECT COUNT(*) as count FROM "LoginHistory" WHERE ip_address = $1 AND email = $2 AND success = false AND created_at >= $3\`;\n        const result = await db.queryOne(sql, [ip, email, tenMinsAgo]);\n`;
+        } else {
+            content += `        const sql = \`SELECT COUNT(*) as count FROM LoginHistory WHERE ip_address = ? AND email = ? AND success = 0 AND created_at >= ?\`;\n        const result = await db.queryOne(sql, [ip, email, tenMinsAgo]);\n`;
+        }
+
+        content += `        const attempts = result ? parseInt(result.count || result.COUNT) : 0;
+
+        if (attempts >= 15) throw new Error("Blocked for 10 minutes.");
+        if (attempts >= 10) throw new Error("Blocked for 5 minutes.");
+        if (attempts >= 8) throw new Error("Blocked for 3 minutes.");
+        if (attempts >= 5) throw new Error("Blocked for 1 minute.");
+        return true;
+    }
+
+    static async findUserByEmail(email) {
+`;
+        if (dialect === "postgres") {
+            content += `        return await db.queryOne('SELECT * FROM "User" WHERE email = $1', [email]);\n`;
+        } else {
+            content += `        return await db.queryOne('SELECT * FROM User WHERE email = ?', [email]);\n`;
+        }
+
+        content += `    }
+
+    static async createLoginHistory(email, ip, success) {
+        const id = crypto.randomUUID();
+`;
+        if (dialect === "postgres") {
+            content += `        await db.query('INSERT INTO "LoginHistory" (id, email, ip_address, success) VALUES ($1, $2, $3, $4)', [id, email, ip, success]);\n`;
+        } else {
+            content += `        const successVal = success ? 1 : 0;\n        await db.query('INSERT INTO LoginHistory (id, email, ip_address, success) VALUES (?, ?, ?, ?)', [id, email, ip, successVal]);\n`;
+        }
+
+        content += `    }
+
+    static async createUser(name, email, password) {
+        const id = crypto.randomUUID();
+`;
+        if (dialect === "postgres") {
+            content += `        await db.query('INSERT INTO "User" (id, name, email, password) VALUES ($1, $2, $3, $4)', [id, name, email, password]);\n`;
+        } else {
+            content += `        await db.query('INSERT INTO User (id, name, email, password) VALUES (?, ?, ?, ?)', [id, name, email, password]);\n`;
+        }
+
+        content += `        return { id, name, email };
+    }
+
+    static async setPasswordToken(userId, token) {
+`;
+        if (dialect === "postgres") {
+            content += `        await db.query('UPDATE "User" SET password_token = $1 WHERE id = $2', [token, userId]);\n`;
+        } else {
+            content += `        await db.query('UPDATE User SET password_token = ? WHERE id = ?', [token, userId]);\n`;
+        }
+
+        content += `    }
+
+    static async findUserByPasswordToken(token) {
+`;
+        if (dialect === "postgres") {
+            content += `        return await db.queryOne('SELECT * FROM "User" WHERE password_token = $1', [token]);\n`;
+        } else {
+            content += `        return await db.queryOne('SELECT * FROM User WHERE password_token = ?', [token]);\n`;
+        }
+
+        content += `    }
+
+    static async updatePassword(userId, newPassword) {
+`;
+        if (dialect === "postgres") {
+            content += `        await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPassword, userId]);\n`;
+        } else {
+            content += `        await db.query('UPDATE User SET password = ?, password_token = NULL WHERE id = ?', [newPassword, userId]);\n`;
+        }
+
+        content += `    }
+}
+`;
+        fs.writeFileSync(path.join(servicesDir, "auth.service.js"), content, "utf-8");
+    }
+
     createBackendRoutes() {
         const routesDir = path.join(this.backendDir, "routes");
         if (!fs.existsSync(routesDir)) fs.mkdirSync(routesDir, { recursive: true });
@@ -78,42 +407,26 @@ model LoginHistory {
 import Validator from "@seip/blue-bird/core/validate.js";
 import Auth from "@seip/blue-bird/core/auth.js";
 import Config from "@seip/blue-bird/core/config.js";
-import { PrismaClient } from "@prisma/client";
 import crypto from "node:crypto";
+import AuthService from "../databases/services/auth.service.js";
 
-const prisma = new PrismaClient();
 const routerAuth = new Router("/auth");
 const props = Config.props();
-
-/**
- * Validates login attempts to prevent brute force attacks.
- */
-async function checkRateLimit(ip, email) {
-    const attempts = await prisma.loginHistory.count({
-        where: { ip_address: ip, email: email, success: false, created_at: { gte: new Date(Date.now() - 10 * 60 * 1000) } } // last 10 minutes
-    });
-
-    if (attempts >= 15) throw new Error("Blocked for 10 minutes.");
-    if (attempts >= 10) throw new Error("Blocked for 5 minutes.");
-    if (attempts >= 8) throw new Error("Blocked for 3 minutes.");
-    if (attempts >= 5) throw new Error("Blocked for 1 minute.");
-    return true;
-}
 
 routerAuth.post("/login", new Validator({ email: { required: true, email: true }, password: { required: true } }).middleware(), async (req, res) => {
     try {
         const { email, password } = req.body;
         const ip = req.ip;
 
-        await checkRateLimit(ip, email);
+        await AuthService.checkRateLimit(ip, email);
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await AuthService.findUserByEmail(email);
         if (!user || user.password !== password) {
-            await prisma.loginHistory.create({ data: { email, ip_address: ip, success: false } });
+            await AuthService.createLoginHistory(email, ip, false);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        await prisma.loginHistory.create({ data: { email, ip_address: ip, success: true } });
+        await AuthService.createLoginHistory(email, ip, true);
         const token = Auth.generateToken({ id: user.id, email: user.email });
         
         return res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
@@ -125,10 +438,10 @@ routerAuth.post("/login", new Validator({ email: { required: true, email: true }
 routerAuth.post("/register", new Validator({ name: { required: true }, email: { required: true, email: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        const exists = await prisma.user.findUnique({ where: { email } });
+        const exists = await AuthService.findUserByEmail(email);
         if (exists) return res.status(400).json({ message: "Email already taken" });
 
-        const user = await prisma.user.create({ data: { name, email, password } });
+        const user = await AuthService.createUser(name, email, password);
         return res.json({ message: "Registered", user: { id: user.id, email: user.email } });
     } catch(err) {
          return res.status(500).json({ message: err.message });
@@ -138,15 +451,11 @@ routerAuth.post("/register", new Validator({ name: { required: true }, email: { 
 routerAuth.post("/forgot-password", new Validator({ email: { required: true, email: true } }).middleware(), async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await AuthService.findUserByEmail(email);
         
-        // We always return success to prevent email enumeration attacks
         if (user) {
             const token = crypto.randomBytes(32).toString('hex');
-            await prisma.user.update({
-                where: { id: user.id },
-                data: { password_token: token }
-            });
+            await AuthService.setPasswordToken(user.id, token);
 
             if (props.debug) {
                 console.log("\\n[DEBUG] Email functionality for Forgot Password should be handled here.");
@@ -156,23 +465,20 @@ routerAuth.post("/forgot-password", new Validator({ email: { required: true, ema
 
         return res.json({ message: "If the email is valid, a password reset link has been sent." });
     } catch (err) {
-    return res.status(500).json({ message: err.message });
-}
+        return res.status(500).json({ message: err.message });
+    }
 });
 
 routerAuth.post("/reset-password", new Validator({ token: { required: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
     try {
         const { token, password } = req.body;
-        const user = await prisma.user.findFirst({ where: { password_token: token } });
+        const user = await AuthService.findUserByPasswordToken(token);
 
         if (!user) {
             return res.status(400).json({ message: "Invalid or expired reset token." });
         }
 
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { password: password, password_token: null }
-        });
+        await AuthService.updatePassword(user.id, password);
 
         return res.json({ message: "Password has been reset successfully." });
     } catch (err) {
@@ -210,9 +516,8 @@ export default routerAuthenticated;
 `;
         fs.writeFileSync(authenticatedFile, authenticatedContent, "utf-8");
         console.log(chalk.green("✓ Backend auth and authenticated routes generated."));
-    }    /**
-         * Generates React components powered by Tailwind.
-         */
+    }
+
     createFrontendComponents() {
         const pagesDir = path.join(this.frontendDir, "resources", "js", "pages", "auth");
         if (!fs.existsSync(pagesDir)) fs.mkdirSync(pagesDir, { recursive: true });
@@ -488,9 +793,6 @@ export default function Dashboard() {
         console.log(chalk.green("✓ Frontend React UI Components generated."));
     }
 
-    /**
-     * Modifies the entry point files to wire everything up.
-     */
     modifyEntryFiles() {
         const backendIndexFile = path.join(this.backendDir, "index.js");
         if (fs.existsSync(backendIndexFile)) {

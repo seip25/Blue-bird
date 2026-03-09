@@ -31,7 +31,6 @@
     "route": "node core/cli/route.js",
     "component": "node core/cli/component.js",
     "swagger-install": "node core/cli/swagger.js",
-    "prisma": "node core/cli/prisma.js",
     "scaffolding-auth": "node core/cli/scaffolding-auth.js",
     "vite:dev": "vite",
     "vite:build": "vite build"
