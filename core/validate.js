@@ -156,14 +156,14 @@ class Validator {
             }
 
             if (!validators.isEmpty(value)) {
-                if (config.min && !validators.isLength(value, { min: config.min })) {
+                if (config.min !== undefined && !validators.isLength(value, { min: config.min })) {
                     messages.push(config.messages?.min || msg.min(field, config.min));
                     errors.push({
                         field: field,
                         message: config.messages?.min || msg.min(field, config.min)
                     })
                 }
-                if (config.max && !validators.isLength(value, { max: config.max })) {
+                if (config.max !== undefined && !validators.isLength(value, { max: config.max })) {
                     messages.push(config.messages?.max || msg.max(field, config.max));
                     errors.push({
                         field: field,
@@ -255,7 +255,7 @@ class Validator {
                 success: false,
                 error: true,
                 errors: errors,
-                message: messages 
+                message: messages
             };
         }
 

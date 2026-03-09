@@ -84,10 +84,9 @@ class App {
         },
         cookieParser: true,
         rateLimit: false,
-        helmet: false,
+        helmet: true,
         xssClean: true,
         swagger: false
-
     }) {
         this.app = express()
         this.routes = options.routes || []
@@ -236,6 +235,7 @@ class App {
      * Middleware that logs incoming HTTP requests to the console and to a log file.
      */
     middlewareLogger() {
+        const logger = new Logger()
         this.app.use((req, res, next) => {
             const method = req.method
             const url = req.url.replace(/(password|token|authorization)=([^&]+)/gi, "$1=***")
@@ -244,7 +244,7 @@ class App {
             const now = new Date().toISOString()
             const time = `${now.split("T")[0]} ${now.split("T")[1].split(".")[0]}`
             let message = ` ${time} -${ip} -[${method}] ${url} ${params}`
-            const logger = new Logger()
+
             logger.info(message)
             if (props.debug) {
                 message = `${chalk.bold.green(time)} - ${chalk.bold.cyan(ip)} -[${chalk.bold.red(method)}] ${chalk.bold.blue(url)} ${chalk.bold.yellow(params)}`
