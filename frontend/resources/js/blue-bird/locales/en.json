@@ -25,5 +25,6 @@
     "dont_have_account_register": "Don't have an account? Register",
     "password_confirmation_err": "Error, the password must match",
     "deleted_account_error": "Error, your account has been deleted",
+    "error_token_reset": "Invalid or expired reset token.",
     "If the email is valid, a password reset link has been sent": "If the email is valid, a password reset link has been sent."
 }

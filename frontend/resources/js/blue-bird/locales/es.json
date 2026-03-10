@@ -25,5 +25,6 @@
     "dont_have_account_register": "¿No tienes una cuenta? Regístrate",
     "password_confirmation_err": "Error, las contraseñas deben de coincidir",
     "deleted_account_error": "Error, tu cuenta ha sido eliminada",
+    "error_token_reset": "Token de restablecimiento inválido o expirado.",
     "If the email is valid, a password reset link has been sent": "Si el correo electrónico es válido, se ha enviado un enlace para restablecer la contraseña."
 }

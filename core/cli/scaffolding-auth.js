@@ -609,7 +609,10 @@ export default function Login() {
                 body: JSON.stringify({ email, password , lang })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t('error_general'));
+             if (!res.ok) {
+                if (data.deleted_account_error) throw new Error(t('deleted_account_error'));
+                throw new Error(t('error_login') || t('error_general') || data.message);
+            }
             window.location.href = '/dashboard';
         } catch (err) {
             setError(err.message);
@@ -669,10 +672,15 @@ export default function Register() {
                 body: JSON.stringify({ name, email, password, password_confirmation, lang })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t('error_general'));
+            if (!res.ok) {
+                if (data.password_confirmation_error) throw new Error(t('password_confirmation_err'));
+                if (data.deleted_account_error) throw new Error(t('deleted_account_error'));
+                if (data.error_email_register) throw new Error(t('error_email_register'));
+                throw new Error(data.message || t('error_general'));
+            }
             window.location.href = '/login';
         } catch (err) {
-            setError(err.email ? t('error_email_register') : err.message);
+            setError(err.message);
         }
     };
 
@@ -796,11 +804,15 @@ export default function ResetPassword() {
                 body: JSON.stringify({ token, password, password_confirmation })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t('error_general'));
+            if (!res.ok) {
+                if (data.password_confirmation) throw new Error(t('password_confirmation_err'));
+                if (data.token) throw new Error(t('error_token_reset') || data.message);
+                throw new Error(data.message || t('error_general'));
+            }
             setMessage(data.message);
             setTimeout(() => { window.location.href = '/login'; }, 2000);
         } catch (err) {
-            setError(err.password_confirmation? t('password_confimation'): err.message);
+            setError(err.message);
         }
     };
 
