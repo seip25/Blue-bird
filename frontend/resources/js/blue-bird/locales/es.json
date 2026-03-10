@@ -16,5 +16,11 @@
     "search": "Buscar...",
     "actions": "Acciones",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "error_email_register": "Error, revisa el email ingresado",
+    "forgot_password_desc": "¿Olvidó su contraseña? No hay problema. Simplemente indíquenos su dirección de correo electrónico y le enviaremos un enlace de restablecimiento de contraseña que le permitirá elegir una nueva",
+    "password_confirmation": "Confirmar Contraseña",
+    "back_to_login": "Volver a iniciar sesión",
+    "dont_have_account_register": "¿No tienes una cuenta? Regístrate",
+    "password_confimation": "Error, las contraseñas deben de coincidir"
 }

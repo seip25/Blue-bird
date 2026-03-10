@@ -56,20 +56,18 @@ class ScaffoldingAuth {
         console.log(chalk.yellow(`Detected database dialect: ${dialect}. Installing ${pkg}...`));
         try {
             execSync(`npm install ${pkg}`, { stdio: "inherit", cwd: this.appDir });
+            execSync(`npm install bcrypt`, { stdio: "inherit", cwd: this.appDir });
         } catch (e) {
             console.log(chalk.red(`Failed to install ${pkg}. Please install it manually.`));
         }
 
-        // Generate connection.js
         this.generateConnectionFile(dbDir, dialect);
-        // Generate setup tables file
         this.generateSetupTables(dbDir, dialect);
-        // Generate auth service
         this.generateAuthService(servicesDir, dialect);
+
 
         console.log(chalk.green("✓ Database connection, setup script, and services generated."));
 
-        // Suggest running the created setup files
         console.log(chalk.yellow(`Run 'node backend/databases/setup_tables.js' to create Users and LoginHistory tables.`));
     }
 
@@ -329,12 +327,12 @@ export default class AuthService {
         return true;
     }
 
-    static async findUserByEmail(email) {
+    static async findUserByEmail(email, isActive = true) {
 `;
         if (dialect === "postgres") {
-            content += `        return await db.queryOne('SELECT * FROM "User" WHERE email = $1', [email]);\n`;
+            content += `        return await db.queryOne('SELECT * FROM "User" WHERE is_active = $1 AND email = $2', [isActive, email]);\n`;
         } else {
-            content += `        return await db.queryOne('SELECT * FROM User WHERE email = ?', [email]);\n`;
+            content += `        return await db.queryOne('SELECT * FROM User WHERE is_active = ? AND email = ?', [isActive, email]);\n`;
         }
 
         content += `    }
@@ -352,11 +350,13 @@ export default class AuthService {
 
     static async createUser(name, email, password) {
         const id = crypto.randomUUID();
+        const password= await bcrypt.hash(password, 10);
 `;
+
         if (dialect === "postgres") {
-            content += `        await db.query('INSERT INTO "User" (id, name, email, password) VALUES ($1, $2, $3, $4)', [id, name, email, password]);\n`;
+            content += `        await db.query('INSERT INTO "User" (id, name, email, password, is_active) VALUES ($1, $2, $3, $4, $5)', [id, name, email, password, true]);\n`;
         } else {
-            content += `        await db.query('INSERT INTO User (id, name, email, password) VALUES (?, ?, ?, ?)', [id, name, email, password]);\n`;
+            content += `        await db.query('INSERT INTO User (id, name, email, password, is_active) VALUES (?, ?, ?, ?, ?)', [id, name, email, password, true]);\n`;
         }
 
         content += `        return { id, name, email };
@@ -372,17 +372,18 @@ export default class AuthService {
 
         content += `    }
 
-    static async findUserByPasswordToken(token) {
+    static async findUserByPasswordToken(token, isActive = true) {
 `;
         if (dialect === "postgres") {
-            content += `        return await db.queryOne('SELECT * FROM "User" WHERE password_token = $1', [token]);\n`;
+            content += `        return await db.queryOne('SELECT * FROM "User" WHERE password_token = $1 AND is_active = $2', [token, isActive]);\n`;
         } else {
-            content += `        return await db.queryOne('SELECT * FROM User WHERE password_token = ?', [token]);\n`;
+            content += `        return await db.queryOne('SELECT * FROM User WHERE password_token = ? AND is_active = ?', [token, isActive]);\n`;
         }
 
         content += `    }
 
     static async updatePassword(userId, newPassword) {
+        const newPassword= await bcrypt.hash(newPassword, 10);
 `;
         if (dialect === "postgres") {
             content += `        await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPassword, userId]);\n`;
@@ -410,8 +411,17 @@ import Config from "@seip/blue-bird/core/config.js";
 import crypto from "node:crypto";
 import AuthService from "../databases/services/auth.service.js";
 
+
 const routerAuth = new Router("/auth");
 const props = Config.props();
+
+routerAuth.get("/login", (req, res) => {
+    const isAuthenticated=req.user;
+    if(isAuthenticated){
+        return res.redirect('/dashboard');
+    }
+    return Template.renderReact(res, "App", { title: "Login" }, { scriptsInBody: [{ "src": "https://cdn.tailwindcss.com" }] });
+});
 
 routerAuth.post("/login", new Validator({ email: { required: true, email: true }, password: { required: true } }).middleware(), async (req, res) => {
     try {
@@ -421,30 +431,36 @@ routerAuth.post("/login", new Validator({ email: { required: true, email: true }
         await AuthService.checkRateLimit(ip, email);
 
         const user = await AuthService.findUserByEmail(email);
-        if (!user || user.password !== password) {
+        const passwordCompare= await bcrypt.compare(password, user.password);
+        if (!user || !passwordCompare) {
             await AuthService.createLoginHistory(email, ip, false);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
         await AuthService.createLoginHistory(email, ip, true);
-        const token = Auth.generateToken({ id: user.id, email: user.email });
-        
-        return res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+        const token = Auth.generateToken({ id: user.id, email: user.email }, props.jwt.secret, props.jwt.expiresIn);
+        const secure=process.env.NODE_ENV==="production"?true:false;
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge:props.jwt.expiresIn });
+        return res.json({ user: { id: user.id, name: user.name, email: user.email } });
     } catch (error) {
-        return res.status(429).json({ message: error.message });
+        return res.status(429).json({ message:props.debug ? error.message : "Error, something went wrong" });
     }
 });
 
-routerAuth.post("/register", new Validator({ name: { required: true }, email: { required: true, email: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
+routerAuth.post("/register", new Validator({password_confirmation :{required:true,min:6}, name: { required: true }, email: { required: true, email: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password,password_confirmation } = req.body;
         const exists = await AuthService.findUserByEmail(email);
-        if (exists) return res.status(400).json({ message: "Email already taken" });
+        if (exists) return res.status(400).json({ message: "Error, check your email entered",email:false });
+        if (password !== password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation",password_confirmation:false });
 
         const user = await AuthService.createUser(name, email, password);
+        const token = Auth.generateToken({ id: user.id, email: user.email }, props.jwt.secret, props.jwt.expiresIn);
+        const secure=process.env.NODE_ENV==="production"?true:false;
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge:props.jwt.expiresIn });
         return res.json({ message: "Registered", user: { id: user.id, email: user.email } });
-    } catch(err) {
-         return res.status(500).json({ message: err.message });
+    } catch(err) {; 
+         return res.status(500).json({ message:  props.debug?err.message:"Error, something went wrong"});
     }
 });
 
@@ -459,30 +475,31 @@ routerAuth.post("/forgot-password", new Validator({ email: { required: true, ema
 
             if (props.debug) {
                 console.log("\\n[DEBUG] Email functionality for Forgot Password should be handled here.");
-                console.log("[DEBUG] Debug mode active. Password reset link: http://" + props.host + ":" + props.port + "/reset-password?token=" + token + "\\n");
+                console.log("[DEBUG] Debug mode active. Password reset link: " + props.host + ":" + props.port + "/reset-password?token=" + token + "\\n");
             }
         }
 
         return res.json({ message: "If the email is valid, a password reset link has been sent." });
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        return res.status(500).json({ message:  props.debug?err.message:"Error, something went wrong" });
     }
 });
 
-routerAuth.post("/reset-password", new Validator({ token: { required: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
+routerAuth.post("/reset-password", new Validator({password_confirmation :{required:true,min:6}, token: { required: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
     try {
-        const { token, password } = req.body;
+        const { token, password,password_confirmation } = req.body;
         const user = await AuthService.findUserByPasswordToken(token);
+        if(password!==password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation",password_confirmation:false });
 
         if (!user) {
-            return res.status(400).json({ message: "Invalid or expired reset token." });
+            return res.status(400).json({ message: "Invalid or expired reset token.",token:false });
         }
 
         await AuthService.updatePassword(user.id, password);
 
         return res.json({ message: "Password has been reset successfully." });
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
     }
 });
 
@@ -496,19 +513,11 @@ import Auth from "@seip/blue-bird/core/auth.js";
 
 const routerAuthenticated = new Router();
 
-routerAuthenticated.get("/dashboard", Auth.protect(), (req, res) => {
+routerAuthenticated.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
     return Template.renderReact(res, "App", { title: "Dashboard" }, { scriptsInBody: [{ "src": "https://cdn.tailwindcss.com" }] });
 });
 
 routerAuthenticated.get("/dashboard/validate", Auth.protect(), (req, res) => {
-    return res.json({ user: req.user });
-});
-
-routerAuthenticated.get("/profile", Auth.protect(), (req, res) => {
-    return Template.renderReact(res, "App", { title: "Profile" }, { scriptsInBody: [{ "src": "https://cdn.tailwindcss.com" }] });
-});
-
-routerAuthenticated.get("/profile/validate", Auth.protect(), (req, res) => {
     return res.json({ user: req.user });
 });
 
@@ -524,6 +533,11 @@ export default routerAuthenticated;
 
         const loginContent = `import { useState } from 'react';
 import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
+import { Link } from 'react-router-dom';
+import Card from '../../blue-bird/components/Card.jsx';
+import Input from '../../blue-bird/components/Input.jsx';
+import Button from '../../blue-bird/components/Button.jsx';
+import Typography from '../../blue-bird/components/Typography.jsx';
 
 export default function Login() {
     const { t, lang, setLang } = useLanguage();
@@ -541,8 +555,6 @@ export default function Login() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
-            alert(t('success_login'));
-            localStorage.setItem('token', data.token);
             window.location.href = '/dashboard';
         } catch (err) {
             setError(err.message);
@@ -550,26 +562,26 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-96">
-                <h2 className="text-2xl mb-4 font-bold">{t('login')}</h2>
-                {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium">{t('email')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">{t('password')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">{t('submit')}</button>
-                </form>
-                <div className="mt-4 flex justify-between text-sm">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-bold' : ''}\`}>English</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-bold' : ''}\`}>Español</button>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+            <Card className="w-full max-w-md">
+                <div className="mb-6 text-center">
+                    <Typography variant="h3">{t('login')}</Typography>
                 </div>
-            </div>
+                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input label={t('password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
+                </form>
+                <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
+                    <Link to="/forgot-password" className="text-slate-600 hover:underline">{t('forgot_password')}</Link>
+                    <Link to="/register" className="text-slate-600 hover:underline">{t('dont_have_account_register')}</Link>
+                </div>
+                <div className="mt-6 flex justify-center space-x-4 text-sm border-t pt-4">
+                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
+                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
+                </div>
+            </Card>
         </div>
     );
 }
@@ -579,12 +591,17 @@ export default function Login() {
         const registerContent = `import { useState } from 'react';
 import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
 import { Link } from 'react-router-dom';
+import Card from '../../blue-bird/components/Card.jsx';
+import Input from '../../blue-bird/components/Input.jsx';
+import Button from '../../blue-bird/components/Button.jsx';
+import Typography from '../../blue-bird/components/Typography.jsx';
 
 export default function Register() {
     const { t, lang, setLang } = useLanguage();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [password_confirmation, setPasswordConfirmation] = useState('');
     const [error, setError] = useState(null);
 
     const handleSubmit = async (e) => {
@@ -593,41 +610,39 @@ export default function Register() {
             const res = await fetch('/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password, password_confirmation })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
             window.location.href = '/login';
         } catch (err) {
-            setError(err.message);
+            setError(err.email ? t('error_email_register') : err.message);
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-96">
-                <h2 className="text-2xl mb-4 font-bold">{t('register')}</h2>
-                {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium">{t('name')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">{t('email')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">{t('password')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">{t('submit')}</button>
-                </form>
-                <div className="mt-4 flex justify-between text-sm">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-bold' : ''}\`}>English</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-bold' : ''}\`}>Español</button>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+            <Card className="w-full max-w-md">
+                <div className="mb-6 text-center">
+                    <Typography variant="h3">{t('register')}</Typography>
                 </div>
-            </div>
+                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input label={t('name')} type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input label={t('password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input label={t('password_confirmation') || 'Confirm Password'} type="password" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
+                    
+                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
+                </form>
+                <div className="mt-6 text-center text-sm">
+                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                </div>
+                <div className="mt-6 flex justify-center space-x-4 text-sm border-t pt-4">
+                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
+                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
+                </div>
+            </Card>
         </div>
     );
 }
@@ -637,6 +652,10 @@ export default function Register() {
         const forgotPasswordContent = `import { useState } from 'react';
 import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
 import { Link } from 'react-router-dom';
+import Card from '../../blue-bird/components/Card.jsx';
+import Input from '../../blue-bird/components/Input.jsx';
+import Button from '../../blue-bird/components/Button.jsx';
+import Typography from '../../blue-bird/components/Typography.jsx';
 
 export default function ForgotPassword() {
     const { t, lang, setLang } = useLanguage();
@@ -663,22 +682,24 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-96">
-                <h2 className="text-2xl mb-4 font-bold">{t('forgot_password') || 'Forgot Password'}</h2>
-                {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-                {message && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{message}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium">{t('email')}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">{t('submit')}</button>
-                </form>
-                <div className="mt-4 text-center">
-                    <Link to="/login" className="text-blue-500 hover:text-blue-700 text-sm">{t('login') || 'Login'}</Link>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+            <Card className="w-full max-w-md">
+                <div className="mb-4 text-center">
+                    <Typography variant="h3">{t('forgot_password') || 'Forgot Password'}</Typography>
                 </div>
-            </div>
+                <div className="mb-6 text-center">
+                    <Typography variant="muted">{t('forgot_password_desc') || 'Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.'}</Typography>
+                </div>
+                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
+                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
+                </form>
+                <div className="mt-6 text-center text-sm">
+                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                </div>
+            </Card>
         </div>
     );
 }
@@ -687,16 +708,20 @@ export default function ForgotPassword() {
 
         const resetPasswordContent = `import { useState, useEffect } from 'react';
 import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
+import Card from '../../blue-bird/components/Card.jsx';
+import Input from '../../blue-bird/components/Input.jsx';
+import Button from '../../blue-bird/components/Button.jsx';
+import Typography from '../../blue-bird/components/Typography.jsx';
 
 export default function ResetPassword() {
     const { t, lang, setLang } = useLanguage();
     const [password, setPassword] = useState('');
+    const [password_confirmation, setPasswordConfirmation] = useState('');
     const [token, setToken] = useState('');
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
-    // Quick hook to get query string token
     const search = useLocation().search;
     useEffect(() => {
         const urlParams = new URLSearchParams(search);
@@ -712,32 +737,35 @@ export default function ResetPassword() {
             const res = await fetch('/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password })
+                body: JSON.stringify({ token, password, password_confirmation })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
             setMessage(data.message);
             setTimeout(() => { window.location.href = '/login'; }, 2000);
         } catch (err) {
-            setError(err.message);
+            setError(err.password_confirmation? t('password_confimation'): err.message);
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-96">
-                <h2 className="text-2xl mb-4 font-bold">Reset Password</h2>
-                {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-                {message && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{message}</div>}
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+            <Card className="w-full max-w-md">
+                <div className="mb-6 text-center">
+                    <Typography variant="h3">Reset Password</Typography>
+                </div>
+                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
+                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input type="hidden" value={token} required />
-                    <div>
-                        <label className="block text-sm font-medium">New {t('password') || 'Password'}</label>
-                        <input className="w-full border p-2 rounded mt-1" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">{t('submit')}</button>
+                    <Input label={'New ' + (t('password') || 'Password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input label={t('password_confirmation') || 'Confirm Password'} type="password" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
+                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
                 </form>
-            </div>
+                  <div className="mt-6 text-center text-sm">
+                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                </div>
+            </Card>
         </div>
     );
 }
@@ -746,14 +774,22 @@ export default function ResetPassword() {
 
         const dashboardContent = `import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
+import Button from '../../blue-bird/components/Button.jsx';
+import Typography from '../../blue-bird/components/Typography.jsx';
+import Card from '../../blue-bird/components/Card.jsx';
 
 export default function Dashboard() {
     const { t, lang, setLang } = useLanguage();
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        const fetchUser = async () => {
-            const token = localStorage.getItem('token');
+        const fetchUser = async () => { 
+            const getCookie = (name) => {
+                const value = "; " + document.cookie;
+                const parts = value.split("; " + name + "=");
+                if (parts.length === 2) return parts.pop().split(";").shift();
+            }
+            const token = getCookie('token');
             if (!token) return window.location.href = '/login';
             const res = await fetch('/auth/dashboard', {
                 headers: { 'Authorization': \`Bearer \${token}\` }});
@@ -765,24 +801,28 @@ export default function Dashboard() {
     }, []);
 
     const logout = () => {
-        localStorage.removeItem('token');
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         window.location.href = '/login';
     };
 
-    if(!user) return <div>Loading...</div>;
+    if(!user) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Typography variant="p">Loading...</Typography></div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <header className="bg-white shadow p-4 flex justify-between items-center">
-                <h1 className="text-xl font-bold">{t('dashboard')}</h1>
-                <div className="space-x-4">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-bold' : ''}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-bold' : ''}\`}>ES</button>
-                    <button onClick={logout} className="text-red-500 hover:text-red-700 font-semibold">{t('logout')}</button>
+        <div className="min-h-screen bg-slate-50 flex flex-col">
+            <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <Typography variant="h4">{t('dashboard')}</Typography>
+                <div className="flex items-center space-x-4">
+                    <button onClick={() => setLang('en')} className={\`text-sm transition-colors hover:text-slate-900 \${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
+                    <button onClick={() => setLang('es')} className={\`text-sm transition-colors hover:text-slate-900 \${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
+                    <div className="w-px h-4 bg-slate-200 mx-2"></div>
+                    <Button variant="ghost" onClick={logout} className="text-red-600 hover:text-red-700 hover:bg-red-50">{t('logout')}</Button>
                 </div>
             </header>
-            <main className="flex-1 p-8">
-                <h2 className="text-2xl">Welcome, {user.email}!</h2>
+            <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+                <Card>
+                    <Typography variant="h3" className="mb-2">Welcome, {user.email}!</Typography>
+                    <Typography variant="muted">You are successfully logged into your dashboard.</Typography>
+                </Card>
             </main>
         </div>
     );
@@ -804,7 +844,7 @@ export default function Dashboard() {
                 );
                 backendIndex = backendIndex.replace(
                     'routes: [routerApiExample, routerFrontendExample]',
-                    'routes: [routerApiExample, routerFrontendExample, routerAuth, routerAuthenticated]'
+                    'routes: [routerApiExample, routerAuth, routerAuthenticated, routerFrontendExample]'
                 );
                 fs.writeFileSync(backendIndexFile, backendIndex, "utf-8");
                 console.log(chalk.green("✓ backend/index.js updated to include new routes."));

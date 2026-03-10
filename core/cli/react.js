@@ -78,7 +78,7 @@ class ReactScaffold {
     pkg.scripts["vite:build"] = "vite build";
 
     pkg.devDependencies = pkg.devDependencies || {};
-    
+
     pkg.devDependencies["vite"] = "^7.3.1";
     pkg.devDependencies["@vitejs/plugin-react"] = "^4.3.4";
 
@@ -138,7 +138,9 @@ export default defineConfig({
       return;
     }
 
-    const content = `import React, { useEffect } from 'react'; 
+    const content = `import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Card from '../blue-bird/components/Card';
 
 export default function Home() {
   useEffect(() => {
@@ -149,7 +151,7 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email:"example@example.com",
+        email: "example@example.com",
         password: "myPassword123"
       }),
     })
@@ -159,95 +161,78 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-      <header style={{ marginBottom: '3rem' }}>
-        <h1 style={{ 
-          fontSize: '3.5rem', 
-          fontWeight: '800', 
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '1rem'
-        }}>
-          Welcome to Blue Bird
-        </h1>
-        <p style={{ fontSize: '1.25rem', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
-          The elegant, fast, and weightless framework for modern web development.
-        </p>
-      </header>
+    <div
+      className="bg-white text-gray-900"
+    >
+      <nav
+        className='bg-white text-gray-900 border border-gray-200 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
+      >
+        <div className='font-bold text-xl text-blue-600'>
+          Blue Bird
+        </div>
+        <div className='flex justify-between items-center gap-4'>
+          <Link to="/" className='text-gray-500 hover:text-gray-900'>Home</Link>
+          <Link to="/about" className='text-gray-500 hover:text-gray-900'>About</Link>
+        </div>
+      </nav>
+      <main className='max-w-7xl mx-auto'>
+        <div className='text-center p-4'>
+          <header className='mb-4'>
+            <h1 className='text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent mb-4'>
+              Welcome to Blue Bird
+            </h1>
+            <p className='text-gray-500 max-w-600px mx-auto'>
+              The elegant, fast, and weightless framework for modern web development.
+            </p>
+          </header>
 
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '4rem' }}>
-        <a 
-          href="https://seip25.github.io/Blue-bird/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          style={{
-            backgroundColor: '#2563eb',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '600',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
-        >
-          Documentation
-        </a>
-        <a 
-          href="https://seip25.github.io/Blue-bird/en.html" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          style={{
-            backgroundColor: 'white',
-            color: '#374151',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            textDecoration: 'none',
-            fontWeight: '600',
-            border: '1px solid #d1d5db',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#f9fafb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = 'white'}
-        >
-          English Docs
-        </a>
-      </div>
+          <Card title={" Documentation (Eng)"}>
+            <div className='flex gap-4 justify-center mb-8'>
+              <a
+                href="https://seip25.github.io/Blue-bird/en.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className='bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-400'
+              >
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-        gap: '2rem',
-        maxWidth: '1000px',
-        margin: '0 auto'
-      }}>
-        <div style={cardStyle}>
-          <h3>Lightweight</h3>
-          <p>Built with performance and simplicity in mind.</p>
+              </a>
+              <a
+                href="https://seip25.github.io/Blue-bird/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className='bg-blue-50 text-blue-500 px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-100  '
+              >
+                Documentación (Esp)
+
+              </a>
+            </div>
+          </Card>
+
+          <Card title={"Blue Bird"}>
+            <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-1000px mx-auto'>
+              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+                <h3 className='text-blue-500 font-semibold text-xl mb-4'>Lightweight</h3>
+                <p>Built with performance and simplicity in mind.</p>
+              </div>
+              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+                <h3 className='text-blue-500 font-semibold text-xl mb-4'>React Powered</h3>
+                <p>Full React + Vite integration .</p>
+              </div>
+              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
+                <h3 className='text-blue-500 font-semibold text-xl mb-4'>Express Backend</h3>
+                <p>Robust and scalable backend architecture.</p>
+              </div>
+            </div>
+          </Card>
+
         </div>
-        <div style={cardStyle}>
-          <h3>React Powered</h3>
-          <p>Full React + Vite integration with island hydration.</p>
-        </div>
-        <div style={cardStyle}>
-          <h3>Express Backend</h3>
-          <p>Robust and scalable backend architecture.</p>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-const cardStyle = {
-  padding: '1.5rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #e5e7eb',
-  textAlign: 'left',
-  backgroundColor: 'white',
-  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-};`;
+
+ `;
     fs.writeFileSync(file, content);
     console.log(chalk.gray("Created frontend/resources/js/pages/Home.jsx"));
 
@@ -257,16 +242,37 @@ const cardStyle = {
       return;
     }
 
-    const content2 = `import React from 'react'; 
+    const content2 = `import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function About() {
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ color: '#111827', marginBottom: '1rem' }}>About Blue Bird</h1>
-      <p style={{ color: '#4b5563', lineHeight: '1.6' }}>
-        Blue Bird is a modern framework designed to bridge the gap between backend routing and frontend interactivity.
-        It provides a seamless developer experience for building fast, reactive web applications.
-      </p>
+    <div
+      className="bg-white text-gray-900"
+    >
+      <nav
+        className='bg-white text-gray-900 border border-gray-200 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
+      >
+        <div className='font-bold text-xl text-blue-600'>
+          Blue Bird
+        </div>
+        <div className='flex justify-between items-center gap-4'>
+          <Link to="/" className='text-gray-500 hover:text-gray-900'>Home</Link>
+          <Link to="/about" className='text-gray-500 hover:text-gray-900'>About</Link>
+        </div>
+      </nav>
+      <main className='max-w-7xl mx-auto'>
+        <div className='p-4'>
+          <h1 className='text-xl font-bold text-gray-900 mb-4'>About Blue Bird</h1>
+          <p className='text-gray-500 leading-1.6'>
+            Blue Bird is a modern framework designed to bridge the gap between backend routing and frontend interactivity.
+            It provides a seamless developer experience for building fast, reactive web applications.
+          </p>
+          <p className='text-red-500 text-xl mt-8  '>
+            Check your console JS
+          </p>
+        </div>
+      </main>
     </div>
   );
 }`;
@@ -284,8 +290,8 @@ export default function About() {
       return;
     }
 
-    const content = `import React from 'react'; 
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+    const content = `import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
 
@@ -294,56 +300,22 @@ export default function App(_props) {
     component,
     props
   } = _props;
-  
+
+  console.log('Check props and component ')
+  console.log('Component:'+component)
+  console.log(props)
+
   return (
     <Router>
-      <div style={{ 
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        color: '#111827'
-      }}>
-        <nav style={{ 
-          background: 'white', 
-          padding: '1rem 2rem', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{ fontWeight: 'bold', fontSize: '1.25rem', color: '#2563eb' }}>
-            Blue Bird
-          </div>
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <Link to="/" style={navLinkStyle}>Home</Link>
-            <Link to="/about" style={navLinkStyle}>About</Link>
-          </div>
-        </nav>
-        
-        <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Uncomment to debug props if needed */}
-          {/* <div style={{ padding: '0.5rem', background: '#ececec', fontSize: '0.75rem' }}>Props: {JSON.stringify(props)}</div> */}
-          
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
     </Router>
   );
 }
 
-const navLinkStyle = { 
-  color: '#4b5563', 
-  textDecoration: 'none', 
-  fontWeight: '500',
-  fontSize: '0.95rem',
-  transition: 'color 0.2s'
-};`;
+`;
     fs.writeFileSync(file, content);
     console.log(chalk.gray("Created frontend/resources/js/App.jsx"));
   }

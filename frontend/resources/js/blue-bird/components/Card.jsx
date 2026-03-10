@@ -1,14 +1,15 @@
 import React from 'react';
 
-export default function Card({ children, className = '', title }) {
+export default function Card({ children, className = '', title, description }) {
     return (
-        <div className={`bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden ${className}`}>
-            {title && (
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                    <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <div className={`rounded-lg border bg-card text-card-foreground shadow-sm bg-white ${className}`}>
+            {(title || description) && (
+                <div className="flex flex-col space-y-1.5 p-6">
+                    {title && <h3 className="font-semibold leading-none tracking-tight">{title}</h3>}
+                    {description && <p className="text-sm text-slate-500">{description}</p>}
                 </div>
             )}
-            <div className="p-6">
+            <div className={`p-6 ${title || description ? 'pt-0' : ''}`}>
                 {children}
             </div>
         </div>
