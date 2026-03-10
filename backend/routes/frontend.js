@@ -31,20 +31,13 @@ routesFrontend.forEach(route_ => {
 
         return Template.renderReact(res, route_.component, dynamicProps, {
             metaTags: route_.meta,
-            scriptsInBody: [{ src: "https://cdn.tailwindcss.com" }]
         });
     });
 });
 
 
 routerFrontendExample.get("*", (req, res) => {
-    const response = Template.renderReact(res, "App", { title: "404 - not found" },
-        {
-            scriptsInBody: [
-                { "src": "https://cdn.tailwindcss.com" }
-            ]
-        }
-    );
+    const response = Template.renderReact(res, "App");
     return response;
 })
 

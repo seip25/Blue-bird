@@ -234,7 +234,8 @@ class DatabaseConnection {
             usersTable = `
             await db.query(\`
                 CREATE TABLE IF NOT EXISTS User (
-                    id TEXT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id_public TEXT UNIQUE NOT NULL,
                     name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     is_active INTEGER DEFAULT 1,
@@ -248,7 +249,7 @@ class DatabaseConnection {
             historyTable = `
             await db.query(\`
                 CREATE TABLE IF NOT EXISTS LoginHistory (
-                    id TEXT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     email TEXT NOT NULL,
                     ip_address TEXT NOT NULL,
                     success INTEGER NOT NULL,
@@ -259,7 +260,8 @@ class DatabaseConnection {
             usersTable = `
             await db.query(\`
                 CREATE TABLE IF NOT EXISTS User (
-                    id VARCHAR(36) PRIMARY KEY,
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id_public VARCHAR(36) UNIQUE NOT NULL,
                     name VARCHAR(255) NOT NULL,
                     email VARCHAR(255) UNIQUE NOT NULL,
                     is_active BOOLEAN DEFAULT TRUE,
@@ -273,7 +275,7 @@ class DatabaseConnection {
             historyTable = `
              await db.query(\`
                 CREATE TABLE IF NOT EXISTS LoginHistory (
-                    id VARCHAR(36) PRIMARY KEY,
+                    id INT AUTO_INCREMENT PRIMARY KEY,
                     email VARCHAR(255) NOT NULL,
                     ip_address VARCHAR(45) NOT NULL,
                     success BOOLEAN NOT NULL,
@@ -284,7 +286,8 @@ class DatabaseConnection {
             usersTable = `
             await db.query(\`
                 CREATE TABLE IF NOT EXISTS "User" (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    id SERIAL PRIMARY KEY,
+                    id_public UUID UNIQUE NOT NULL,
                     name VARCHAR(255) NOT NULL,
                     email VARCHAR(255) UNIQUE NOT NULL,
                     is_active BOOLEAN DEFAULT TRUE,
@@ -298,7 +301,7 @@ class DatabaseConnection {
             historyTable = `
              await db.query(\`
                 CREATE TABLE IF NOT EXISTS "LoginHistory" (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    id SERIAL PRIMARY KEY,
                     email VARCHAR(255) NOT NULL,
                     ip_address VARCHAR(45) NOT NULL,
                     success BOOLEAN NOT NULL,
@@ -336,7 +339,7 @@ export default class AuthService {
         return true;
     }
 
-    static async findUserByEmail(email, isActive = true) {
+    static async findUserByEmail(email, isActive = 1) {
 `;
         if (dialect === "postgres") {
             content += `        return await db.queryOne('SELECT * FROM "User" WHERE is_active = $1 AND email = $2', [isActive, email]);\n`;
@@ -347,28 +350,27 @@ export default class AuthService {
         content += `    }
 
     static async createLoginHistory(email, ip, success) {
-        const id = crypto.randomUUID();
 `;
         if (dialect === "postgres") {
-            content += `        await db.query('INSERT INTO "LoginHistory" (id, email, ip_address, success) VALUES ($1, $2, $3, $4)', [id, email, ip, success]);\n`;
+            content += `        await db.query('INSERT INTO "LoginHistory" (email, ip_address, success) VALUES ($1, $2, $3)', [email, ip, success]);\n`;
         } else {
-            content += `        const successVal = success ? 1 : 0;\n        await db.query('INSERT INTO LoginHistory (id, email, ip_address, success) VALUES (?, ?, ?, ?)', [id, email, ip, successVal]);\n`;
+            content += `        const successVal = success ? 1 : 0;\n        await db.query('INSERT INTO LoginHistory (email, ip_address, success) VALUES (?, ?, ?)', [email, ip, successVal]);\n`;
         }
 
         content += `    }
 
     static async createUser(name, email, password) {
-        const id = crypto.randomUUID();
+        const id_public = crypto.randomUUID();
         const passwordHash= await hash(password, 10);
 `;
 
         if (dialect === "postgres") {
-            content += `        await db.query('INSERT INTO "User" (id, name, email, password, is_active) VALUES ($1, $2, $3, $4, $5)', [id, name, email, passwordHash, true]);\n`;
+            content += `        await db.query('INSERT INTO "User" (id_public, name, email, password, is_active) VALUES ($1, $2, $3, $4, $5)', [id_public, name, email, passwordHash, true]);\n`;
         } else {
-            content += `        await db.query('INSERT INTO User (id, name, email, password, is_active) VALUES (?, ?, ?, ?, ?)', [id, name, email, passwordHash, true]);\n`;
+            content += `        await db.query('INSERT INTO User (id_public, name, email, password, is_active) VALUES (?, ?, ?, ?, ?)', [id_public, name, email, passwordHash, true]);\n`;
         }
 
-        content += `        return { id, name, email };
+        content += `        return { id_public, name, email };
     }
 
     static async setPasswordToken(userId, token) {
@@ -381,7 +383,7 @@ export default class AuthService {
 
         content += `    }
 
-    static async findUserByPasswordToken(token, isActive = true) {
+    static async findUserByPasswordToken(token, isActive = 1) {
 `;
         if (dialect === "postgres") {
             content += `        return await db.queryOne('SELECT * FROM "User" WHERE password_token = $1 AND is_active = $2', [token, isActive]);\n`;
@@ -392,12 +394,12 @@ export default class AuthService {
         content += `    }
 
     static async updatePassword(userId, newPassword) {
-        const newPasswordHash= await hash(newPassword, 10);
+        const newPasswordHash = await hash(newPassword, 10);
 `;
         if (dialect === "postgres") {
-            content += `        await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPasswordHash, userId]);\n`;
+            content += `        return await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPasswordHash, userId]);\n`;
         } else {
-            content += `        await db.query('UPDATE User SET password = ?, password_token = NULL WHERE id = ?', [newPasswordHash, userId]);\n`;
+            content += `        return await db.query('UPDATE User SET password = ?, password_token = NULL WHERE id = ?', [newPasswordHash, userId]);\n`;
         }
 
         content += `    }
@@ -420,18 +422,10 @@ import Config from "@seip/blue-bird/core/config.js";
 import crypto from "node:crypto";
 import AuthService from "../databases/services/auth.service.js";
 import { compare } from "bcrypt";
-
+import Template from "@seip/blue-bird/core/template.js";
 
 const routerAuth = new Router("/auth");
 const props = Config.props();
-
-routerAuth.get("/login", (req, res) => {
-    const isAuthenticated=req.user;
-    if(isAuthenticated){
-        return res.redirect('/dashboard');
-    }
-    return Template.renderReact(res, "App", { title: "Login" }, { scriptsInBody: [{ "src": "https://cdn.tailwindcss.com" }] });
-});
 
 routerAuth.post("/login", new Validator({ email: { required: true, email: true }, password: { required: true } }).middleware(), async (req, res) => {
     try {
@@ -440,45 +434,56 @@ routerAuth.post("/login", new Validator({ email: { required: true, email: true }
 
         await AuthService.checkRateLimit(ip, email);
 
-        const user = await AuthService.findUserByEmail(email);
-        const passwordCompare= await compare(password, user.password);
-        if (!user || !passwordCompare) {
+        const user = await AuthService.findUserByEmail(email, 1);
+
+        if (!user) {
+            await AuthService.createLoginHistory(email, ip, false);
+            const deletedAccount = await AuthService.findUserByEmail(email, 0);
+            if (deletedAccount) return res.status(401).json({ message: "Your account is deleted", deleted_account_error: true });
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+        const passwordCompare = await compare(password, user.password);
+
+        if (!passwordCompare) {
             await AuthService.createLoginHistory(email, ip, false);
             return res.status(401).json({ message: "Invalid credentials" });
         }
-
         await AuthService.createLoginHistory(email, ip, true);
-        const token = Auth.generateToken({ id: user.id, email: user.email });
-        const secure=process.env.NODE_ENV==="production"?true:false;
-        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge: 24 * 60 * 60 * 1000 });
-        return res.json({ user: { id: user.id, name: user.name, email: user.email } });
+        await AuthService.setPasswordToken(user.id, null);
+        const token = Auth.generateToken({ id: user.id_public, email: user.email });
+        const secure = props.debug == false ? true : false;
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
+        return res.json({ user: { id: user.id_public, name: user.name, email: user.email } });
     } catch (error) {
-        return res.status(429).json({ message:props.debug ? error.message : "Error, something went wrong" });
+        console.log(error)
+        return res.status(429).json({ message: props.debug ? error.message : "Error, something went wrong" });
     }
 });
 
-routerAuth.post("/register", new Validator({password_confirmation :{required:true,min:6}, name: { required: true }, email: { required: true, email: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
+routerAuth.post("/register", new Validator({ password_confirmation: { required: true, min: 6 }, name: { required: true }, email: { required: true, email: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
     try {
-        const { name, email, password,password_confirmation } = req.body;
-        const exists = await AuthService.findUserByEmail(email);
-        if (exists) return res.status(400).json({ message: "Error, check your email entered", email_error: true });
+        const { name, email, password, password_confirmation } = req.body;
         if (password !== password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation", password_confirmation_error: true });
-
+        const exists = await AuthService.findUserByEmail(email);
+        if (exists) return res.status(400).json({ message: "Error, check your email entered", error_email_register: true });
+        const deletedAccount = await AuthService.findUserByEmail(email, 0);
+        if (deletedAccount) return res.status(400).json({ message: "Error, your account is deleted", deleted_account_error: true });
         const user = await AuthService.createUser(name, email, password);
-        const token = Auth.generateToken({ id: user.id, email: user.email });
-        const secure=process.env.NODE_ENV==="production"?true:false;
-        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge: 24 * 60 * 60 * 1000 });
-        return res.json({ message: "Registered", user: { id: user.id, email: user.email } });
-    } catch(err) {; 
-         return res.status(500).json({ message:  props.debug?err.message:"Error, something went wrong"});
+        const secure = process.env.NODE_ENV === "production" ? true : false;
+        const token = Auth.generateToken({ id: user.id_public, email: user.email });
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
+        return res.json({ message: "Registered", user: { id: user.id_public, email: user.email } });
+    } catch (err) {
+        ;
+        return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
     }
 });
 
 routerAuth.post("/forgot-password", new Validator({ email: { required: true, email: true } }).middleware(), async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await AuthService.findUserByEmail(email);
-        
+        const user = await AuthService.findUserByEmail(email, 1);
+
         if (user) {
             const token = crypto.randomBytes(32).toString('hex');
             await AuthService.setPasswordToken(user.id, token);
@@ -491,23 +496,66 @@ routerAuth.post("/forgot-password", new Validator({ email: { required: true, ema
 
         return res.json({ message: "If the email is valid, a password reset link has been sent." });
     } catch (err) {
-        return res.status(500).json({ message:  props.debug?err.message:"Error, something went wrong" });
+        return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
     }
 });
 
-routerAuth.post("/reset-password", new Validator({password_confirmation :{required:true,min:6}, token: { required: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
+routerAuth.post("/reset-password/validate", async (req, res) => {
     try {
-        const { token, password,password_confirmation } = req.body;
-        const user = await AuthService.findUserByPasswordToken(token);
-        if(password!==password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation",password_confirmation:false });
+        const { token } = req.body;
+        if (!token) {
+            return res.status(400).json({ title: "Reset Password", queryToken: false })
+        }
+        const user = await AuthService.findUserByPasswordToken(token, 1);
+        if (!user) {
+            return res.status(400).json({ title: "Reset Password", queryToken: false, u: false })
+        }
+        return res.json({ title: "Reset Password", queryToken: true })
+    } catch (err) {
+        return res.status(500).json({ title: "Reset Password", queryToken: false })
+    }
+});
+
+routerAuth.post("/reset-password", new Validator({ password_confirmation: { required: true, min: 6 }, token: { required: true }, password: { required: true, min: 6 } }).middleware(), async (req, res) => {
+    try {
+        const { token, password, password_confirmation } = req.body;
+        const user = await AuthService.findUserByPasswordToken(token, 1);
+        if (password !== password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation", password_confirmation: true });
 
         if (!user) {
-            return res.status(400).json({ message: "Invalid or expired reset token.",token:false });
+            return res.status(400).json({ message: "Invalid or expired reset token.", token: true });
         }
 
-        await AuthService.updatePassword(user.id, password);
+        const updatePassword = await AuthService.updatePassword(user.id, password);
+
+        if (!updatePassword) {
+            return res.status(400).json({ message: "Error, something went wrong", updatePassword: true });
+        }
+        await AuthService.setPasswordToken(user.id, null);
 
         return res.json({ message: "Password has been reset successfully." });
+    } catch (err) {
+        return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
+    }
+});
+
+routerAuth.get("/validate", Auth.protect(), (req, res) => {
+    return res.json({ user: req.user });
+});
+
+routerAuth.get("/logout", async (req, res) => {
+    try {
+        res.clearCookie("token");
+        return res.json({ message: "Logged out" });
+    } catch (err) {
+        return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
+    }
+});
+
+routerAuth.post("/logout", async (req, res) => {
+    try {
+        res.clearCookie("token");
+        return res.json({ message: "Logged out" });
     } catch (err) {
         return res.status(500).json({ message: props.debug ? err.message : "Error, something went wrong" });
     }
@@ -524,11 +572,7 @@ import Auth from "@seip/blue-bird/core/auth.js";
 const routerAuthenticated = new Router();
 
 routerAuthenticated.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
-    return Template.renderReact(res, "App", { title: "Dashboard" }, { scriptsInBody: [{ "src": "https://cdn.tailwindcss.com" }] });
-});
-
-routerAuthenticated.get("/dashboard/validate", Auth.protect(), (req, res) => {
-    return res.json({ user: req.user });
+    return Template.renderReact(res, "App", { title: "Dashboard" });
 });
 
 export default routerAuthenticated;
@@ -840,7 +884,9 @@ export default function Dashboard() {
     );
 }
 `;
-        fs.writeFileSync(path.join(pagesDir, "Dashboard.jsx"), dashboardContent, "utf-8");
+        const authenticatedPagesDir = path.join(this.frontendDir, "resources", "js", "pages", "authenticated");
+        if (!fs.existsSync(authenticatedPagesDir)) fs.mkdirSync(authenticatedPagesDir, { recursive: true });
+        fs.writeFileSync(path.join(authenticatedPagesDir, "Dashboard.jsx"), dashboardContent, "utf-8");
 
         console.log(chalk.green("✓ Frontend React UI Components generated."));
     }
@@ -869,7 +915,7 @@ export default function Dashboard() {
             if (!appJsx.includes("LanguageProvider")) {
                 appJsx = appJsx.replace(
                     "import Home from './pages/Home';",
-                    "import { LanguageProvider } from './blue-bird/contexts/LanguageContext.jsx';\nimport Login from './pages/auth/Login.jsx';\nimport Register from './pages/auth/Register.jsx';\nimport ForgotPassword from './pages/auth/ForgotPassword.jsx';\nimport ResetPassword from './pages/auth/ResetPassword.jsx';\nimport Dashboard from './pages/auth/Dashboard.jsx';\nimport Home from './pages/Home';"
+                    "import { LanguageProvider } from './blue-bird/contexts/LanguageContext.jsx';\nimport Login from './pages/auth/Login.jsx';\nimport Register from './pages/auth/Register.jsx';\nimport ForgotPassword from './pages/auth/ForgotPassword.jsx';\nimport ResetPassword from './pages/auth/ResetPassword.jsx';\nimport Dashboard from './pages/authenticated/Dashboard.jsx';\nimport Home from './pages/Home';"
                 );
                 appJsx = appJsx.replace(
                     "<Router>",
