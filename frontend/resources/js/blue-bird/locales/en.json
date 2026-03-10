@@ -22,5 +22,6 @@
     "password_confirmation": "Confirm Password",
     "back_to_login": "Back to login",
     "dont_have_account_register": "Don't have an account? Register",
-    "password_confimation": "Error, the password must match"
+    "password_confirmation_err": "Error, the password must match",
+    "If the email is valid, a password reset link has been sent": "If the email is valid, a password reset link has been sent."
 }

@@ -186,7 +186,7 @@ export default function Home() {
             </p>
           </header>
 
-          <Card title={" Documentation (Eng)"}>
+          <Card title={" Documentation (Eng)"}  className='mt-8 border-none shadow-none'>
             <div className='flex gap-4 justify-center mb-8'>
               <a
                 href="https://seip25.github.io/Blue-bird/en.html"
@@ -194,7 +194,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className='bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-400'
               >
-
+                  Documentation(Eng)
               </a>
               <a
                 href="https://seip25.github.io/Blue-bird/"
@@ -208,7 +208,7 @@ export default function Home() {
             </div>
           </Card>
 
-          <Card title={"Blue Bird"}>
+          <Card  className='mt-8 border-none shadow-none'>
             <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-1000px mx-auto'>
               <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
                 <h3 className='text-blue-500 font-semibold text-xl mb-4'>Lightweight</h3>

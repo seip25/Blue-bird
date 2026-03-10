@@ -22,5 +22,6 @@
     "password_confirmation": "Confirmar Contraseña",
     "back_to_login": "Volver a iniciar sesión",
     "dont_have_account_register": "¿No tienes una cuenta? Regístrate",
-    "password_confimation": "Error, las contraseñas deben de coincidir"
+    "password_confirmation_err": "Error, las contraseñas deben de coincidir",
+    "If the email is valid, a password reset link has been sent": "Si el correo electrónico es válido, se ha enviado un enlace para restablecer la contraseña."
 }

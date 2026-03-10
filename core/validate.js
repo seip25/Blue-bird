@@ -137,7 +137,8 @@ class Validator {
      * const result = await loginValidator.validate(req);
      */
     async validate(req) {
-        const lang = this.lang_default ? this.lang_default : req?.session?.lang || "es";
+
+        let lang = req?.body?.lang || req?.params?.lang || req?.session?.lang || this.lang_default || "es";
         const msg = this.messages[lang] || this.messages.es;
         const errors = [];
         const messages = [];

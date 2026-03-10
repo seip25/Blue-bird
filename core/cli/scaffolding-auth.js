@@ -27,6 +27,14 @@ class ScaffoldingAuth {
             console.log(chalk.white("You can use the native database connection provided in backend/databases/connection.js"));
             console.log(chalk.white("OR we recommend using an ORM like Prisma. If you migrate to an ORM, adapt backend/databases/services/auth.service.js to use it."));
             console.log(chalk.white("Update your App.jsx to use the newly created React components."));
+            console.log(chalk.yellow("Running setup script to execute database migrations..."));
+            try {
+                execSync('node backend/databases/setup_tables.js', { stdio: "inherit", cwd: this.appDir });
+                console.log(chalk.green("✓ Database migrations success. Users and LoginHistory tables created."));
+            } catch (e) {
+                console.log(chalk.red("Failed to execute setup_tables.js. You may need to run it manually."));
+                console.log(e);
+            }
         } catch (error) {
             console.error(chalk.red("Error during Scaffolding Auth initialization:"), error.message);
         }
@@ -68,7 +76,7 @@ class ScaffoldingAuth {
 
         console.log(chalk.green("✓ Database connection, setup script, and services generated."));
 
-        console.log(chalk.yellow(`Run 'node backend/databases/setup_tables.js' to create Users and LoginHistory tables.`));
+
     }
 
     generateConnectionFile(dbDir, dialect) {
@@ -306,6 +314,7 @@ class DatabaseConnection {
     generateAuthService(servicesDir, dialect) {
         let content = `import db from '../connection.js';
 import crypto from 'node:crypto';
+import { hash } from 'bcrypt';
 
 export default class AuthService {
     static async checkRateLimit(ip, email) {
@@ -350,13 +359,13 @@ export default class AuthService {
 
     static async createUser(name, email, password) {
         const id = crypto.randomUUID();
-        const password= await bcrypt.hash(password, 10);
+        const passwordHash= await hash(password, 10);
 `;
 
         if (dialect === "postgres") {
-            content += `        await db.query('INSERT INTO "User" (id, name, email, password, is_active) VALUES ($1, $2, $3, $4, $5)', [id, name, email, password, true]);\n`;
+            content += `        await db.query('INSERT INTO "User" (id, name, email, password, is_active) VALUES ($1, $2, $3, $4, $5)', [id, name, email, passwordHash, true]);\n`;
         } else {
-            content += `        await db.query('INSERT INTO User (id, name, email, password, is_active) VALUES (?, ?, ?, ?, ?)', [id, name, email, password, true]);\n`;
+            content += `        await db.query('INSERT INTO User (id, name, email, password, is_active) VALUES (?, ?, ?, ?, ?)', [id, name, email, passwordHash, true]);\n`;
         }
 
         content += `        return { id, name, email };
@@ -383,12 +392,12 @@ export default class AuthService {
         content += `    }
 
     static async updatePassword(userId, newPassword) {
-        const newPassword= await bcrypt.hash(newPassword, 10);
+        const newPasswordHash= await hash(newPassword, 10);
 `;
         if (dialect === "postgres") {
-            content += `        await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPassword, userId]);\n`;
+            content += `        await db.query('UPDATE "User" SET password = $1, password_token = NULL WHERE id = $2', [newPasswordHash, userId]);\n`;
         } else {
-            content += `        await db.query('UPDATE User SET password = ?, password_token = NULL WHERE id = ?', [newPassword, userId]);\n`;
+            content += `        await db.query('UPDATE User SET password = ?, password_token = NULL WHERE id = ?', [newPasswordHash, userId]);\n`;
         }
 
         content += `    }
@@ -410,6 +419,7 @@ import Auth from "@seip/blue-bird/core/auth.js";
 import Config from "@seip/blue-bird/core/config.js";
 import crypto from "node:crypto";
 import AuthService from "../databases/services/auth.service.js";
+import { compare } from "bcrypt";
 
 
 const routerAuth = new Router("/auth");
@@ -431,16 +441,16 @@ routerAuth.post("/login", new Validator({ email: { required: true, email: true }
         await AuthService.checkRateLimit(ip, email);
 
         const user = await AuthService.findUserByEmail(email);
-        const passwordCompare= await bcrypt.compare(password, user.password);
+        const passwordCompare= await compare(password, user.password);
         if (!user || !passwordCompare) {
             await AuthService.createLoginHistory(email, ip, false);
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
         await AuthService.createLoginHistory(email, ip, true);
-        const token = Auth.generateToken({ id: user.id, email: user.email }, props.jwt.secret, props.jwt.expiresIn);
+        const token = Auth.generateToken({ id: user.id, email: user.email });
         const secure=process.env.NODE_ENV==="production"?true:false;
-        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge:props.jwt.expiresIn });
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge: 24 * 60 * 60 * 1000 });
         return res.json({ user: { id: user.id, name: user.name, email: user.email } });
     } catch (error) {
         return res.status(429).json({ message:props.debug ? error.message : "Error, something went wrong" });
@@ -451,13 +461,13 @@ routerAuth.post("/register", new Validator({password_confirmation :{required:tru
     try {
         const { name, email, password,password_confirmation } = req.body;
         const exists = await AuthService.findUserByEmail(email);
-        if (exists) return res.status(400).json({ message: "Error, check your email entered",email:false });
-        if (password !== password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation",password_confirmation:false });
+        if (exists) return res.status(400).json({ message: "Error, check your email entered", email_error: true });
+        if (password !== password_confirmation) return res.status(400).json({ message: "Error, check your password confirmation", password_confirmation_error: true });
 
         const user = await AuthService.createUser(name, email, password);
-        const token = Auth.generateToken({ id: user.id, email: user.email }, props.jwt.secret, props.jwt.expiresIn);
+        const token = Auth.generateToken({ id: user.id, email: user.email });
         const secure=process.env.NODE_ENV==="production"?true:false;
-        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge:props.jwt.expiresIn });
+        res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict",maxAge: 24 * 60 * 60 * 1000 });
         return res.json({ message: "Registered", user: { id: user.id, email: user.email } });
     } catch(err) {; 
          return res.status(500).json({ message:  props.debug?err.message:"Error, something went wrong"});
@@ -547,11 +557,12 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const lang = localStorage.getItem("lila_lang") ?? "en";
         try {
             const res = await fetch('/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password , lang })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
@@ -606,11 +617,12 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const lang = localStorage.getItem("lila_lang") ?? "en";
         try {
             const res = await fetch('/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, password_confirmation })
+                body: JSON.stringify({ name, email, password, password_confirmation, lang })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
@@ -675,7 +687,7 @@ export default function ForgotPassword() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t('error_general'));
-            setMessage(data.message);
+             setMessage(t('If the email is valid, a password reset link has been sent') || data.message);
         } catch (err) {
             setError(err.message);
         }
