@@ -29,7 +29,7 @@ class ScaffoldingAuth {
             console.log(chalk.white("Update your App.jsx to use the newly created React components."));
             console.log(chalk.yellow("Running setup script to execute database migrations..."));
             try {
-                execSync('node backend/databases/setup_tables.js', { stdio: "inherit", cwd: this.appDir });
+                execSync('node  --env-file=.env backend/databases/setup_tables.js', { stdio: "inherit", cwd: this.appDir });
                 console.log(chalk.green("✓ Database migrations success. Users and LoginHistory tables created."));
             } catch (e) {
                 console.log(chalk.red("Failed to execute setup_tables.js. You may need to run it manually."));
@@ -225,7 +225,61 @@ class DatabaseConnection {
     }
 
     generateSetupTables(dbDir, dialect) {
-        let content = `import db from './connection.js';\n\nasync function setup() {\n`;
+        let content = `import db from './connection.js';\n\n`;
+
+        if (dialect === "mysql" || dialect === "postgres") {
+            content += `const dbUrl = process.env.DATABASE_URL;\n\nasync function createDatabaseIfNotExists() {\n`;
+            if (dialect === "mysql") {
+                content += `    try {
+        const mysql = await import('mysql2/promise');
+        const createConnection = mysql.createConnection || (mysql.default && mysql.default.createConnection);
+        const url = new URL(dbUrl);
+        const dbName = url.pathname.replace('/', '');
+        const connectionParams = {
+            host: url.hostname,
+            user: decodeURIComponent(url.username),
+            password: decodeURIComponent(url.password),
+            port: url.port ? Number(url.port) : 3306
+        };
+        const connection = await createConnection(connectionParams);
+        await connection.query(\`CREATE DATABASE IF NOT EXISTS \\\`\${dbName}\\\`;\`);
+        await connection.end();
+        console.log(\`Database '\${dbName}' checked/created successfully.\`);
+    } catch (err) {
+        console.error("Failed to create database automatically:", err.message);
+    }
+`;
+            } else if (dialect === "postgres") {
+                content += `    try {
+        const pkg = await import('pg');
+        const Client = pkg.Client || (pkg.default && pkg.default.Client);
+        const url = new URL(dbUrl);
+        const dbName = url.pathname.replace('/', '');
+        const connectionString = \`postgres://\${url.username}:\${url.password}@\${url.hostname}:\${url.port ? url.port : 5432}/postgres\`;
+        const client = new Client({ connectionString });
+        await client.connect();
+        
+        const res = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbName]);
+        if (res.rowCount === 0) {
+            await client.query(\`CREATE DATABASE "\${dbName}"\`);
+            console.log(\`Database '\${dbName}' created successfully.\`);
+        } else {
+            console.log(\`Database '\${dbName}' already exists.\`);
+        }
+        await client.end();
+    } catch (err) {
+        console.error("Failed to create database automatically:", err.message);
+    }
+`;
+            }
+            content += `}\n\n`;
+        }
+
+        content += `async function setup() {\n`;
+
+        if (dialect === "mysql" || dialect === "postgres") {
+            content += `    await createDatabaseIfNotExists();\n`;
+        }
 
         let usersTable = "";
         let historyTable = "";
