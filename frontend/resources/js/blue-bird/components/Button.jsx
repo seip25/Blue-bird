@@ -4,13 +4,13 @@ export default function Button({ children, variant = 'default', size = 'default'
     const baseStyle = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
     const variants = {
-        default: "bg-slate-900 text-slate-50 hover:bg-slate-900/90",
-        destructive: "bg-red-500 text-slate-50 hover:bg-red-500/90",
-        outline: "border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900",
-        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-100/80",
-        ghost: "hover:bg-slate-100 hover:text-slate-900",
-        link: "text-slate-900 underline-offset-4 hover:underline",
-        fill: "bg-gray-100 text-gray-900 hover:bg-gray-100/80 w-full",
+        default: "bg-slate-900 dark:bg-slate-100 text-slate-50 dark:text-slate-900 hover:bg-slate-900/90 dark:hover:bg-slate-100/90",
+        destructive: "bg-red-500 text-slate-50 hover:bg-red-500/90 dark:bg-red-900 dark:hover:bg-red-900/90",
+        outline: "border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800",
+        secondary: "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80",
+        ghost: "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100",
+        link: "text-slate-900 dark:text-slate-100 underline-offset-4 hover:underline",
+        fill: "bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100 hover:bg-gray-100/80 dark:hover:bg-slate-800/80 w-full",
         blue: "bg-blue-500 text-white hover:bg-blue-500/90 w-full",
         blue_light: "bg-blue-100 text-blue-500 hover:bg-blue-100/80 w-full font-semibold",
         green: "bg-green-500 text-white hover:bg-green-500/90 w-full",

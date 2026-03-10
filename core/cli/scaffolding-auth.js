@@ -620,7 +620,7 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
             <Card className="w-full max-w-md">
                 <div className="mb-6 text-center">
                     <Typography variant="h3">{t('login')}</Typography>
@@ -632,12 +632,12 @@ export default function Login() {
                     <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
                 </form>
                 <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
-                    <Link to="/forgot-password" className="text-slate-600 hover:underline">{t('forgot_password')}</Link>
-                    <Link to="/register" className="text-slate-600 hover:underline">{t('dont_have_account_register')}</Link>
+                    <Link to="/forgot-password" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('forgot_password')}</Link>
+                    <Link to="/register" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('dont_have_account_register')}</Link>
                 </div>
-                <div className="mt-6 flex justify-center space-x-4 text-sm border-t pt-4">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
+                <div className="mt-6 flex justify-center space-x-4 text-sm border-t dark:border-slate-800 pt-4">
+                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
+                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
                 </div>
             </Card>
         </div>
@@ -685,7 +685,7 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
             <Card className="w-full max-w-md">
                 <div className="mb-6 text-center">
                     <Typography variant="h3">{t('register')}</Typography>
@@ -700,11 +700,11 @@ export default function Register() {
                     <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
                 </form>
                 <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
                 </div>
-                <div className="mt-6 flex justify-center space-x-4 text-sm border-t pt-4">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
+                <div className="mt-6 flex justify-center space-x-4 text-sm border-t dark:border-slate-800 pt-4">
+                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
+                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
                 </div>
             </Card>
         </div>
@@ -746,7 +746,7 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
             <Card className="w-full max-w-md">
                 <div className="mb-4 text-center">
                     <Typography variant="h3">{t('forgot_password') || 'Forgot Password'}</Typography>
@@ -761,7 +761,7 @@ export default function ForgotPassword() {
                     <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
                 </form>
                 <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
                 </div>
             </Card>
         </div>
@@ -793,6 +793,22 @@ export default function ResetPassword() {
         if (t) setToken(t);
     }, [search]);
 
+    useEffect(() => {
+        if (token) {
+            const fetchUser = async () => {
+                const res = await fetch('/auth/reset-password/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                if (!res.ok) return window.location.href = '/login';
+                const data = await res.json();
+                setUser(data.user);
+            };
+            fetchUser();
+        }
+    }, [token]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage(null);
@@ -817,7 +833,7 @@ export default function ResetPassword() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
             <Card className="w-full max-w-md">
                 <div className="mb-6 text-center">
                     <Typography variant="h3">Reset Password</Typography>
@@ -830,71 +846,66 @@ export default function ResetPassword() {
                     <Input label={t('password_confirmation') || 'Confirm Password'} type="password" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
                     <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
                 </form>
-                  <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
+                <div className="mt-6 text-center text-sm">
+                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
                 </div>
             </Card>
         </div>
     );
 }
+
 `;
         fs.writeFileSync(path.join(pagesDir, "ResetPassword.jsx"), resetPasswordContent, "utf-8");
 
-        const dashboardContent = `import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { useEffect, useState } from 'react';
-import Button from '../../blue-bird/components/Button.jsx';
-import Typography from '../../blue-bird/components/Typography.jsx';
-import Card from '../../blue-bird/components/Card.jsx';
-
-export default function Dashboard() {
-    const { t, lang, setLang } = useLanguage();
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-        const fetchUser = async () => { 
-            const getCookie = (name) => {
-                const value = "; " + document.cookie;
-                const parts = value.split("; " + name + "=");
-                if (parts.length === 2) return parts.pop().split(";").shift();
-            }
-            const token = getCookie('token');
-            if (!token) return window.location.href = '/login';
-            const res = await fetch('/auth/dashboard', {
-                headers: { 'Authorization': \`Bearer \${token}\` }});
-             if(!res.ok) return window.location.href = '/login';
-             const data = await res.json();
-             setUser(data.user);
-        };
-        fetchUser();
-    }, []);
-
-    const logout = () => {
-        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        window.location.href = '/login';
-    };
-
-    if(!user) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Typography variant="p">Loading...</Typography></div>;
-
-    return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
-            <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                <Typography variant="h4">{t('dashboard')}</Typography>
-                <div className="flex items-center space-x-4">
-                    <button onClick={() => setLang('en')} className={\`text-sm transition-colors hover:text-slate-900 \${lang === 'en' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`text-sm transition-colors hover:text-slate-900 \${lang === 'es' ? 'font-semibold text-slate-900' : 'text-slate-500'}\`}>ES</button>
-                    <div className="w-px h-4 bg-slate-200 mx-2"></div>
-                    <Button variant="ghost" onClick={logout} className="text-red-600 hover:text-red-700 hover:bg-red-50">{t('logout')}</Button>
+        const dashboardContent = ` import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
+        import { useEffect, useState } from 'react';
+        import Button from '../../blue-bird/components/Button.jsx';
+        import Typography from '../../blue-bird/components/Typography.jsx';
+        import Card from '../../blue-bird/components/Card.jsx';
+        
+        export default function Dashboard() {
+            const { t, lang, setLang } = useLanguage();
+            const [user, setUser] = useState(null);
+        
+            useEffect(() => {
+                const fetchUser = async () => {
+                    const res = await fetch('/auth/validate');
+                    if (!res.ok) return window.location.href = '/login';
+                    const data = await res.json();
+                    setUser(data.user);
+                };
+                fetchUser();
+            }, []);
+        
+            const logout = async () => {
+                const res = await fetch('/auth/logout');
+                if (!res.ok) throw new Error(t('error_general'));
+                return window.location.href = '/login';
+            };
+        
+            if (!user) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"><Typography variant="p">Loading...</Typography></div>;
+        
+            return (
+                <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col">
+                    <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                        <Typography variant="h4">{t('dashboard')}</Typography>
+                        <div className="flex items-center space-x-4">
+                            <button onClick={() => setLang('en')} className={\`text-sm transition-colors hover:text-slate-900 dark:hover:text-slate-100 \${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
+                            <button onClick={() => setLang('es')} className={\`text-sm transition-colors hover:text-slate-900 dark:hover:text-slate-100 \${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
+                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                            <Button variant="ghost" onClick={logout} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30">{t('logout')}</Button>
+                        </div>
+                    </header>
+                    <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+                        <Card>
+                            <Typography variant="h3" className="mb-2">Welcome, {user.email}!</Typography>
+                            <Typography variant="muted">You are successfully logged into your dashboard.</Typography>
+                        </Card>
+                    </main>
                 </div>
-            </header>
-            <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-                <Card>
-                    <Typography variant="h3" className="mb-2">Welcome, {user.email}!</Typography>
-                    <Typography variant="muted">You are successfully logged into your dashboard.</Typography>
-                </Card>
-            </main>
-        </div>
-    );
-}
+            );
+        }
+        
 `;
         const authenticatedPagesDir = path.join(this.frontendDir, "resources", "js", "pages", "authenticated");
         if (!fs.existsSync(authenticatedPagesDir)) fs.mkdirSync(authenticatedPagesDir, { recursive: true });

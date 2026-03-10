@@ -8,10 +8,10 @@ export default function Typography({ variant = 'p', children, className = '', ..
         h4: "scroll-m-20 text-xl font-semibold tracking-tight",
         p: "leading-7 [&:not(:first-child)]:mt-6",
         blockquote: "mt-6 border-l-2 pl-6 italic",
-        lead: "text-xl text-slate-700",
+        lead: "text-xl text-slate-700 dark:text-slate-300",
         large: "text-lg font-semibold",
         small: "text-sm font-medium leading-none",
-        muted: "text-sm text-slate-500",
+        muted: "text-sm text-slate-500 dark:text-slate-400",
     };
 
     const Component = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p'].includes(variant) ? variant : 'p';

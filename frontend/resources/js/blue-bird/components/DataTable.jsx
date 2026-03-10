@@ -44,27 +44,27 @@ export default function DataTable({
                 </div>
             )}
 
-            <div className="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="overflow-x-auto bg-white dark:bg-slate-900 rounded-lg shadow border border-gray-200 dark:border-slate-800">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-800">
+                    <thead className="bg-gray-50 dark:bg-slate-800/50">
                         <tr>
                             {columns.map(col => (
-                                <th key={col.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th key={col.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                                     {col.title || col.key}
                                 </th>
                             ))}
                             {(onEdit || onDelete) && (
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                                     {t('actions')}
                                 </th>
                             )}
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-800">
                         {paginatedData.length > 0 ? paginatedData.map((row, idx) => (
-                            <tr key={row.id || idx} className="hover:bg-gray-50 transition-colors">
+                            <tr key={row.id || idx} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                                 {columns.map(col => (
-                                    <td key={col.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <td key={col.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-slate-300">
                                         {row[col.key] || '-'}
                                     </td>
                                 ))}
@@ -85,7 +85,7 @@ export default function DataTable({
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
                                     No data available.
                                 </td>
                             </tr>
