@@ -6,10 +6,10 @@ const translations = { en, es };
 export const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-    const [lang, setLang] = useState(() => localStorage.getItem('lila_lang') || 'en');
+    const [lang, setLang] = useState(() => localStorage.getItem('blue_bird_lang') || 'en');
 
     useEffect(() => {
-        localStorage.setItem('lila_lang', lang);
+        localStorage.setItem('blue_bird_lang', lang);
     }, [lang]);
 
     /**

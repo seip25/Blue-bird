@@ -655,7 +655,7 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const lang = localStorage.getItem("lila_lang") ?? "en";
+        const lang = localStorage.getItem("blue_bird_lang") ?? "en";
         try {
             const res = await fetch('/auth/login', {
                 method: 'POST',
@@ -718,7 +718,7 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const lang = localStorage.getItem("lila_lang") ?? "en";
+        const lang = localStorage.getItem("blue_bird_lang") ?? "en";
         try {
             const res = await fetch('/auth/register', {
                 method: 'POST',
