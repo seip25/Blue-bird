@@ -1,5 +1,6 @@
 import express from "express";
 import Config from "./config.js";
+import Template from "./template.js";
 
 const __dirname = Config.dirname()
 const props = Config.props()
@@ -130,6 +131,97 @@ class Router {
      */
     getPath() {
         return this.path
+    }
+
+    /**
+     * Registers multiple routes based on an SEO configuration array.
+     * Supports both multi-language (e.g., en, es keys) and single-language (meta key) formats.
+     * 
+     * @param {Array<Object>} routesConfig - Array of route objects.
+     * @param {Object} [options={}] - Configuration options.
+     * @param {Array<string>} [options.languages] - List of languages to register (e.g., ["en", "es"]).
+     * @param {string} [options.defaultLanguage="en"] - The default language for the base path.
+     * @param {Function} [options.templateRenderer] - Optional custom template renderer (defaults to Template.renderReact).
+     *
+     * @example
+     * router.seo([
+     *  {
+     *      path: "/",
+     *      component: "Home",
+     *      meta: { titleMeta: "Home - Blue Bird", descriptionMeta: "Welcome to Blue Bird" },
+     *      props: { id: 1, name: "Name 1" }
+     *  },
+     *  {
+     *      path: "/about",
+     *      component: "About",
+     *      meta: { titleMeta: "About - Blue Bird", descriptionMeta: "About blue bird" },
+     *      props: { id: 2, name: "Name 2" }
+     *  }
+     * ], { languages: ["en", "es"], defaultLanguage: "en" });
+     */
+    seo(routesConfig, options = {}) {
+        const {
+            languages = [],
+            defaultLanguage = "en",
+            templateRenderer
+        } = options;
+
+        const render = templateRenderer || ((res, component, props, renderOptions) => {
+            return Template.renderReact(res, component, props, renderOptions);
+        });
+
+        routesConfig.forEach(route => {
+            const { path, component, props = {}, meta = {} } = route;
+
+            if (Object.keys(meta).length > 0 || route.titleMeta) {
+                this.get(path, (req, res) => {
+                    const dynamicProps = {
+                        props: {
+                            ...props,
+                            params: req.params,
+                            query: req.query
+                        }
+                    };
+                    return render(res, component, dynamicProps, {
+                        metaTags: meta.titleMeta ? meta : {
+                            titleMeta: route.titleMeta || meta.title,
+                            descriptionMeta: route.descriptionMeta || meta.description || meta.desc,
+                            keywordsMeta: route.keywordsMeta || meta.keywords,
+                        }
+                    });
+                });
+            }
+
+            const detectedLanguages = languages.length > 0
+                ? languages
+                : Object.keys(route).filter(key => key.length === 2);
+
+            detectedLanguages.forEach(lang => {
+                if (typeof route[lang] === "object") {
+                    const langData = route[lang];
+                    const isDefault = lang === defaultLanguage;
+                    const langPath = isDefault ? path : `/${lang}${path === "/" ? "" : path}`;
+
+                    this.get(langPath, (req, res) => {
+                        const dynamicProps = {
+                            props: {
+                                ...props,
+                                params: req.params,
+                                query: req.query
+                            }
+                        };
+                        return render(res, component, dynamicProps, {
+                            metaTags: {
+                                titleMeta: langData.title || langData.titleMeta,
+                                descriptionMeta: langData.desc || langData.description || langData.descriptionMeta,
+                                keywordsMeta: langData.keywords || langData.keywordsMeta,
+                                langMeta: lang
+                            }
+                        });
+                    });
+                }
+            });
+        });
     }
 }
 export default Router;

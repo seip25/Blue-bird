@@ -149,6 +149,10 @@ class Template {
                 ...metaTags
             }
 
+            if (metaTags.langMeta && !options.langHtml) {
+                langHtml = metaTags.langMeta;
+            }
+
             res.type("text/html");
             res.status(200);
             const cacheKey = `${component}_${metaTags.titleMeta}`;
