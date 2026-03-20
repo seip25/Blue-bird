@@ -523,7 +523,7 @@ routerAuth.post("/register", new Validator({ password_confirmation: { required: 
         const deletedAccount = await AuthService.findUserByEmail(email, 0);
         if (deletedAccount) return res.status(400).json({ message: "Error, your account is deleted", deleted_account_error: true });
         const user = await AuthService.createUser(name, email, password);
-        const secure = process.env.NODE_ENV === "production" ? true : false;
+        const secure = props.debug == false ? true : false;
         const token = Auth.generateToken({ id: user.id_public, email: user.email });
         res.cookie("token", token, { httpOnly: true, secure: secure, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
         return res.json({ message: "Registered", user: { id: user.id_public, email: user.email } });
@@ -856,8 +856,6 @@ export default function ResetPassword() {
                     body: JSON.stringify({ token })
                 });
                 if (!res.ok) return window.location.href = '/login';
-                const data = await res.json();
-                setUser(data.user);
             };
             fetchUser();
         }
@@ -974,12 +972,17 @@ export default function ResetPassword() {
             let backendIndex = fs.readFileSync(backendIndexFile, "utf-8");
             if (!backendIndex.includes("routerAuth")) {
                 backendIndex = backendIndex.replace(
-                    'import routerFrontendExample from "./routes/frontend.js";',
+                    /import\s+routerFrontendExample\s+from\s+["']\.\/routes\/frontend\.js["'];?/,
                     'import routerFrontendExample from "./routes/frontend.js";\nimport routerAuth from "./routes/auth.js";\nimport routerAuthenticated from "./routes/authenticated.js";'
                 );
                 backendIndex = backendIndex.replace(
-                    'routes: [routerApiExample, routerFrontendExample]',
-                    'routes: [routerApiExample, routerAuth, routerAuthenticated, routerFrontendExample]'
+                    /routes:\s*\[([^\]]+)\]/,
+                    (match, p1) => {
+                        if (p1.includes('routerFrontendExample') && !p1.includes('routerAuth')) {
+                            return `routes: [${p1.replace('routerFrontendExample', 'routerAuth, routerAuthenticated, routerFrontendExample')}]`;
+                        }
+                        return match;
+                    }
                 );
                 fs.writeFileSync(backendIndexFile, backendIndex, "utf-8");
                 console.log(chalk.green("✓ backend/index.js updated to include new routes."));
@@ -991,19 +994,19 @@ export default function ResetPassword() {
             let appJsx = fs.readFileSync(appJsxFile, "utf-8");
             if (!appJsx.includes("LanguageProvider")) {
                 appJsx = appJsx.replace(
-                    "import Home from './pages/Home';",
+                    /import\s+Home\s+from\s+["']\.\/pages\/Home["'];?/,
                     "import { LanguageProvider } from './blue-bird/contexts/LanguageContext.jsx';\nimport Login from './pages/auth/Login.jsx';\nimport Register from './pages/auth/Register.jsx';\nimport ForgotPassword from './pages/auth/ForgotPassword.jsx';\nimport ResetPassword from './pages/auth/ResetPassword.jsx';\nimport Dashboard from './pages/authenticated/Dashboard.jsx';\nimport Home from './pages/Home';"
                 );
                 appJsx = appJsx.replace(
-                    "<Router>",
+                    /<Router>/,
                     "<LanguageProvider>\n      <Router>"
                 );
                 appJsx = appJsx.replace(
-                    "</Router>",
+                    /<\/Router>/,
                     "</Router>\n    </LanguageProvider>"
                 );
                 appJsx = appJsx.replace(
-                    '<Route path="/about" element={<About />} />',
+                    /<Route\s+path=["']\/about["']\s+element=\{<About\s*\/?>\}\s*\/?>/,
                     '<Route path="/about" element={<About />} />\n            <Route path="/login" element={<Login />} />\n            <Route path="/register" element={<Register />} />\n            <Route path="/forgot-password" element={<ForgotPassword />} />\n            <Route path="/reset-password" element={<ResetPassword />} />\n            <Route path="/dashboard" element={<Dashboard />} />'
                 );
                 fs.writeFileSync(appJsxFile, appJsx, "utf-8");
