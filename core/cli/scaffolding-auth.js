@@ -737,7 +737,14 @@ export default function Register() {
             }
             else{
                 setMessage(t('register_success') || 'Register success');
-                }
+                setEmail('');
+                setName('');
+                setPassword('');
+                setPasswordConfirmation('');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 4000);
+            }
         } catch (err) {
             setError(err.message);
         }
