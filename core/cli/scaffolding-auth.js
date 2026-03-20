@@ -715,9 +715,12 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [password_confirmation, setPasswordConfirmation] = useState('');
     const [error, setError] = useState(null);
+    const [message, setMessage] = useState(null);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
+        setMessage(null);
         const lang = localStorage.getItem("blue_bird_lang") ?? "en";
         try {
             const res = await fetch('/auth/register', {
@@ -732,7 +735,9 @@ export default function Register() {
                 if (data.error_email_register) throw new Error(t('error_email_register'));
                 throw new Error(data.message || t('error_general'));
             }
-            window.location.href = '/login';
+            else{
+                setMessage(t('register_success') || 'Register success');
+                }
         } catch (err) {
             setError(err.message);
         }
@@ -744,6 +749,7 @@ export default function Register() {
                 <div className="mb-6 text-center">
                     <Typography variant="h3">{t('register')}</Typography>
                 </div>
+                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
                 {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input label={t('name')} type="text" value={name} onChange={(e) => setName(e.target.value)} required />
