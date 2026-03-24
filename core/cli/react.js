@@ -30,6 +30,7 @@ class ReactScaffold {
       this.createViteConfig();
       this.createAppjs();
       this.createMainJs();
+      this.createHeaderJs();
       this.createPagesJs();
       this.updateGitIgnore();
       this.npmInstall();
@@ -49,7 +50,8 @@ class ReactScaffold {
    */
   createStructure() {
     const dirs = [
-      'frontend/resources/js/pages'
+      'frontend/resources/js/pages',
+      'frontend/resources/js/components'
     ];
 
     dirs.forEach(dir => {
@@ -86,6 +88,8 @@ class ReactScaffold {
     pkg.dependencies["react"] = "^19.2.4";
     pkg.dependencies["react-dom"] = "^19.2.4";
     pkg.dependencies["react-router-dom"] = "^7.2.0";
+    pkg.dependencies["@tailwindcss/vite"] = "^4.2.2";
+    pkg.dependencies["tailwindcss"] = "^4.2.2";
 
 
     fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
@@ -108,9 +112,10 @@ class ReactScaffold {
     const content = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   root: path.resolve(__dirname, 'frontend/resources/js'), 
   base: '/build/',
   build: {
@@ -138,99 +143,89 @@ export default defineConfig({
       return;
     }
 
-    const content = `import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Card from '../blue-bird/components/Card';
-
-export default function Home() {
-  useEffect(() => {
-    // Example API call to the backend
-    fetch("http://localhost:3000/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: "example@example.com",
-        password: "myPassword123"
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => console.log('Backend response:', data))
-      .catch((error) => console.error('Error fetching from backend:', error));
-  }, []);
-
-  return (
-    <div
-      className="bg-white text-gray-900"
-    >
-      <nav
-        className='bg-white text-gray-900 border border-gray-200 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
-      >
-        <div className='font-bold text-xl text-blue-600'>
-          Blue Bird
-        </div>
-        <div className='flex justify-between items-center gap-4'>
-          <Link to="/" className='text-gray-500 hover:text-gray-900'>Home</Link>
-          <Link to="/about" className='text-gray-500 hover:text-gray-900'>About</Link>
-        </div>
-      </nav>
-      <main className='max-w-7xl mx-auto'>
-        <div className='text-center p-4'>
-          <header className='mb-4'>
-            <h1 className='text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent mb-4'>
-              Welcome to Blue Bird
-            </h1>
-            <p className='text-gray-500 max-w-600px mx-auto'>
-              The elegant, fast, and weightless framework for modern web development.
-            </p>
-          </header>
-
-          <Card title={" Documentation (Eng)"}  className='mt-8 border-none shadow-none'>
-            <div className='flex gap-4 justify-center mb-8'>
-              <a
-                href="https://seip25.github.io/Blue-bird/en.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className='bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-400'
-              >
-                  Documentation(Eng)
-              </a>
-              <a
-                href="https://seip25.github.io/Blue-bird/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className='bg-blue-50 text-blue-500 px-4 py-2 rounded-lg font-semibold transition-colors hover:bg-blue-100  '
-              >
-                Documentación (Esp)
-
-              </a>
-            </div>
-          </Card>
-
-          <Card  className='mt-8 border-none shadow-none'>
-            <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-1000px mx-auto'>
-              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
-                <h3 className='text-blue-500 font-semibold text-xl mb-4'>Lightweight</h3>
-                <p>Built with performance and simplicity in mind.</p>
+    const content = ` import React, { useEffect } from 'react';
+    import Card from '../blue-bird/components/Card';
+    import Header from '../components/Header';
+    import { useLanguage } from '../blue-bird/contexts/LanguageContext';
+    import Typography from '../blue-bird/components/Typography';
+    
+    export default function Home() {
+      const { t } = useLanguage();
+      useEffect(() => {
+        // Example API call to the backend
+        fetch("http://localhost:3000/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: "example@example.com",
+            password: "myPassword123"
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => console.log('Backend response:', data))
+          .catch((error) => console.error('Error fetching from backend:', error));
+      }, []);
+    
+      return (
+        <div
+          className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 min-h-screen"
+        >
+          <Header />
+          <main className='max-w-7xl mx-auto'>
+            <div className='text-center p-4'>
+              <header className='mb-8 mt-8'>
+                <Typography variant='h1' className='text-4xl font-extrabold tracking-tight lg:text-5xl text-slate-900 dark:text-slate-100 mb-4'>
+                  {t("home_page.title")}
+                </Typography>
+                <Typography className='text-xl text-slate-500 dark:text-slate-400 max-w-[600px] mx-auto'>
+                  {t("home_page.description")}
+                </Typography>
+              </header>
+    
+              <div className='flex gap-4 justify-center mb-12'>
+                <a
+                  href="https://seip25.github.io/Blue-bird/en.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 dark:bg-slate-100 text-slate-50 dark:text-slate-900 hover:bg-slate-900/90 dark:hover:bg-slate-100/90 h-10 px-4 py-2'
+                >
+                  Documentation (Eng)
+                </a>
+                <a
+                  href="https://seip25.github.io/Blue-bird/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 h-10 px-4 py-2'
+                >
+                  Documentación (Esp)
+                </a>
               </div>
-              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
-                <h3 className='text-blue-500 font-semibold text-xl mb-4'>React Powered</h3>
-                <p>Full React + Vite integration .</p>
-              </div>
-              <div className='p-4 rounded-lg bg-gray-50 shadow-sm'>
-                <h3 className='text-blue-500 font-semibold text-xl mb-4'>Express Backend</h3>
-                <p>Robust and scalable backend architecture.</p>
+    
+              <div className='mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[1000px] mx-auto text-left'>
+                <Card title={t("home_page.lightweight")}>
+                  <Typography className="text-sm text-slate-500 dark:text-slate-400">
+                    {t("home_page.lightweightDescription")}
+                  </Typography>
+                </Card>
+                <Card title={t("home_page.reactPowered")}>
+                  <Typography className="text-sm text-slate-500 dark:text-slate-400">
+                    {t("home_page.reactPoweredDescription")}
+                  </Typography>
+                </Card>
+                <Card title={t("home_page.expressBackend")}>
+                  <Typography className="text-sm text-slate-500 dark:text-slate-400">
+                    {t("home_page.expressBackendDescription")}
+                  </Typography>
+                </Card>
               </div>
             </div>
-          </Card>
-
+          </main>
         </div>
-      </main>
-    </div>
-  );
-}
-
+      );
+    }
+    
 
  `;
     fs.writeFileSync(file, content);
@@ -243,39 +238,37 @@ export default function Home() {
     }
 
     const content2 = `import React from 'react';
-import { Link } from 'react-router-dom';
-
-export default function About() {
-  return (
-    <div
-      className="bg-white text-gray-900"
-    >
-      <nav
-        className='bg-white text-gray-900 border border-gray-200 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
-      >
-        <div className='font-bold text-xl text-blue-600'>
-          Blue Bird
+    import Header from '../components/Header';
+    import { useLanguage } from '../blue-bird/contexts/LanguageContext';
+    
+    import Card from '../blue-bird/components/Card';
+    import Typography from '../blue-bird/components/Typography'
+    
+    export default function About() {
+      const { t } = useLanguage();
+      return (
+        <div
+          className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 min-h-screen"
+        >
+          <Header />
+          <main className='max-w-3xl mx-auto mt-8 p-4'>
+            <Card>
+              <Typography variant='h1' className='text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-4'>
+                {t("about_page.title")}
+              </Typography>
+              <Typography className='text-slate-500 dark:text-slate-400 leading-7'>
+                {t("about_page.description")}
+              </Typography>
+              <div className='mt-8 pt-4 border-t border-slate-200 dark:border-slate-800'>
+                <Typography className='text-sm text-red-500 font-medium'>
+                  {t("about_page.check_your_console")}
+                </Typography>
+              </div>
+            </Card>
+          </main>
         </div>
-        <div className='flex justify-between items-center gap-4'>
-          <Link to="/" className='text-gray-500 hover:text-gray-900'>Home</Link>
-          <Link to="/about" className='text-gray-500 hover:text-gray-900'>About</Link>
-        </div>
-      </nav>
-      <main className='max-w-7xl mx-auto'>
-        <div className='p-4'>
-          <h1 className='text-xl font-bold text-gray-900 mb-4'>About Blue Bird</h1>
-          <p className='text-gray-500 leading-1.6'>
-            Blue Bird is a modern framework designed to bridge the gap between backend routing and frontend interactivity.
-            It provides a seamless developer experience for building fast, reactive web applications.
-          </p>
-          <p className='text-red-500 text-xl mt-8  '>
-            Check your console JS
-          </p>
-        </div>
-      </main>
-    </div>
-  );
-}`;
+      );
+    }`;
     fs.writeFileSync(file2, content2);
     console.log(chalk.gray("Created frontend/resources/js/pages/About.jsx"));
   }
@@ -290,10 +283,14 @@ export default function About() {
       return;
     }
 
-    const content = `import React from 'react';
+    const content = `import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import About from './pages/About';
+import { ThemeProvider } from './blue-bird/contexts/ThemeContext.jsx';
+import Skeleton from './blue-bird/components/Skeleton.jsx';
+import { LanguageProvider } from './blue-bird/contexts/LanguageContext.jsx';
+
+const Home = lazy(() => import('./pages/Home'));
+const About = lazy(() => import('./pages/About'));
 
 export default function App(_props) {
   const {
@@ -306,16 +303,20 @@ export default function App(_props) {
   console.log(props)
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <LanguageProvider>
+        <Router>
+          <Suspense fallback={<Skeleton />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </LanguageProvider>
+    </ThemeProvider>
   );
-}
-
-`;
+}`;
     fs.writeFileSync(file, content);
     console.log(chalk.gray("Created frontend/resources/js/App.jsx"));
   }
@@ -346,6 +347,57 @@ document.addEventListener('DOMContentLoaded', () => {
 });`;
     fs.writeFileSync(file, content);
     console.log(chalk.gray("Created frontend/resources/js/Main.jsx"));
+  }
+
+  createHeaderJs() {
+    const file = path.join(this.appDir, 'frontend/resources/js/components/Header.jsx');
+    if (fs.existsSync(file)) {
+      console.warn(chalk.yellow("Header.jsx already exists. Skipping."));
+      return;
+    }
+
+    const content = `import { Link } from "react-router-dom";
+import { useState } from "react";
+import Button from "../blue-bird/components/Button";
+import { useLanguage } from "../blue-bird/contexts/LanguageContext";
+import { useTheme } from "../blue-bird/contexts/ThemeContext";
+
+export default function Header() {
+    const { t, setLang } = useLanguage();
+    const { changeTheme } = useTheme();
+    const [emojiTheme, setEmojiTheme] = useState("🌞");
+
+    const changeThemeEmoji = () => {
+        if (emojiTheme === "🌞") {
+            setEmojiTheme("🌙");
+            changeTheme("dark");
+        } else {
+            setEmojiTheme("🌞");
+            changeTheme("light");
+        }
+    }
+
+    return (
+        <header>
+            <nav className='bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-slate-800 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'>
+                <div className='font-bold text-xl text-slate-900 dark:text-slate-100'>Blue Bird</div>
+                <div className='flex justify-between items-center gap-4'>
+                    <div className="flex justify-between items-center gap-4">
+                        <Button variant="outline" size="sm" onClick={() => setLang("es")}>ES</Button>
+                        <Button variant="outline" size="sm" onClick={() => setLang("en")}>EN</Button>
+                        <Button variant="ghost" size="icon" onClick={changeThemeEmoji}>{emojiTheme}</Button>
+                    </div>
+                    <div className="flex justify-between items-center gap-4">
+                        <Link to="/" className='text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors'>{t("home")}</Link>
+                        <Link to="/about" className='text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors'>{t("about")}</Link>
+                    </div>
+                </div>
+            </nav>
+        </header>
+    );
+}`;
+    fs.writeFileSync(file, content);
+    console.log(chalk.gray("Created frontend/resources/js/components/Header.jsx"));
   }
 
 
