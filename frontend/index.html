@@ -13,16 +13,13 @@
     __LINK_STYLES__
     __SCRIPTS_HEAD__
     __VITE_ASSETS__
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class'
-        }
-    </script>
+    __STYLES_SKELETON__
 </head>
 
 <body class="__CLASS_BODY__">
-    <div id="root" data-react-component="__COMPONENT__" data-props='__PROPS__'></div>
+    <div id="root" data-react-component="__COMPONENT__" data-props='__PROPS__'>
+        __SKELETON__
+    </div>
     __SCRIPTS_BODY__
 </body>
 

@@ -91,6 +91,9 @@ class Template {
  *
  * @param {string} [options.metaTags.langMeta]
  * Alternative language metadata value.
+ * 
+ * @param {boolean} [options.skeleton=true]
+ * Enables skeleton loading.
  *
  * @returns {void}
  * Sends a complete HTML response to the client.
@@ -120,7 +123,8 @@ class Template {
  *     keywordsMeta: "express, react, framework",
  *     authorMeta: "Blue Bird",
  *     langMeta: "en"
- *   }
+ *   },
+ *   skeleton: true
  * };
  *
  * Template.renderReact(res, "App", { title: "Hello World" }, options);
@@ -135,7 +139,8 @@ class Template {
                 scriptsInHead = [],
                 scriptsInBody = [],
                 cache = true,
-                metaTags
+                metaTags,
+                skeleton = true
             } = options;
             const metaTagsDefault = {
                 titleMeta: props.titleMeta,
@@ -177,11 +182,19 @@ class Template {
                 .map(item => `<script src="${item.src}"></script>`)
                 .join("");
 
-            const scriptsBodyTags = scriptsInBody
+            let scriptsBodyTags = scriptsInBody
                 .map(item => `<script src="${item.src}"></script>`)
                 .join("");
 
             const propsJson = JSON.stringify(componentProps).replace(/'/g, "&#39;");
+
+            const stylesSkeleton = skeleton
+                ? `<style>${this.skeletonStyles()}</style>`
+                : "";
+
+            const skeletonHtml = skeleton
+                ? this.skeletonHtml()
+                : "";
 
             let html = BASE_TEMPLATE
                 .replace(/__LANG__/g, this.escapeHtml(langHtml))
@@ -196,7 +209,9 @@ class Template {
                 .replace(/__COMPONENT__/g, component)
                 .replace(/__PROPS__/g, propsJson)
                 .replace(/__VITE_ASSETS__/g, this.vite_assets())
-                .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags);
+                .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags)
+                .replace(/__STYLES_SKELETON__/g, stylesSkeleton)
+                .replace(/__SKELETON__/g, skeletonHtml);
 
             html = this.minifyHtml(html);
             CACHE_TEMPLATE[cacheKey] = html;
@@ -287,6 +302,182 @@ window.__vite_plugin_react_preamble_installed__ = true;
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#39;");
     }
+    static skeletonStyles() {
+        return `
+            @keyframes sk-pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+            .sk-animate-pulse {
+                animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .sk-container {
+                min-height: 100vh;
+                width: 100%;
+                background-color: #f9fafb; /* bg-gray-50 */
+                padding: 1rem;
+                box-sizing: border-box;
+            }
+            .sk-inner {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .sk-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+            .sk-btn-text {
+                height: 2.5rem;
+                width: 8rem;
+                background-color: #d1d5db; /* bg-gray-300 */
+                border-radius: 0.5rem;
+            }
+            .sk-header-actions {
+                display: flex;
+                gap: 1rem;
+            }
+            .sk-avatar {
+                height: 2.5rem;
+                width: 2.5rem;
+                background-color: #d1d5db;
+                border-radius: 9999px;
+            }
+            .sk-btn {
+                height: 2.5rem;
+                width: 6rem;
+                background-color: #d1d5db;
+                border-radius: 0.5rem;
+            }
+            .sk-hero {
+                height: 12rem;
+                width: 100%;
+                background-color: #d1d5db;
+                border-radius: 1rem;
+            }
+            .sk-grid {
+                display: grid;
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+                gap: 1.5rem;
+            }
+            .sk-card {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .sk-card-img {
+                height: 10rem;
+                width: 100%;
+                background-color: #d1d5db;
+                border-radius: 0.75rem;
+            }
+            .sk-text-34 {
+                height: 1rem;
+                width: 75%;
+                background-color: #d1d5db;
+                border-radius: 0.25rem;
+            }
+            .sk-text-12 {
+                height: 1rem;
+                width: 50%;
+                background-color: #d1d5db;
+                border-radius: 0.25rem;
+            }
+            .sk-footer {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+            .sk-text-full {
+                height: 1rem;
+                width: 100%;
+                background-color: #e5e7eb; /* bg-gray-200 */
+                border-radius: 0.25rem;
+            }
+            .sk-text-23 {
+                height: 1rem;
+                width: 66.666667%;
+                background-color: #e5e7eb;
+                border-radius: 0.25rem;
+            }
+
+            @media (min-width: 768px) {
+                .sk-container {
+                    padding: 2rem;
+                }
+                .sk-hero {
+                    height: 16rem;
+                }
+                .sk-grid {
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                }
+            }
+ 
+            html.dark .sk-container {
+                background-color: #0b0f19; /* bg-gray-950/900 */
+            }
+            html.dark .sk-btn-text,
+            html.dark .sk-avatar,
+            html.dark .sk-btn,
+            html.dark .sk-hero,
+            html.dark .sk-card-img,
+            html.dark .sk-text-34,
+            html.dark .sk-text-12 {
+                background-color: #374151; /* bg-gray-700 */
+            }
+            html.dark .sk-text-full,
+            html.dark .sk-text-23 {
+                background-color: #1f2937; /* bg-gray-800 */
+            }
+        `;
+    }
+
+    static skeletonHtml() {
+        return `
+            <div class="sk-container">
+                <div class="sk-inner sk-animate-pulse">
+                    <div class="sk-header">
+                        <div class="sk-btn-text"></div>
+                        <div class="sk-header-actions">
+                            <div class="sk-avatar"></div>
+                            <div class="sk-btn"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="sk-hero"></div>
+
+                    <div class="sk-grid">
+                        <div class="sk-card">
+                            <div class="sk-card-img"></div>
+                            <div class="sk-text-34"></div>
+                            <div class="sk-text-12"></div>
+                        </div>
+                        <div class="sk-card">
+                            <div class="sk-card-img"></div>
+                            <div class="sk-text-34"></div>
+                            <div class="sk-text-12"></div>
+                        </div>
+                        <div class="sk-card">
+                            <div class="sk-card-img"></div>
+                            <div class="sk-text-34"></div>
+                            <div class="sk-text-12"></div>
+                        </div>
+                    </div>
+
+                    <div class="sk-footer">
+                        <div class="sk-text-full"></div>
+                        <div class="sk-text-full"></div>
+                        <div class="sk-text-23"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
 }
 
 export default Template;

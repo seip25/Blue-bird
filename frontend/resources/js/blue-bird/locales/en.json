@@ -1,4 +1,22 @@
 {
+    "home_page": {
+        "title": "Welcome to Blue Bird",
+        "description": "The elegant, fast, and weightless framework for modern web development.",
+        "lightweight": "Lightweight",
+        "lightweightDescription": "Built with performance and simplicity in mind.",
+        "reactPowered": "React Powered",
+        "reactPoweredDescription": "Full React + Vite integration.",
+        "expressBackend": "Express Backend",
+        "expressBackendDescription": "Robust and scalable backend architecture."
+    },
+    "about_page": {
+        "title": "About Blue Bird",
+        "description": "Blue Bird is a modern framework designed to bridge the gap between backend routing and frontend interactivity.",
+        "description2": "It provides a seamless developer experience for building fast, reactive web applications.",
+        "check_your_console": "Check your console JS"
+    },
+    "home": "Home",
+    "about": "About",
     "login": "Login",
     "register": "Register",
     "email": "Email address",

@@ -17,7 +17,18 @@ export const LanguageProvider = ({ children }) => {
      * @param {string} key - the string config key
      * @returns {string} The translated text
      */
-    const t = (key) => translations[lang][key] || key;
+    const t = (key) => {
+        const keys = key.split('.');
+        let value = translations[lang];
+        for (const k of keys) {
+            if (value && typeof value === 'object' && value !== null && k in value) {
+                value = value[k];
+            } else {
+                return key;
+            }
+        }
+        return value !== undefined ? value : key;
+    };
 
     return (
         <LanguageContext.Provider value={{ lang, setLang, t }}>

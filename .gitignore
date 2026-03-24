@@ -3,3 +3,5 @@ logs
 .env
 package-lock.json
 *.db
+frontend/public/build
+docs/
