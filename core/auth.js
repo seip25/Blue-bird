@@ -15,7 +15,8 @@ class Auth {
      * console.log(token);
      * 
      */
-    static generateToken(payload, secret = process.env.JWT_SECRET || 'blue-bird-secret', expiresIn = '24h') {
+    static generateToken(payload, secret = process.env.JWT_SECRET, expiresIn = '24h') {
+        if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
         return jwt.sign(payload, secret, { expiresIn });
     }
 
@@ -29,7 +30,8 @@ class Auth {
      * const decoded = Auth.verifyToken(token);
      * console.log(decoded);
      */
-    static verifyToken(token, secret = process.env.JWT_SECRET || 'blue-bird-secret') {
+    static verifyToken(token, secret = process.env.JWT_SECRET) {
+        if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
         try {
             return jwt.verify(token, secret);
         } catch (error) {

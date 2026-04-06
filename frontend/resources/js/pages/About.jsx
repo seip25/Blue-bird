@@ -14,7 +14,7 @@ export default function About() {
       <Header />
       <main className='max-w-3xl mx-auto mt-8 p-4'>
         <Card>
-          <Typography variant='h1' className='text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-4'>
+          <Typography variant='h1' className='text-4xl mb-4' gradient={{ from: 'sky', to: 'indigo' }}>
             {t("about_page.title")}
           </Typography>
           <Typography className='text-slate-500 dark:text-slate-400 leading-7'>

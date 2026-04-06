@@ -1,4 +1,13 @@
 const CACHE = {};
+
+setInterval(() => {
+    const now = Date.now();
+    for (const key in CACHE) {
+        if (CACHE[key].expiry <= now) {
+            delete CACHE[key];
+        }
+    }
+}, 300000).unref();
 /**
  * Cache Middleware
  * @example 
