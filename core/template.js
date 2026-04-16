@@ -91,6 +91,15 @@ class Template {
    * @param {string} [options.metaTags.langMeta]
    * Alternative language metadata value.
    *
+   * @param {string} [options.metaTags.ogImage]
+   * OpenGraph image URL.
+   *
+   * @param {string} [options.metaTags.ogType]
+   * OpenGraph object type (e.g., "website").
+   *
+   * @param {string} [options.metaTags.twitterCard]
+   * Twitter card type (e.g., "summary_large_image").
+   *
    * @param {boolean} [options.skeleton=true]
    * Enables skeleton loading.
    *
@@ -121,7 +130,10 @@ class Template {
    *     descriptionMeta: "Example description",
    *     keywordsMeta: "express, react, framework",
    *     authorMeta: "Blue Bird",
-   *     langMeta: "en"
+   *     langMeta: "en",
+   *     ogImage: "/images/og.png",
+   *     ogType: "website",
+   *     twitterCard: "summary_large_image"
    *   },
    *   skeleton: true
    * };
@@ -152,6 +164,9 @@ class Template {
         keywordsMeta: props.keywordsMeta,
         authorMeta: props.authorMeta,
         langMeta: props.langMeta,
+        ogImage: "",
+        ogType: "website",
+        twitterCard: "summary_large_image"
       };
       metaTags = {
         ...metaTagsDefault,
@@ -164,7 +179,7 @@ class Template {
 
       res.type("text/html");
       res.status(200);
-      const cacheKey = `${component}_${metaTags.titleMeta}_${metaTags.descriptionMeta}_${metaTags.langMeta}`;
+      const cacheKey = `${component}_${metaTags.titleMeta}_${metaTags.descriptionMeta}_${metaTags.langMeta}_${metaTags.ogImage}`;
       if (cache && CACHE_TEMPLATE[cacheKey]) {
         return res.send(CACHE_TEMPLATE[cacheKey]);
       }
@@ -173,6 +188,9 @@ class Template {
       const description = this.escapeHtml(metaTags.descriptionMeta || "");
       const keywords = this.escapeHtml(metaTags.keywordsMeta || "");
       const author = this.escapeHtml(metaTags.authorMeta || "");
+      const ogImage = this.escapeHtml(metaTags.ogImage || "");
+      const ogType = this.escapeHtml(metaTags.ogType || "website");
+      const twitterCard = this.escapeHtml(metaTags.twitterCard || "summary_large_image");
 
       const headOptions = head
         .map(
@@ -203,12 +221,23 @@ class Template {
 
       const skeletonHtml = skeleton ? this.skeletonHtml() : "";
 
+      const ogTags = `
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="${description}" />
+        <meta property="og:type" content="${ogType}" />
+        ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ""}
+        <meta name="twitter:card" content="${twitterCard}" />
+        <meta name="twitter:title" content="${title}" />
+        <meta name="twitter:description" content="${description}" />
+        ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
+      `;
+
       let html = BASE_TEMPLATE.replace(/__LANG__/g, this.escapeHtml(langHtml))
         .replace(/__TITLE__/g, title)
         .replace(/__DESCRIPTION__/g, description)
         .replace(/__KEYWORDS__/g, keywords)
         .replace(/__AUTHOR__/g, author)
-        .replace(/__HEAD_OPTIONS__/g, headOptions)
+        .replace(/__HEAD_OPTIONS__/g, headOptions + ogTags)
         .replace(/__LINK_STYLES__/g, linkTags)
         .replace(/__SCRIPTS_HEAD__/g, scriptsHeadTags)
         .replace(/__CLASS_BODY__/g, classBody)
@@ -481,6 +510,7 @@ window.__vite_plugin_react_preamble_installed__ = true;
             </div>
         `;
   }
+
 }
 
 export default Template;

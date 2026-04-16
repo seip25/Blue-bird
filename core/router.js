@@ -1,6 +1,7 @@
 import express from "express";
 import Config from "./config.js";
 import Template from "./template.js";
+import SEO from "./seo.js";
 
 const __dirname = Config.dirname();
 const props = Config.props();
@@ -136,6 +137,7 @@ class Router {
   /**
    * Registers multiple routes based on an SEO configuration array.
    * Supports both multi-language (e.g., en, es keys) and single-language (meta key) formats.
+   * Automatically registers sitemap.xml and robots.txt.
    *
    * @param {Array<Object>} routesConfig - Array of route objects.
    * @param {Object} [options={}] - Configuration options.
@@ -165,6 +167,8 @@ class Router {
       defaultLanguage = "en",
       templateRenderer,
     } = options;
+
+    SEO.registerRoutes(this.router, routesConfig, options);
 
     const render =
       templateRenderer ||
@@ -242,6 +246,9 @@ class Router {
                   langData.keywords ||
                   langData.keywordsMeta ||
                   meta.keywordsMeta,
+                ogImage: langData.ogImage || meta.ogImage,
+                ogType: langData.ogType || meta.ogType,
+                twitterCard: langData.twitterCard || meta.twitterCard,
                 langMeta: currentLang,
               },
             });
@@ -265,6 +272,9 @@ class Router {
                     descriptionMeta:
                       route.descriptionMeta || meta.description || meta.desc,
                     keywordsMeta: route.keywordsMeta || meta.keywords,
+                    ogImage: meta.ogImage,
+                    ogType: meta.ogType,
+                    twitterCard: meta.twitterCard,
                   },
             });
           });
