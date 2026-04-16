@@ -5,6 +5,7 @@ import chalk from "chalk";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
 import Debug from "./debug.js";
@@ -33,6 +34,7 @@ class App {
    * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
    * @param {boolean|Object} [options.helmet=true] - Enable Helmet security headers.
    * @param {boolean|Object} [options.swagger=false] - Enable swagger
+   * @param {boolean} [options.compression=true] - Enable Gzip compression.
    * @example
    * const app = new App({
    *     routes: [],
@@ -61,7 +63,8 @@ class App {
    *             description: "Blue Bird Framework API Documentation"
    *            },
    *           url : "http://localhost:8000"
-   *          }
+   *          },
+   *          compression: true
    * });
    */
   constructor(
@@ -83,6 +86,7 @@ class App {
       rateLimit: false,
       helmet: true,
       swagger: false,
+      compression: true,
     },
   ) {
     this.app = express();
@@ -100,6 +104,7 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.helmet = options.helmet ?? true;
     this.swagger = options.swagger ?? false;
+    this.compression = options.compression ?? true;
     this.dispatch();
   }
 
@@ -131,6 +136,7 @@ class App {
    * Sets up JSON parsing, URL encoding, CORS, and custom middlewares.
    */
   async dispatch() {
+    if (this.compression) this.app.use(compression());
     if (this.json) this.app.use(express.json());
     if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }));
     if (this.cookieParser) this.app.use(cookieParser());
@@ -197,7 +203,6 @@ class App {
     if (props.debug) {
       Debug.middlewareMetrics(this.app);
     }
-    this.errorHandler();
 
     if (this.swagger) {
       const { default: Swagger } = await import("./swagger.js");
@@ -222,6 +227,8 @@ class App {
     this.dispatchRoutes();
 
     if (this.notFound) this.notFoundDefault();
+
+    this.errorHandler();
   }
 
   /**
@@ -252,21 +259,32 @@ class App {
       next();
     });
   }
+
+  /**
+   * Global error handler for the application.
+   * Catches all errors and responds with a standardized JSON structure.
+   */
   errorHandler() {
     this.app.use((err, req, res, next) => {
       const logger = new Logger();
-      logger.error(err.stack || err.message);
+      const status = err.status || 500;
+      const message = err.message || "Internal Server Error";
+
+      logger.error(`[${status}] ${message} - ${err.stack}`);
 
       if (props.debug) {
-        return res.status(err.status || 500).json({
+        return res.status(status).json({
           success: false,
-          message: err.message,
+          error: true,
+          message: message,
           stack: err.stack,
         });
       }
 
-      return res.status(err.status || 500).json({
+      return res.status(status).json({
         success: false,
+        error: true,
+        message: status === 500 ? "Internal Server Error" : message,
       });
     });
   }

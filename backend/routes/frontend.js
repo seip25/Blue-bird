@@ -3,6 +3,17 @@ import Template from "@seip/blue-bird/core/template.js";
 
 const routerFrontendExample = new Router();
 
+
+routerFrontendExample.get("/landing",(req,res)=>{
+    return Template.renderHtml(res,"landing",{
+      // metaTags:{
+      //   titleMeta:"Landing Example",
+      //   descriptionMeta: "Description meta",
+      //   keywordsMeta: "keywordsMeta"
+      // }
+    });
+})
+
 routerFrontendExample.seo([
   {
     path: "/",

@@ -150,7 +150,10 @@ class Validator {
   async validate(req) {
     let lang =
       req?.body?.lang ||
+      req?.query?.lang ||
       req?.params?.lang ||
+      req?.cookies?.lang ||
+      req?.headers["accept-language"]?.split(",")[0]?.split("-")[0] ||
       req?.session?.lang ||
       this.lang_default ||
       "es";

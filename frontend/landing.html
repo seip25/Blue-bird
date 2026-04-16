@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="__LANG__">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>__TITLE__</title>
+    <meta name="description" content="__DESCRIPTION__">
+    <meta name="keywords" content="__KEYWORDS__">
+    <meta name="author" content="__AUTHOR__">
+    __HEAD_OPTIONS__
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .hero-gradient { background: radial-gradient(circle at top right, #f0f9ff 0%, #ffffff 100%); }
+    </style>
+    __LINK_STYLES__
+    __SCRIPTS_HEAD__
+    __VITE_ASSETS__
+    __STYLES_SKELETON__
+</head>
+<body class="__CLASS_BODY__ hero-gradient min-h-screen">
+    <div id="root">
+        <!-- Landing Content -->
+        <nav class="p-6 flex justify-between items-center max-w-7xl mx-auto">
+            <div class="text-2xl font-bold text-sky-600">Blue Bird</div>
+            <div class="space-x-6 text-slate-600 font-medium">
+                <a href="#features" class="hover:text-sky-600">Features</a>
+              </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-6 pt-20 pb-32 text-center">
+            <h1 class="text-6xl md:text-8xl font-black text-slate-900 mb-8 tracking-tight">
+                Built for <span class="text-sky-600">Speed.</span>
+            </h1>
+            <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-12 leading-relaxed">
+                This page was served in under 1ms thanks to Blue Bird's in-memory caching. No heavy bundles, just pure performance.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-20">
+                <div class="p-8 bg-white rounded-3xl shadow-xl shadow-sky-100 border border-slate-50 flex-1 max-w-sm">
+                    <div class="text-3xl mb-4">🚀</div>
+                    <h3 class="font-bold text-xl mb-2">Static First</h3>
+                    <p class="text-slate-500 text-sm">Perfect for SEO and instant first contentful paint.</p>
+                </div>
+                <div class="p-8 bg-white rounded-3xl shadow-xl shadow-sky-100 border border-slate-50 flex-1 max-w-sm">
+                    <div class="text-3xl mb-4">💎</div>
+                    <h3 class="font-bold text-xl mb-2">Hybrid Ready</h3>
+                    <p class="text-slate-500 text-sm">Hydrate React in the background whenever you need it.</p>
+                </div>
+            </div>
+
+            <footer class="text-slate-400 text-sm italic">
+                Served by Blue Bird Framework &copy; 2026
+            </footer>
+        </main>
+    </div>
+    __SCRIPTS_BODY__
+</body>
+</html>

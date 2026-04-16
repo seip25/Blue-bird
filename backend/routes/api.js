@@ -22,7 +22,7 @@ const loginSchema = {
   password: { required: true, min: 6 },
 };
 
-const loginValidator = new Validator(loginSchema, "es");
+const loginValidator = new Validator(loginSchema );
 
 routerApiExample.post("/login", loginValidator.middleware(), (req, res) => {
   res.json({ message: "Login successful", body: req.body });

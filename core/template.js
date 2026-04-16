@@ -15,130 +15,14 @@ let CACHE_TEMPLATE = {};
  */
 class Template {
   /**
-   * Renders the base HTML template for a React application using
-   * string placeholder replacement and optional in-memory caching.
-   *
-   * This method injects:
-   * - The root React component name
-   * - Serialized component props
-   * - SEO meta tags
-   * - Custom <head> tags
-   * - Stylesheets
-   * - Scripts (head and body)
-   * - Vite assets
-   *
-   * It supports basic HTML escaping, optional minification,
-   * and template caching per component.
+   * Renders the base HTML template for a React application.
    *
    * @static
    * @method renderReact
-   *
-   * @param {import('express').Response} res
-   * Express response object used to send the generated HTML.
-   *
-   * @param {string} [component="App"]
-   * The root React component name to bootstrap on the client.
-   * This value replaces the `__COMPONENT__` placeholder in the template.
-   *
-   * @param {Object<string, any>} [componentProps={}]
-   * Props passed to the root React component.
-   * These are serialized and injected into the template
-   * via the `__PROPS__` placeholder.
-   *
-   * @param {Object} [options={}]
-   * Rendering configuration options.
-   *
-   * @param {string} [options.langHtml="en"]
-   * Value for the `<html lang="">` attribute.
-   * Falls back to metaTags.langMeta if available.
-   *
-   * @param {string} [options.classBody="body"]
-   * CSS class applied to the `<body>` tag.
-   *
-   * @param {Array<{tag:string, attrs:Object<string,string>}>} [options.head=[]]
-   * Additional custom tags injected into `<head>`.
-   * Example:
-   * `{ tag: "meta", attrs: { name: "description", content: "Example" } }`
-   *
-   * @param {Array<{href:string}>} [options.linkStyles=[]]
-   * Stylesheets injected as `<link rel="stylesheet" />` tags.
-   *
-   * @param {Array<{src:string}>} [options.scriptsInHead=[]]
-   * Script files injected inside `<head>`.
-   *
-   * @param {Array<{src:string}>} [options.scriptsInBody=[]]
-   * Script files injected before `</body>`.
-   *
-   * @param {boolean} [options.cache=true]
-   * Enables in-memory caching of the generated HTML
-   * per component name to improve performance.
-   *
-   * @param {Object} [options.metaTags]
-   * SEO metadata configuration.
-   *
-   * @param {string} [options.metaTags.titleMeta]
-   * Content for the `<title>` tag.
-   *
-   * @param {string} [options.metaTags.descriptionMeta]
-   * Content for `<meta name="description">`.
-   *
-   * @param {string} [options.metaTags.keywordsMeta]
-   * Content for `<meta name="keywords">`.
-   *
-   * @param {string} [options.metaTags.authorMeta]
-   * Content for `<meta name="author">`.
-   *
-   * @param {string} [options.metaTags.langMeta]
-   * Alternative language metadata value.
-   *
-   * @param {string} [options.metaTags.ogImage]
-   * OpenGraph image URL.
-   *
-   * @param {string} [options.metaTags.ogType]
-   * OpenGraph object type (e.g., "website").
-   *
-   * @param {string} [options.metaTags.twitterCard]
-   * Twitter card type (e.g., "summary_large_image").
-   *
-   * @param {boolean} [options.skeleton=true]
-   * Enables skeleton loading.
-   *
-   * @returns {void}
-   * Sends a complete HTML response to the client.
-   *
-   * @throws {Error}
-   * If template rendering fails, a 500 response is returned.
-   *
-   * @example
-   * const options = {
-   *   cache: true,
-   *   classBody: "bg-gray-100",
-   *   head: [
-   *     { tag: "meta", attrs: { name: "robots", content: "index, follow" } }
-   *   ],
-   *   linkStyles: [
-   *     { href: "/css/style.css" }
-   *   ],
-   *   scriptsInHead: [
-   *     { src: "/js/head.js" }
-   *   ],
-   *   scriptsInBody: [
-   *     { src: "/js/body.js" }
-   *   ],
-   *   metaTags: {
-   *     titleMeta: "Example Title",
-   *     descriptionMeta: "Example description",
-   *     keywordsMeta: "express, react, framework",
-   *     authorMeta: "Blue Bird",
-   *     langMeta: "en",
-   *     ogImage: "/images/og.png",
-   *     ogType: "website",
-   *     twitterCard: "summary_large_image"
-   *   },
-   *   skeleton: true
-   * };
-   *
-   * Template.renderReact(res, "App", { title: "Hello World" }, options);
+   * @param {import('express').Response} res - Express response object.
+   * @param {string} [component="App"] - Root React component name.
+   * @param {Object} [componentProps={}] - Props for the React component.
+   * @param {Object} [options={}] - Rendering configuration.
    */
   static renderReact(
     res,
@@ -155,9 +39,10 @@ class Template {
         scriptsInHead = [],
         scriptsInBody = [],
         cache = true,
-        metaTags,
+        metaTags = {},
         skeleton = true,
       } = options;
+
       const metaTagsDefault = {
         titleMeta: props.titleMeta,
         descriptionMeta: props.descriptionMeta,
@@ -166,12 +51,10 @@ class Template {
         langMeta: props.langMeta,
         ogImage: "",
         ogType: "website",
-        twitterCard: "summary_large_image"
+        twitterCard: "summary_large_image",
       };
-      metaTags = {
-        ...metaTagsDefault,
-        ...metaTags,
-      };
+
+      metaTags = { ...metaTagsDefault, ...metaTags };
 
       if (metaTags.langMeta && !options.langHtml) {
         langHtml = metaTags.langMeta;
@@ -179,7 +62,8 @@ class Template {
 
       res.type("text/html");
       res.status(200);
-      const cacheKey = `${component}_${metaTags.titleMeta}_${metaTags.descriptionMeta}_${metaTags.langMeta}_${metaTags.ogImage}`;
+
+      const cacheKey = `react_${component}_${metaTags.titleMeta}_${metaTags.descriptionMeta}_${metaTags.langMeta}_${metaTags.ogImage}`;
       if (cache && CACHE_TEMPLATE[cacheKey]) {
         return res.send(CACHE_TEMPLATE[cacheKey]);
       }
@@ -190,7 +74,9 @@ class Template {
       const author = this.escapeHtml(metaTags.authorMeta || "");
       const ogImage = this.escapeHtml(metaTags.ogImage || "");
       const ogType = this.escapeHtml(metaTags.ogType || "website");
-      const twitterCard = this.escapeHtml(metaTags.twitterCard || "summary_large_image");
+      const twitterCard = this.escapeHtml(
+        metaTags.twitterCard || "summary_large_image",
+      );
 
       const headOptions = head
         .map(
@@ -209,16 +95,14 @@ class Template {
         .map((item) => `<script src="${item.src}"></script>`)
         .join("");
 
-      let scriptsBodyTags = scriptsInBody
+      const scriptsBodyTags = scriptsInBody
         .map((item) => `<script src="${item.src}"></script>`)
         .join("");
 
       const propsJson = JSON.stringify(componentProps).replace(/'/g, "&#39;");
-
       const stylesSkeleton = skeleton
         ? `<style>${this.skeletonStyles()}</style>`
         : "";
-
       const skeletonHtml = skeleton ? this.skeletonHtml() : "";
 
       const ogTags = `
@@ -249,25 +133,147 @@ class Template {
         .replace(/__SKELETON__/g, skeletonHtml);
 
       html = this.minifyHtml(html);
-      CACHE_TEMPLATE[cacheKey] = html;
+      if (cache && props.debug==false) CACHE_TEMPLATE[cacheKey] = html;
       return res.send(html);
     } catch (error) {
-      const logger = new Logger();
-      logger.error(`Template render error: ${error.message}`);
-
-      if (props.debug) {
-        console.log(error);
-        return res.status(500).send(`<pre>${error.stack}</pre>`);
-      }
-
+      Logger.error(`Template render error: ${error.message}`);
       return res.status(500).send("Internal Server Error");
     }
   }
 
   /**
-   * Generates Vite asset tags depending on environment.
-   * @returns {string}
+   * Renders an HTML file or raw content with SEO support and caching.
+   *
+   * @static
+   * @method renderHtml
+   * @param {import('express').Response} res - Express response object.
+   * @param {string} templateOrContent - File name (in frontend/) or HTML string.
+   * @param {Object} [options={}] - Configuration options.
    */
+  static renderHtml(res, templateOrContent = "", options = {}) {
+    try {
+      const {
+        langHtml = "en",
+        classBody = "body",
+        head = [],
+        linkStyles = [],
+        scriptsInHead = [],
+        scriptsInBody = [],
+        cache = true,
+        metaTags = {},
+        withAssets = false,
+        replace = true,
+      } = options;
+
+      let html = "";
+      const isFile =
+        !templateOrContent.includes("<") && templateOrContent.length < 100;
+
+      if (isFile) {
+        const filePath = path.join(
+          __dirname,
+          "frontend",
+          `${templateOrContent}.html`,
+        );
+        const fileCacheKey = `file_${templateOrContent}`;
+        if (cache && CACHE_TEMPLATE[fileCacheKey]) {
+          html = CACHE_TEMPLATE[fileCacheKey];
+        } else if (fs.existsSync(filePath)) {
+          html = fs.readFileSync(filePath, "utf-8");
+          if (cache) CACHE_TEMPLATE[fileCacheKey] = html;
+        } else {
+          html = templateOrContent;
+        }
+      } else {
+        html = templateOrContent;
+      }
+
+      res.type("text/html");
+
+      const cacheKey = `render_${templateOrContent}_${metaTags.titleMeta}`;
+      if (cache && CACHE_TEMPLATE[cacheKey]) {
+        return res.send(CACHE_TEMPLATE[cacheKey]);
+      }
+
+      if (replace) {
+        const title = this.escapeHtml(
+          metaTags.titleMeta || props.titleMeta || "",
+        );
+        const description = this.escapeHtml(
+          metaTags.descriptionMeta || props.descriptionMeta || "",
+        );
+        const keywords = this.escapeHtml(
+          metaTags.keywordsMeta || props.keywordsMeta || "",
+        );
+        const author = this.escapeHtml(
+          metaTags.authorMeta || props.authorMeta || "",
+        );
+        const ogImage = this.escapeHtml(metaTags.ogImage || "");
+        const ogType = this.escapeHtml(metaTags.ogType || "website");
+        const twitterCard = this.escapeHtml(
+          metaTags.twitterCard || "summary_large_image",
+        );
+
+        const headOptions = head
+          .map(
+            (item) =>
+              `<${item.tag} ${Object.entries(item.attrs)
+                .map(([k, v]) => `${k}="${v}"`)
+                .join(" ")} />`,
+          )
+          .join("");
+
+        const ogTags = `
+          <meta property="og:title" content="${title}" />
+          <meta property="og:description" content="${description}" />
+          <meta property="og:type" content="${ogType}" />
+          ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ""}
+          <meta name="twitter:card" content="${twitterCard}" />
+          <meta name="twitter:title" content="${title}" />
+          <meta name="twitter:description" content="${description}" />
+          ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
+        `;
+
+        html = html
+          .replace(/__LANG__/g, this.escapeHtml(langHtml))
+          .replace(/__TITLE__/g, title)
+          .replace(/__DESCRIPTION__/g, description)
+          .replace(/__KEYWORDS__/g, keywords)
+          .replace(/__AUTHOR__/g, author)
+          .replace(/__HEAD_OPTIONS__/g, headOptions + ogTags)
+          .replace(/__CLASS_BODY__/g, classBody)
+          .replace(/__VITE_ASSETS__/g, withAssets ? this.vite_assets() : "")
+          .replace(/__STYLES_SKELETON__/g, "");
+
+        if (html.includes("__LINK_STYLES__")) {
+          const linkTags = linkStyles
+            .map((item) => `<link rel="stylesheet" href="${item.href}" />`)
+            .join("");
+          html = html.replace(/__LINK_STYLES__/g, linkTags);
+        }
+        if (html.includes("__SCRIPTS_HEAD__")) {
+          const scriptsHeadTags = scriptsInHead
+            .map((item) => `<script src="${item.src}"></script>`)
+            .join("");
+          html = html.replace(/__SCRIPTS_HEAD__/g, scriptsHeadTags);
+        }
+        if (html.includes("__SCRIPTS_BODY__")) {
+          const scriptsBodyTags = scriptsInBody
+            .map((item) => `<script src="${item.src}"></script>`)
+            .join("");
+          html = html.replace(/__SCRIPTS_BODY__/g, scriptsBodyTags);
+        }
+      }
+
+      html = this.minifyHtml(html);
+      if (cache && props.debug==false) CACHE_TEMPLATE[cacheKey] = html;
+      res.send(html);
+    } catch (error) {
+      Logger.error(`Error rendering HTML template: ${error.message}`);
+      res.status(500).send("Internal Server Error");
+    }
+  }
+
   static vite_assets() {
     if (props.debug) {
       return `
@@ -284,36 +290,24 @@ window.__vite_plugin_react_preamble_installed__ = true;
 
     const buildPath = path.join(__dirname, props.static.path, "build");
     let manifestPath = path.join(buildPath, "manifest.json");
-
-    if (!fs.existsSync(manifestPath)) {
+    if (!fs.existsSync(manifestPath))
       manifestPath = path.join(buildPath, ".vite", "manifest.json");
-    }
 
     if (fs.existsSync(manifestPath)) {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
       const entry = manifest["Main.jsx"];
-
       if (entry) {
-        const file = entry.file;
-        const css = entry.css || [];
-
         let html = "";
-        css.forEach((cssFile) => {
+        (entry.css || []).forEach((cssFile) => {
           html += `<link rel="stylesheet" href="/build/${cssFile}">`;
         });
-        html += `<script type="module" src="/build/${file}"></script>`;
+        html += `<script type="module" src="/build/${entry.file}"></script>`;
         return html;
       }
     }
-
     return "";
   }
 
-  /**
-   * Minifies HTML output.
-   * @param {string} html
-   * @returns {string}
-   */
   static minifyHtml(html) {
     return html
       .replace(/<!--(?!\[if).*?-->/gs, "")
@@ -322,11 +316,6 @@ window.__vite_plugin_react_preamble_installed__ = true;
       .trim();
   }
 
-  /**
-   * Escapes HTML special characters.
-   * @param {string} str
-   * @returns {string}
-   */
   static escapeHtml(str = "") {
     return String(str)
       .replace(/&/g, "&amp;")
@@ -335,137 +324,27 @@ window.__vite_plugin_react_preamble_installed__ = true;
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
+
   static skeletonStyles() {
     return `
-            @keyframes sk-pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-            .sk-animate-pulse {
-                animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-            .sk-container {
-                min-height: 100vh;
-                width: 100%;
-                background-color: #f9fafb; /* bg-gray-50 */
-                padding: 1rem;
-                box-sizing: border-box;
-            }
-            .sk-inner {
-                display: flex;
-                flex-direction: column;
-                gap: 1.5rem;
-            }
-            .sk-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                width: 100%;
-                margin-bottom: 1rem;
-            }
-            .sk-btn-text {
-                height: 2.5rem;
-                width: 8rem;
-                background-color: #d1d5db; /* bg-gray-300 */
-                border-radius: 0.5rem;
-            }
-            .sk-header-actions {
-                display: flex;
-                gap: 1rem;
-            }
-            .sk-avatar {
-                height: 2.5rem;
-                width: 2.5rem;
-                background-color: #d1d5db;
-                border-radius: 9999px;
-            }
-            .sk-btn {
-                height: 2.5rem;
-                width: 6rem;
-                background-color: #d1d5db;
-                border-radius: 0.5rem;
-            }
-            .sk-hero {
-                height: 12rem;
-                width: 100%;
-                background-color: #d1d5db;
-                border-radius: 1rem;
-            }
-            .sk-grid {
-                display: grid;
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-                gap: 1.5rem;
-            }
-            .sk-card {
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-            .sk-card-img {
-                height: 10rem;
-                width: 100%;
-                background-color: #d1d5db;
-                border-radius: 0.75rem;
-            }
-            .sk-text-34 {
-                height: 1rem;
-                width: 75%;
-                background-color: #d1d5db;
-                border-radius: 0.25rem;
-            }
-            .sk-text-12 {
-                height: 1rem;
-                width: 50%;
-                background-color: #d1d5db;
-                border-radius: 0.25rem;
-            }
-            .sk-footer {
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
-                margin-top: 1rem;
-            }
-            .sk-text-full {
-                height: 1rem;
-                width: 100%;
-                background-color: #e5e7eb; /* bg-gray-200 */
-                border-radius: 0.25rem;
-            }
-            .sk-text-23 {
-                height: 1rem;
-                width: 66.666667%;
-                background-color: #e5e7eb;
-                border-radius: 0.25rem;
-            }
-
-            @media (min-width: 768px) {
-                .sk-container {
-                    padding: 2rem;
-                }
-                .sk-hero {
-                    height: 16rem;
-                }
-                .sk-grid {
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                }
-            }
- 
-            html.dark .sk-container {
-                background-color: #0b0f19; /* bg-gray-950/900 */
-            }
-            html.dark .sk-btn-text,
-            html.dark .sk-avatar,
-            html.dark .sk-btn,
-            html.dark .sk-hero,
-            html.dark .sk-card-img,
-            html.dark .sk-text-34,
-            html.dark .sk-text-12 {
-                background-color: #374151; /* bg-gray-700 */
-            }
-            html.dark .sk-text-full,
-            html.dark .sk-text-23 {
-                background-color: #1f2937; /* bg-gray-800 */
-            }
+            @keyframes sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+            .sk-animate-pulse { animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+            .sk-container { min-height: 100vh; width: 100%; background-color: #f9fafb; padding: 1rem; box-sizing: border-box; }
+            .sk-inner { display: flex; flex-direction: column; gap: 1.5rem; }
+            .sk-header { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 1rem; }
+            .sk-btn-text { height: 2.5rem; width: 8rem; background-color: #d1d5db; border-radius: 0.5rem; }
+            .sk-avatar { height: 2.5rem; width: 2.5rem; background-color: #d1d5db; border-radius: 9999px; }
+            .sk-btn { height: 2.5rem; width: 6rem; background-color: #d1d5db; border-radius: 0.5rem; }
+            .sk-hero { height: 12rem; width: 100%; background-color: #d1d5db; border-radius: 1rem; }
+            .sk-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+            .sk-card { display: flex; flex-direction: column; gap: 0.75rem; }
+            .sk-card-img { height: 10rem; width: 100%; background-color: #d1d5db; border-radius: 0.75rem; }
+            .sk-footer { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+            .sk-text-full { height: 1rem; width: 100%; background-color: #e5e7eb; border-radius: 0.25rem; }
+            @media (min-width: 768px) { .sk-grid { grid-template-columns: repeat(3, 1fr); } .sk-hero { height: 16rem; } }
+            html.dark .sk-container { background-color: #0b0f19; }
+            html.dark .sk-btn-text, html.dark .sk-avatar, html.dark .sk-btn, html.dark .sk-hero, html.dark .sk-card-img { background-color: #374151; }
+            html.dark .sk-text-full { background-color: #1f2937; }
         `;
   }
 
@@ -473,44 +352,17 @@ window.__vite_plugin_react_preamble_installed__ = true;
     return `
             <div class="sk-container">
                 <div class="sk-inner sk-animate-pulse">
-                    <div class="sk-header">
-                        <div class="sk-btn-text"></div>
-                        <div class="sk-header-actions">
-                            <div class="sk-avatar"></div>
-                            <div class="sk-btn"></div>
-                        </div>
-                    </div>
-                    
+                    <div class="sk-header"><div class="sk-btn-text"></div><div class="flex gap-4"><div class="sk-avatar"></div><div class="sk-btn"></div></div></div>
                     <div class="sk-hero"></div>
-
                     <div class="sk-grid">
-                        <div class="sk-card">
-                            <div class="sk-card-img"></div>
-                            <div class="sk-text-34"></div>
-                            <div class="sk-text-12"></div>
-                        </div>
-                        <div class="sk-card">
-                            <div class="sk-card-img"></div>
-                            <div class="sk-text-34"></div>
-                            <div class="sk-text-12"></div>
-                        </div>
-                        <div class="sk-card">
-                            <div class="sk-card-img"></div>
-                            <div class="sk-text-34"></div>
-                            <div class="sk-text-12"></div>
-                        </div>
-                    </div>
-
-                    <div class="sk-footer">
-                        <div class="sk-text-full"></div>
-                        <div class="sk-text-full"></div>
-                        <div class="sk-text-23"></div>
+                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
+                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
+                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
                     </div>
                 </div>
             </div>
         `;
   }
-
 }
 
 export default Template;

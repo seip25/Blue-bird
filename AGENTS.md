@@ -38,11 +38,17 @@ router.get("*", (req, res) => {
 });
 
 // SEO Routing (Meta tag SSR before React mounts)
+// Automatically registers /sitemap.xml and /robots.txt
 router.seo(
   [
     {
       path: "/",
       component: "Home",
+      meta: {
+        ogImage: "/images/home-og.png",
+        ogType: "website",
+        twitterCard: "summary_large_image",
+      },
       es: {
         title: "Inicio",
         desc: "Bienvenido",
@@ -54,6 +60,29 @@ router.seo(
   { languages: ["es", "en"], defaultLanguage: "es" },
 );
 ```
+
+**Advanced SEO Features:**
+- **Social Meta Tags:** `router.seo` supports `ogImage`, `ogType`, and `twitterCard` for rich social media previews.
+- **Automatic Sitemap:** The framework generates a dynamic `sitemap.xml` based on the routes defined in `router.seo`.
+- **Robots.txt:** A `robots.txt` file is automatically served, pointing to the generated sitemap.
+- **Caching:** SEO templates are cached in memory for high performance.
+
+**Static & Hybrid Rendering (renderHtml):**
+For ultra-fast pages (Landing, Privacy, Terms) that don't initially need React, use `Template.renderHtml`. It fallbacks to `.env` SEO values automatically.
+
+```javascript
+router.get("/", (req, res) => {
+  // Uses frontend/landing.html as base
+  return Template.renderHtml(res, "landing", { withAssets: false });
+});
+```
+
+**Strategy: Controlled Collision**
+You can use the same path for a static server page and a React route.
+1. **Initial Load:** Express serves a static, cached HTML (instant LCP).
+2. **Post-Mount:** React Router takes over. Navigation to `/` can then show a different component (like Login) without a full reload.
+
+
 
 ## 3. Data Validation (Validator)
 
