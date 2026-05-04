@@ -1,2 +1,18 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-skye-50: #f0f9ff;
+  --color-skye-100: #e0f2fe;
+  --color-skye-200: #bae6fd;
+  --color-skye-300: #7dd3fc;
+  --color-skye-400: #38bdf8;
+  --color-skye-500: #0ea5e9;
+  --color-skye-600: #0284c7;
+  --color-skye-700: #0369a1;
+  --color-skye-800: #075985;
+  --color-skye-900: #0c4a6e;
+}

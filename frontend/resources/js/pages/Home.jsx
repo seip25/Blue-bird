@@ -8,7 +8,7 @@ export default function Home() {
   const { t } = useLanguage();
   useEffect(() => {
     // Example API call to the backend
-    fetch("http://localhost:3000/login", {
+    fetch("/api/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,7 +44,7 @@ export default function Home() {
               href="https://seip25.github.io/Blue-bird/en.html"
               target="_blank"
               rel="noopener noreferrer"
-              className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 dark:bg-slate-100 text-slate-50 dark:text-slate-900 hover:bg-slate-900/90 dark:hover:bg-slate-100/90 h-10 px-4 py-2'
+              className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-500 text-white dark:text-slate-900 hover:bg-blue-500/90 dark:hover:bg-blue-500/90 h-10 px-4 py-2'
             >
               Documentation (Eng)
             </a>
@@ -52,7 +52,7 @@ export default function Home() {
               href="https://seip25.github.io/Blue-bird/"
               target="_blank"
               rel="noopener noreferrer"
-              className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 h-10 px-4 py-2'
+              className='inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 dark:border-slate-800 bg-blue-100 dark:bg-slate-900 text-blue-600 dark:text-slate-100 hover:bg-blue-200 dark:hover:bg-blue-100 h-10 px-4 py-2'
             >
               Documentación (Esp)
             </a>

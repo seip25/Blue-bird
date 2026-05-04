@@ -20,7 +20,7 @@ export default function About() {
           <Typography className='text-slate-500 dark:text-slate-400 leading-7'>
             {t("about_page.description")}
           </Typography>
-          <div className='mt-8 pt-4 border-t border-slate-200 dark:border-slate-800'>
+          <div className='mt-8 pt-4 px-4 bg-red-50 text-red-900 rounded-md py-4 rounded-lg text-center'>
             <Typography className='text-sm text-red-500 font-medium'>
               {t("about_page.check_your_console")}
             </Typography>

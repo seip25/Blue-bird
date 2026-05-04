@@ -8,6 +8,7 @@ const props = Config.props();
 class SEO {
   /**
    * Generates a sitemap.xml string based on a provided routes configuration.
+   * Supports multilingual routes with language-prefixed paths.
    *
    * @static
    * @method generateSitemap
@@ -16,42 +17,41 @@ class SEO {
    * @param {Array<string>} [options.languages=[]] - List of supported languages.
    * @param {string} [options.defaultLanguage="en"] - The default language.
    * @returns {string} The generated XML sitemap.
-   * @example
-   * const sitemap = SEO.generateSitemap(routes);
    */
   static generateSitemap(routesConfig, options = {}) {
     const { languages = [], defaultLanguage = "en" } = options;
-    const host = props.host || "http://localhost";
+    const host = (props.host || "http://localhost").replace(/\/$/, "");
+    const port = props.port && props.port !== 80 && props.port !== 443 ? `:${props.port}` : "";
+    const baseUrl = `${host}${port}`;
     const date = new Date().toISOString().split("T")[0];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+    xml +=
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">';
 
     routesConfig.forEach((route) => {
-      const { path } = route;
-      const detectedLanguages =
-        languages.length > 0
-          ? languages
-          : Object.keys(route).filter((key) => key.length === 2);
+      const { path: routePath } = route;
 
+      // Default path (no prefix)
       xml += `
         <url>
-            <loc>${host}${path}</loc>
+            <loc>${baseUrl}${routePath}</loc>
             <lastmod>${date}</lastmod>
-            <priority>${path === "/" ? "1.0" : "0.8"}</priority>
+            <priority>${routePath === "/" ? "1.0" : "0.8"}</priority>
         </url>`;
 
-      detectedLanguages.forEach((lang) => {
-        if (lang !== defaultLanguage) {
-          const langPath = `/${lang}${path === "/" ? "" : path}`;
+      // Language-prefixed paths
+      if (languages.length > 0) {
+        languages.forEach((lang) => {
+          const langPath = `/${lang}${routePath === "/" ? "" : routePath}`;
           xml += `
         <url>
-            <loc>${host}${langPath}</loc>
+            <loc>${baseUrl}${langPath}</loc>
             <lastmod>${date}</lastmod>
-            <priority>0.7</priority>
+            <priority>0.8</priority>
         </url>`;
-        }
-      });
+        });
+      }
     });
 
     xml += "\n</urlset>";
@@ -64,15 +64,14 @@ class SEO {
    * @static
    * @method generateRobots
    * @returns {string} The generated robots.txt content.
-   * @example
-   * const robots = SEO.generateRobots();
    */
   static generateRobots() {
-    const host = props.host || "http://localhost";
+    const host = (props.host || "http://localhost").replace(/\/$/, "");
+    const port = props.port && props.port !== 80 && props.port !== 443 ? `:${props.port}` : "";
     return `User-agent: *
 Allow: /
 
-Sitemap: ${host}/sitemap.xml
+Sitemap: ${host}${port}/sitemap.xml
 `;
   }
 

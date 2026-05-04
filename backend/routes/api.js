@@ -1,7 +1,7 @@
-import Router from "@seip/blue-bird/core/router.js";
-import Validator from "@seip/blue-bird/core/validate.js";
+import Router from "../../core/router.js";
+import Validator from "../../core/validate.js";
 
-const routerApiExample = new Router("/");
+const routerApiExample = new Router("/api");
 
 routerApiExample.get("/users", (req, res) => {
   const users = [
@@ -22,7 +22,7 @@ const loginSchema = {
   password: { required: true, min: 6 },
 };
 
-const loginValidator = new Validator(loginSchema );
+const loginValidator = new Validator(loginSchema);
 
 routerApiExample.post("/login", loginValidator.middleware(), (req, res) => {
   res.json({ message: "Login successful", body: req.body });

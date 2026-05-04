@@ -7,8 +7,57 @@ const __dirname = Config.dirname();
 const props = Config.props();
 
 const TEMPLATE_PATH = path.join(__dirname, "frontend", "index.html");
-const BASE_TEMPLATE = fs.readFileSync(TEMPLATE_PATH, "utf-8");
+let BASE_TEMPLATE = null;
 let CACHE_TEMPLATE = {};
+
+/**
+ * Loads the base HTML template lazily on first use.
+ * Prevents crash at boot if frontend/index.html doesn't exist yet.
+ * @returns {string} The base HTML template contents.
+ */
+function getBaseTemplate() {
+  if (BASE_TEMPLATE === null) {
+    if (!fs.existsSync(TEMPLATE_PATH)) {
+      Logger.error(
+        `Template file not found: ${TEMPLATE_PATH}. Run 'npm run create-react-app' to create it.`,
+      );
+      return "";
+    }
+    BASE_TEMPLATE = fs.readFileSync(TEMPLATE_PATH, "utf-8");
+  }
+  return BASE_TEMPLATE;
+}
+
+/**
+ * Checks if the current request is a frontend SPA navigation request.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {boolean}
+ */
+function isSPARequest(res) {
+  const req = res.req;
+  if (!req) return false;
+  return (
+    req.query?.source === "frontend" ||
+    req.headers?.["x-blue-bird-spa"] === "true"
+  );
+}
+
+/**
+ * Generates a stable cache key from parts, filtering out empty values.
+ * @param {string} prefix - Cache key prefix.
+ * @param {Object} metaTags - The meta tags object.
+ * @returns {string}
+ */
+function buildCacheKey(prefix, metaTags) {
+  const parts = [
+    prefix,
+    metaTags.titleMeta || "_",
+    metaTags.descriptionMeta || "_",
+    metaTags.langMeta || "_",
+    metaTags.ogImage || "_",
+  ];
+  return parts.join("|");
+}
 
 /**
  * Lightweight HTML template renderer optimized for SPA environments.
@@ -16,6 +65,7 @@ let CACHE_TEMPLATE = {};
 class Template {
   /**
    * Renders the base HTML template for a React application.
+   * Supports SPA mode: when `?source=frontend` is detected, returns JSON with meta/props.
    *
    * @static
    * @method renderReact
@@ -60,12 +110,35 @@ class Template {
         langHtml = metaTags.langMeta;
       }
 
+      // SPA mode: return JSON instead of HTML
+      if (isSPARequest(res)) {
+        return res.json({
+          meta: {
+            titleMeta: metaTags.titleMeta || "",
+            descriptionMeta: metaTags.descriptionMeta || "",
+            keywordsMeta: metaTags.keywordsMeta || "",
+            authorMeta: metaTags.authorMeta || "",
+            ogImage: metaTags.ogImage || "",
+            ogType: metaTags.ogType || "website",
+            twitterCard: metaTags.twitterCard || "summary_large_image",
+          },
+          props: componentProps.props || componentProps,
+          component: component,
+          lang: langHtml,
+        });
+      }
+
       res.type("text/html");
       res.status(200);
 
-      const cacheKey = `react_${component}_${metaTags.titleMeta}_${metaTags.descriptionMeta}_${metaTags.langMeta}_${metaTags.ogImage}`;
-      if (cache && CACHE_TEMPLATE[cacheKey]) {
+      const cacheKey = buildCacheKey(`react:${component}`, metaTags);
+      if (!props.debug && cache && CACHE_TEMPLATE[cacheKey]) {
         return res.send(CACHE_TEMPLATE[cacheKey]);
+      }
+
+      const baseTemplate = getBaseTemplate();
+      if (!baseTemplate) {
+        return res.status(500).send("Template not found");
       }
 
       const title = this.escapeHtml(metaTags.titleMeta || "");
@@ -116,7 +189,8 @@ class Template {
         ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
       `;
 
-      let html = BASE_TEMPLATE.replace(/__LANG__/g, this.escapeHtml(langHtml))
+      let html = baseTemplate
+        .replace(/__LANG__/g, this.escapeHtml(langHtml))
         .replace(/__TITLE__/g, title)
         .replace(/__DESCRIPTION__/g, description)
         .replace(/__KEYWORDS__/g, keywords)
@@ -133,7 +207,7 @@ class Template {
         .replace(/__SKELETON__/g, skeletonHtml);
 
       html = this.minifyHtml(html);
-      if (cache && props.debug==false) CACHE_TEMPLATE[cacheKey] = html;
+      if (cache && !props.debug) CACHE_TEMPLATE[cacheKey] = html;
       return res.send(html);
     } catch (error) {
       Logger.error(`Template render error: ${error.message}`);
@@ -143,6 +217,7 @@ class Template {
 
   /**
    * Renders an HTML file or raw content with SEO support and caching.
+   * Supports SPA mode: when `?source=frontend` is detected, returns JSON.
    *
    * @static
    * @method renderHtml
@@ -165,6 +240,22 @@ class Template {
         replace = true,
       } = options;
 
+      // SPA mode for renderHtml
+      if (isSPARequest(res)) {
+        return res.json({
+          meta: {
+            titleMeta: metaTags.titleMeta || props.titleMeta || "",
+            descriptionMeta:
+              metaTags.descriptionMeta || props.descriptionMeta || "",
+            keywordsMeta: metaTags.keywordsMeta || props.keywordsMeta || "",
+            authorMeta: metaTags.authorMeta || props.authorMeta || "",
+          },
+          props: {},
+          component: null,
+          lang: langHtml,
+        });
+      }
+
       let html = "";
       const isFile =
         !templateOrContent.includes("<") && templateOrContent.length < 100;
@@ -175,7 +266,7 @@ class Template {
           "frontend",
           `${templateOrContent}.html`,
         );
-        const fileCacheKey = `file_${templateOrContent}`;
+        const fileCacheKey = `file:${templateOrContent}`;
         if (cache && CACHE_TEMPLATE[fileCacheKey]) {
           html = CACHE_TEMPLATE[fileCacheKey];
         } else if (fs.existsSync(filePath)) {
@@ -190,8 +281,11 @@ class Template {
 
       res.type("text/html");
 
-      const cacheKey = `render_${templateOrContent}_${metaTags.titleMeta}`;
-      if (cache && CACHE_TEMPLATE[cacheKey]) {
+      const cacheKey = buildCacheKey(
+        `html:${templateOrContent}`,
+        metaTags,
+      );
+      if (!props.debug && cache && CACHE_TEMPLATE[cacheKey]) {
         return res.send(CACHE_TEMPLATE[cacheKey]);
       }
 
@@ -266,7 +360,7 @@ class Template {
       }
 
       html = this.minifyHtml(html);
-      if (cache && props.debug==false) CACHE_TEMPLATE[cacheKey] = html;
+      if (cache && !props.debug) CACHE_TEMPLATE[cacheKey] = html;
       res.send(html);
     } catch (error) {
       Logger.error(`Error rendering HTML template: ${error.message}`);

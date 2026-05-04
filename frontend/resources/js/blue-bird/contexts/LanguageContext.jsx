@@ -5,8 +5,9 @@ import es from '../locales/es.json';
 const translations = { en, es };
 export const LanguageContext = createContext();
 
-export const LanguageProvider = ({ children }) => {
-    const [lang, setLang] = useState(() => localStorage.getItem('blue_bird_lang') || 'en');
+export const LanguageProvider = ({ children, initialLang }) => {
+
+    const [lang, setLang] = useState(() => localStorage.getItem('blue_bird_lang') || initialLang || 'en');
 
     useEffect(() => {
         localStorage.setItem('blue_bird_lang', lang);

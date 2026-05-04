@@ -25,6 +25,17 @@ class Router {
   }
 
   /**
+   * Registers a middleware on this router.
+   * @param {...Function} middleware - Middleware functions.
+   * @example
+   * router.use(Auth.protect());
+   * router.use(App.helmet());
+   */
+  use(...middleware) {
+    this.router.use(...middleware);
+  }
+
+  /**
    * Registers a GET route handler.
    * @param {string} path - The relative path for the GET route.
    * @param {...Function} callback - One or more handler functions (middlewares and controller).
@@ -135,150 +146,186 @@ class Router {
   }
 
   /**
+   * Resolves meta tags for a route, supporting simple meta, inline multilingual, or external seoData.
+   *
+   * @private
+   * @param {Object} route - The route configuration.
+   * @param {string} lang - Target language.
+   * @param {Object} [seoData=null] - External SEO data object.
+   * @param {Array<string>} [languages=[]] - Available languages.
+   * @returns {Object} Resolved meta tags object.
+   */
+  _resolveMeta(route, lang, seoData = null, languages = []) {
+    const { meta = {}, seoKey } = route;
+
+    if (seoKey && seoData && seoData[seoKey]) {
+      const seoEntry = seoData[seoKey];
+      return seoEntry[lang] || seoEntry[Object.keys(seoEntry)[0]] || {};
+    }
+
+    const hasLangKeys = languages.some(
+      (l) => meta[l] && typeof meta[l] === "object",
+    );
+    if (hasLangKeys) {
+      return meta[lang] || meta[Object.keys(meta).find((k) => meta[k])] || {};
+    }
+
+    return meta;
+  }
+
+  /**
+   * Registers a single SEO route with Template.renderReact.
+   *
+   * @private
+   * @param {string} routePath - Express route path.
+   * @param {string} component - React component name.
+   * @param {Object} props - Props to pass to the component.
+   * @param {Object} metaData - Resolved meta data.
+   * @param {string} lang - Language code.
+   */
+  _registerSeoRoute(routePath, component, props, metaData, lang, options = {}) {
+    const { seoData, languages } = options;
+
+    this.get(routePath, (req, res) => {
+      let activeLang = lang;
+
+      const isDefaultRoute = !languages.some(l => req.path.startsWith(`/${l}`));
+      if (isDefaultRoute && req.cookies?.blue_bird_lang && languages?.includes(req.cookies.blue_bird_lang)) {
+        activeLang = req.cookies.blue_bird_lang;
+      }
+      if (req.query.source === "frontend" && req.query.lang && languages?.includes(req.query.lang)) {
+        activeLang = req.query.lang;
+        res.cookie("blue_bird_lang", activeLang, {
+          maxAge: 31536000000,
+          httpOnly: false,
+          path: "/",
+        });
+      }
+
+      let activeMeta = metaData;
+      if (activeLang !== lang) {
+        activeMeta = this._resolveMeta(
+          { meta: metaData, seoKey: options.seoKey },
+          activeLang,
+          seoData,
+          languages,
+        );
+      }
+
+      const dynamicProps = {
+        props: {
+          ...props,
+          params: req.params,
+          query: req.query,
+          lang: activeLang,
+        },
+      };
+
+      const metaTags = {
+        titleMeta: activeMeta.titleMeta || activeMeta.title || "",
+        descriptionMeta: activeMeta.descriptionMeta || activeMeta.description || "",
+        keywordsMeta: activeMeta.keywordsMeta || activeMeta.keywords || "",
+        ogImage: activeMeta.ogImage || "",
+        ogType: activeMeta.ogType || "website",
+        twitterCard: activeMeta.twitterCard || "summary_large_image",
+        langMeta: activeLang,
+      };
+
+      return Template.renderReact(res, component, dynamicProps, { metaTags });
+    });
+  }
+
+  /**
    * Registers multiple routes based on an SEO configuration array.
-   * Supports both multi-language (e.g., en, es keys) and single-language (meta key) formats.
-   * Automatically registers sitemap.xml and robots.txt.
+   * Supports simple meta, inline multilingual meta, and external seoData files.
+   * Automatically generates language-prefixed routes and registers sitemap.xml and robots.txt.
    *
    * @param {Array<Object>} routesConfig - Array of route objects.
    * @param {Object} [options={}] - Configuration options.
-   * @param {Array<string>} [options.languages] - List of languages to register (e.g., ["en", "es"]).
-   * @param {string} [options.defaultLanguage="en"] - The default language for the base path.
-   * @param {Function} [options.templateRenderer] - Optional custom template renderer (defaults to Template.renderReact).
+   * @param {Array<string>} [options.languages=[]] - Languages to register (e.g., ["en", "es"]).
+   * @param {string} [options.defaultLanguage="en"] - The default language for unprefixed paths.
+   * @param {Object} [options.seoData=null] - External SEO data object (like seo.php pattern).
    *
    * @example
+   * // Simple (no i18n)
    * router.seo([
-   *  {
-   *      path: "/",
-   *      component: "Home",
-   *      meta: { titleMeta: "Home - Blue Bird", descriptionMeta: "Welcome to Blue Bird" },
-   *      props: { id: 1, name: "Name 1" }
-   *  },
-   *  {
-   *      path: "/about",
-   *      component: "About",
-   *      meta: { titleMeta: "About - Blue Bird", descriptionMeta: "About blue bird" },
-   *      props: { id: 2, name: "Name 2" }
-   *  }
+   *   {
+   *     path: "/",
+   *     component: "Home",
+   *     meta: { titleMeta: "Home", descriptionMeta: "Welcome" },
+   *     props: { id: 1 }
+   *   }
+   * ]);
+   *
+   * @example
+   * // Multilingual (inline)
+   * router.seo([
+   *   {
+   *     path: "/",
+   *     component: "Home",
+   *     meta: {
+   *       en: { titleMeta: "Home", descriptionMeta: "Welcome" },
+   *       es: { titleMeta: "Inicio", descriptionMeta: "Bienvenido" }
+   *     }
+   *   }
    * ], { languages: ["en", "es"], defaultLanguage: "en" });
+   *
+   * @example
+   * // Multilingual (external seoData file)
+   * import seoData from "./seo.js";
+   * router.seo([
+   *   { path: "/", component: "Home", seoKey: "home" }
+   * ], { languages: ["en", "es"], defaultLanguage: "en", seoData });
    */
   seo(routesConfig, options = {}) {
-    const {
-      languages = [],
-      defaultLanguage = "en",
-      templateRenderer,
-    } = options;
-
-    SEO.registerRoutes(this.router, routesConfig, options);
-
-    const render =
-      templateRenderer ||
-      ((res, component, props, renderOptions) => {
-        return Template.renderReact(res, component, props, renderOptions);
-      });
+    const { languages = [], defaultLanguage = null, seoData = null } = options;
+     
+    const defaultLanguageOption=(defaultLanguage === null) ? props.langMeta : "en";
+     
+      
+     SEO.registerRoutes(this.router, routesConfig, options);
 
     routesConfig.forEach((route) => {
-      const { path, component, props = {}, meta = {} } = route;
+      const { path: routePath, component, props = {}, seoKey } = route;
 
-      const detectedLanguages =
-        languages.length > 0
-          ? languages
-          : Object.keys(route).filter((key) => key.length === 2);
-
-      if (detectedLanguages.length > 0) {
-        const pathsToRegister = [];
-        const langMap = {};
-
-        if (Object.keys(meta).length > 0 || route.titleMeta) {
-          pathsToRegister.push(path);
-          langMap[defaultLanguage] = {
-            title: route.titleMeta || meta.title,
-            desc: route.descriptionMeta || meta.description || meta.desc,
-            keywords: route.keywordsMeta || meta.keywords,
-          };
-        }
-
-        detectedLanguages.forEach((lang) => {
-          if (typeof route[lang] === "object") {
-            const isDefault = lang === defaultLanguage;
-            const langPath = isDefault
-              ? path
-              : `/${lang}${path === "/" ? "" : path}`;
-            if (!pathsToRegister.includes(langPath)) {
-              pathsToRegister.push(langPath);
-            }
-            langMap[lang] = route[lang];
-          }
+      if (languages.length > 0) {
+        languages.forEach((lang) => {
+          const langMeta = this._resolveMeta(route, lang, seoData, languages);
+          const langPath = `/${lang}${routePath === "/" ? "" : routePath}`;
+          this._registerSeoRoute(
+            langPath,
+            component,
+            props,
+            langMeta,
+            lang,
+            { seoData, languages, seoKey },
+          );
         });
-
-        if (pathsToRegister.length > 0) {
-          this.get(pathsToRegister, (req, res) => {
-            let currentLang = defaultLanguage;
-            const pathParts = req.path.split("/");
-            if (
-              pathParts.length > 1 &&
-              pathParts[1].length === 2 &&
-              detectedLanguages.includes(pathParts[1])
-            ) {
-              currentLang = pathParts[1];
-            }
-
-            const langData =
-              langMap[currentLang] || langMap[defaultLanguage] || {};
-
-            const dynamicProps = {
-              props: {
-                ...props,
-                params: req.params,
-                query: req.query,
-              },
-            };
-
-            return render(res, component, dynamicProps, {
-              metaTags: {
-                titleMeta:
-                  langData.title || langData.titleMeta || meta.titleMeta,
-                descriptionMeta:
-                  langData.desc ||
-                  langData.description ||
-                  langData.descriptionMeta ||
-                  meta.descriptionMeta,
-                keywordsMeta:
-                  langData.keywords ||
-                  langData.keywordsMeta ||
-                  meta.keywordsMeta,
-                ogImage: langData.ogImage || meta.ogImage,
-                ogType: langData.ogType || meta.ogType,
-                twitterCard: langData.twitterCard || meta.twitterCard,
-                langMeta: currentLang,
-              },
-            });
-          });
-        }
+ 
+        const defaultMeta = this._resolveMeta(
+          route,
+          defaultLanguageOption,
+          seoData,
+          languages,
+        );
+        this._registerSeoRoute(
+          routePath,
+          component,
+          props,
+          defaultMeta,
+          defaultLanguageOption,
+          { seoData, languages, seoKey },
+        );
       } else {
-        if (Object.keys(meta).length > 0 || route.titleMeta) {
-          this.get(path, (req, res) => {
-            const dynamicProps = {
-              props: {
-                ...props,
-                params: req.params,
-                query: req.query,
-              },
-            };
-            return render(res, component, dynamicProps, {
-              metaTags: meta.titleMeta
-                ? meta
-                : {
-                    titleMeta: route.titleMeta || meta.title,
-                    descriptionMeta:
-                      route.descriptionMeta || meta.description || meta.desc,
-                    keywordsMeta: route.keywordsMeta || meta.keywords,
-                    ogImage: meta.ogImage,
-                    ogType: meta.ogType,
-                    twitterCard: meta.twitterCard,
-                  },
-            });
-          });
-        }
+        const meta = this._resolveMeta(route, defaultLanguageOption, seoData, []);
+        this._registerSeoRoute(
+          routePath,
+          component,
+          props,
+          meta,
+          defaultLanguageOption,
+          { seoData, languages: [], seoKey },
+        );
       }
     });
   }

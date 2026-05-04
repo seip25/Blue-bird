@@ -2,9 +2,9 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import chalk from "chalk";
+import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-import helmet from "helmet";
 import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
@@ -32,7 +32,6 @@ class App {
    * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
    * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
    * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
-   * @param {boolean|Object} [options.helmet=true] - Enable Helmet security headers.
    * @param {boolean|Object} [options.swagger=false] - Enable swagger
    * @param {boolean} [options.compression=true] - Enable Gzip compression.
    * @example
@@ -55,7 +54,6 @@ class App {
    *       windowMs: 10 * 60 * 1000,
    *        max: 50
    *         },
-   *          helmet:true,
    *          swagger:{
    *          info: {
    *             title: "Blue Bird API",
@@ -67,28 +65,7 @@ class App {
    *          compression: true
    * });
    */
-  constructor(
-    options = {
-      routes: [],
-      cors: {},
-      middlewares: [],
-      port: null,
-      host: null,
-      logger: false,
-      notFound: true,
-      json: true,
-      urlencoded: true,
-      static: {
-        path: null,
-        options: {},
-      },
-      cookieParser: true,
-      rateLimit: false,
-      helmet: true,
-      swagger: false,
-      compression: true,
-    },
-  ) {
+  constructor(options = {}) {
     this.app = express();
     this.routes = options.routes || [];
     this.cors = options.cors || {};
@@ -102,10 +79,9 @@ class App {
     this.static = options.static || props.static;
     this.cookieParser = options.cookieParser ?? true;
     this.rateLimit = options.rateLimit ?? false;
-    this.helmet = options.helmet ?? true;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
-    this.dispatch();
+    this._ready = this._dispatch();
   }
 
   /**
@@ -134,8 +110,9 @@ class App {
   /**
    * Bootstraps the application by configuring global middlewares and routes.
    * Sets up JSON parsing, URL encoding, CORS, and custom middlewares.
+   * @private
    */
-  async dispatch() {
+  async _dispatch() {
     if (this.compression) this.app.use(compression());
     if (this.json) this.app.use(express.json());
     if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }));
@@ -176,24 +153,12 @@ class App {
 
       this.app.use(limiter);
     }
-    if (this.helmet) {
-      const defaultHelmetOptions = {
-        contentSecurityPolicy: props.debug ? false : undefined,
-      };
 
-      const helmetOptions = {
-        ...defaultHelmetOptions,
-        ...(typeof this.helmet === "object" ? this.helmet : {}),
-      };
-
-      this.app.use(helmet(helmetOptions));
-    }
-
-    this.middlewares.map((middleware) => {
+    this.middlewares.forEach((middleware) => {
       this.app.use(middleware);
     });
 
-    if (this.logger) this.middlewareLogger();
+    if (this.logger) this._middlewareLogger();
 
     this.app.use((req, res, next) => {
       res.setHeader("X-Powered-By", "Blue Bird");
@@ -224,17 +189,18 @@ class App {
       Swagger.init(this.app, swaggerOptions);
     }
 
-    this.dispatchRoutes();
+    this._dispatchRoutes();
 
-    if (this.notFound) this.notFoundDefault();
+    if (this.notFound) this._notFoundDefault();
 
-    this.errorHandler();
+    this._errorHandler();
   }
 
   /**
    * Middleware that logs incoming HTTP requests to the console and to a log file.
+   * @private
    */
-  middlewareLogger() {
+  _middlewareLogger() {
     const logger = new Logger();
     this.app.use((req, res, next) => {
       const method = req.method;
@@ -263,8 +229,9 @@ class App {
   /**
    * Global error handler for the application.
    * Catches all errors and responds with a standardized JSON structure.
+   * @private
    */
-  errorHandler() {
+  _errorHandler() {
     this.app.use((err, req, res, next) => {
       const logger = new Logger();
       const status = err.status || 500;
@@ -291,39 +258,67 @@ class App {
 
   /**
    * Iterates through the stored routes and attaches them to the Express application instance.
+   * @private
    */
-  dispatchRoutes() {
+  _dispatchRoutes() {
     if (props.debug) {
       const debug = new Debug();
       const debugRouter = debug.getRouter();
       this.app.use(debugRouter.path, debugRouter.router);
     }
-    this.routes.map((route) => {
+    this.routes.forEach((route) => {
       this.app.use(route.path, route.router);
     });
   }
   /**
    * Default 404 handler for unmatched routes.
    * Returns a JSON response with a "Not Found" message.
+   * @private
    */
-  notFoundDefault() {
+  _notFoundDefault() {
     this.app.use((req, res) => {
       return res.status(404).json({ message: "Not Found" });
     });
   }
   /**
    * Starts the HTTP server and begins listening for incoming connections.
+   * Waits for dispatch to complete before starting.
    */
   run() {
-    this.app.listen(this.port, () => {
-      console.log(
-        chalk.bold.blue("Blue Bird Server Online\n") +
-          chalk.bold.cyan("Host: ") +
-          chalk.green(`${this.host}:${this.port}`) +
-          "\n" +
-          chalk.gray("────────────────────────────────"),
-      );
-    });
+    this._ready
+      .then(() => {
+        this.app.listen(this.port, () => {
+          console.log(
+            chalk.bold.blue("Blue Bird Server Online\n") +
+              chalk.bold.cyan("Host: ") +
+              chalk.green(`${this.host}:${this.port}`) +
+              "\n" +
+              chalk.gray("────────────────────────────────"),
+          );
+        });
+      })
+      .catch((err) => {
+        console.error(
+          chalk.bold.red("Failed to start Blue Bird:"),
+          err.message,
+        );
+        process.exit(1);
+      });
+  }
+
+  /**
+   * Returns a pre-configured Helmet middleware for use on specific routers.
+   * @param {Object} [options={}] - Helmet options to override defaults.
+   * @returns {Function} Helmet middleware function.
+   * @example
+   * const router = new Router("/web");
+   * router.use(App.helmet({ contentSecurityPolicy: false }));
+   */
+  static helmet(options = {}) {
+    const defaultOptions = {
+      contentSecurityPolicy: props.debug ? false : undefined,
+    };
+    return helmet({ ...defaultOptions, ...options });
   }
 }
 

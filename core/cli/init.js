@@ -69,8 +69,7 @@ class ProjectInit {
                 "init": "blue-bird",
                 "route": "blue-bird route",
                 "component": "blue-bird component",
-                "swagger-install": "blue-bird swagger-install",
-                "scaffolding-auth": "blue-bird scaffolding-auth"
+                "swagger-install": "blue-bird swagger-install"
             };
 
             let updated = false;
@@ -114,7 +113,6 @@ if (command === "react") import("./react.js");
 else if (command === "route") import("./route.js")
 else if (command === "component") import("./component.js")
 else if (command === "swagger-install") import("./swagger.js")
-else if (command === "scaffolding-auth") import("./scaffolding-auth.js").then(m => m.default && m.default.run ? m.default.run() : null)
 else initializer.run();
 
 

@@ -38,34 +38,45 @@ router.get("*", (req, res) => {
 });
 
 // SEO Routing (Meta tag SSR before React mounts)
-// Automatically registers /sitemap.xml and /robots.txt
-router.seo(
-  [
-    {
-      path: "/",
-      component: "Home",
-      meta: {
-        ogImage: "/images/home-og.png",
-        ogType: "website",
-        twitterCard: "summary_large_image",
-      },
-      es: {
-        title: "Inicio",
-        desc: "Bienvenido",
-        keywords: "inicio, bienvenido",
-      },
-      en: { title: "Home", desc: "Welcome", keywords: "home, welcome" },
-    },
-  ],
-  { languages: ["es", "en"], defaultLanguage: "es" },
-);
+// Automatically registers /sitemap.xml, /robots.txt, and language-prefixed routes
+
+// Option A: Simple meta (no i18n)
+router.seo([
+  {
+    path: "/",
+    component: "Home",
+    meta: { titleMeta: "Home", descriptionMeta: "Welcome" },
+    props: { id: 1 }
+  }
+]);
+
+// Option B: Multilingual with external seoData file (recommended)
+import seoData from "./seo.js";
+router.seo([
+  { path: "/", component: "Home", seoKey: "home", props: { id: 1 } },
+  { path: "/about", component: "About", seoKey: "about" }
+], { languages: ["en", "es"], defaultLanguage: "en", seoData });
+// Generates: /, /en, /es, /about, /en/about, /es/about
+
+// Option C: Multilingual inline meta
+router.seo([
+  {
+    path: "/",
+    component: "Home",
+    meta: {
+      en: { titleMeta: "Home", descriptionMeta: "Welcome" },
+      es: { titleMeta: "Inicio", descriptionMeta: "Bienvenido" }
+    }
+  }
+], { languages: ["en", "es"], defaultLanguage: "en" });
 ```
 
 **Advanced SEO Features:**
-- **Social Meta Tags:** `router.seo` supports `ogImage`, `ogType`, and `twitterCard` for rich social media previews.
-- **Automatic Sitemap:** The framework generates a dynamic `sitemap.xml` based on the routes defined in `router.seo`.
-- **Robots.txt:** A `robots.txt` file is automatically served, pointing to the generated sitemap.
+- **SPA Navigation:** When `?source=frontend` is detected, `renderReact` returns JSON `{meta, props, component, lang}` instead of HTML.
+- **Automatic Sitemap:** Dynamic `sitemap.xml` with all language-prefixed routes.
+- **Robots.txt:** Auto-served pointing to the generated sitemap.
 - **Caching:** SEO templates are cached in memory for high performance.
+- **External SEO Data:** Use a `seo.js` file (like PHP's `seo.php`) for centralized multilingual meta management.
 
 **Static & Hybrid Rendering (renderHtml):**
 For ultra-fast pages (Landing, Privacy, Terms) that don't initially need React, use `Template.renderHtml`. It fallbacks to `.env` SEO values automatically.
@@ -141,11 +152,48 @@ router.get("/stats", Cache.middleware(60), (req, res) => {
 });
 ```
 
-## 6. AI Development Guidelines
+## 6. Security (Helmet)
+
+Helmet is **not applied globally** by default. Apply it per-router where needed:
+
+```javascript
+import App from "@seip/blue-bird/core/app.js";
+
+// Apply helmet to a specific router
+const webRouter = new Router("/web");
+webRouter.use(App.helmet()); // Full helmet with defaults
+webRouter.use(App.helmet({ contentSecurityPolicy: false })); // Custom options
+
+// Or enable globally in App constructor (not recommended)
+new App({ helmet: true });
+```
+
+## 7. SPA Navigation (SPAProvider)
+
+The framework includes an `SPAProvider` that bridges React Router navigation with backend SEO data.
+On every client-side `<Link>` navigation, it fetches meta/props from the backend and updates `document.title` + meta tags.
+
+```javascript
+// In App.jsx — already configured by default
+import { SPAProvider } from './blue-bird/contexts/SPAContext.jsx';
+
+<SPAProvider languages={["en", "es"]} defaultLanguage="en">
+  <Routes>...</Routes>
+</SPAProvider>
+
+// In components — use navigateToLang for language switching
+import { useSPA } from './blue-bird/contexts/SPAContext.jsx';
+const { navigateToLang, pageProps, pageMeta } = useSPA();
+navigateToLang("es"); // Navigates to /es/current-path and updates meta
+```
+
+## 8. AI Development Guidelines
 
 1. **Frontend**: Components must be Functional React components, leveraging Tailwind CSS. Avoid inline styles. Reuse components from `blue-bird/components/` (e.g., Card, Button, Input) if available.
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **i18n**: Check the `useLanguage` hook provided in React for multi-language components; avoid hardcoding display strings when localization is active.
 4. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
+5. **SPA Navigation**: Use `<Link>` from `react-router-dom` for internal navigation. The `SPAProvider` automatically fetches and updates meta tags.
+6. **Language Routes**: When using multilingual SEO, routes are generated for all language prefixes. Use `navigateToLang()` from `useSPA()` to switch languages.
 
 _This file can be retrieved by intelligent agents reading its absolute physical path during reasoning._

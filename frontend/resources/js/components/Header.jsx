@@ -1,11 +1,12 @@
-import { Link } from "react-router-dom";
+import Link from "../blue-bird/components/Link";
+import LanguageButton from "../blue-bird/components/LanguageButton";
 import { useState } from "react";
 import Button from "../blue-bird/components/Button";
 import { useLanguage } from "../blue-bird/contexts/LanguageContext";
 import { useTheme } from "../blue-bird/contexts/ThemeContext";
 
 export default function Header() {
-    const { t, setLang } = useLanguage();
+    const { t } = useLanguage();
     const { changeTheme } = useTheme();
 
     const [emojiTheme, setEmojiTheme] = useState("🌞");
@@ -25,25 +26,27 @@ export default function Header() {
             <nav
                 className='bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-slate-800 px-4 py-4 flex justify-between items-center gap-4 sticky top-0 z-10'
             >
-                <div className='font-bold text-xl text-slate-900 dark:text-slate-100'>
+                <div className='font-bold text-xl text-blue-500 dark:text-blue-500'>
                     Blue Bird
                 </div>
                 <div className='flex justify-between items-center gap-4'>
                     <div className="flex justify-between items-center gap-4">
-                        <Button variant="outline" size="sm" onClick={() => setLang("es")} >
+                        <Link to={"/"} >{t("home")}</Link>
+                        <Link to={"/about"}>{t("about")}</Link>
+                    </div>
+                    <div className="flex justify-between items-center gap-4">
+                        <LanguageButton lang="es" variant="outline" size="sm">
                             ES
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setLang("en")} >
+                        </LanguageButton>
+                        <LanguageButton lang="en" variant="outline" size="sm">
                             EN
-                        </Button>
+                        </LanguageButton>
                         <Button variant="ghost" size="icon" onClick={changeThemeEmoji}>
                             {emojiTheme}
                         </Button>
+
                     </div>
-                    <div className="flex justify-between items-center gap-4">
-                        <Link to="/" className='text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors'>{t("home")}</Link>
-                        <Link to="/about" className='text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors'>{t("about")}</Link>
-                    </div>
+
 
                 </div>
             </nav>
