@@ -1,6 +1,6 @@
-import Router from "../../core/router.js";
-import Template from "../../core/template.js";
-import App from "../../core/app.js";
+import Router from "@seip/blue-bird/core/router.js";
+import Template from "@seip/blue-bird/core/template.js";
+import App from "@seip/blue-bird/core/app.js";
 import seoData from "./seo.js";
 
 const routerFrontendExample = new Router();

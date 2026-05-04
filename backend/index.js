@@ -1,4 +1,4 @@
-import App from "../core/app.js";
+import App from "@seip/blue-bird/core/app.js";
 import routerApiExample from "./routes/api.js";
 import routerFrontendExample from "./routes/frontend.js";
 
