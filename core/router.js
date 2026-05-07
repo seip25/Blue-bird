@@ -280,7 +280,7 @@ class Router {
   seo(routesConfig, options = {}) {
     const { languages = [], defaultLanguage = null, seoData = null } = options;
      
-    const defaultLanguageOption=(defaultLanguage === null) ? props.langMeta : "en";
+    const defaultLanguageOption = defaultLanguage || props.langMeta || "en";
      
       
      SEO.registerRoutes(this.router, routesConfig, options);

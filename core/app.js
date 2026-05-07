@@ -82,6 +82,7 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
+    this.loggerInstance = new Logger();
     this._ready = this._dispatch();
   }
 
@@ -202,7 +203,6 @@ class App {
    * @private
    */
   _middlewareLogger() {
-    const logger = new Logger();
     this.app.use((req, res, next) => {
       const method = req.method;
       const url = req.url.replace(
@@ -218,7 +218,7 @@ class App {
       const time = `${now.split("T")[0]} ${now.split("T")[1].split(".")[0]}`;
       let message = ` ${time} -${ip} -[${method}] ${url} ${params}`;
 
-      logger.info(message);
+      this.loggerInstance.info(message);
       if (props.debug) {
         message = `${chalk.bold.green(time)} - ${chalk.bold.cyan(ip)} -[${chalk.bold.red(method)}] ${chalk.bold.blue(url)} ${chalk.bold.yellow(params)}`;
         console.log(message);
@@ -234,11 +234,10 @@ class App {
    */
   _errorHandler() {
     this.app.use((err, req, res, next) => {
-      const logger = new Logger();
       const status = err.status || 500;
       const message = err.message || "Internal Server Error";
 
-      logger.error(`[${status}] ${message} - ${err.stack}`);
+      this.loggerInstance.error(`[${status}] ${message} - ${err.stack}`);
 
       if (props.debug) {
         return res.status(status).json({
