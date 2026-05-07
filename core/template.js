@@ -5,6 +5,7 @@ import Logger from "./logger.js";
 
 const __dirname = Config.dirname();
 const props = Config.props();
+const logger = new Logger();
 
 const TEMPLATE_PATH = path.join(__dirname, "frontend", "index.html");
 let BASE_TEMPLATE = null;
@@ -18,7 +19,7 @@ let CACHE_TEMPLATE = {};
 function getBaseTemplate() {
   if (BASE_TEMPLATE === null) {
     if (!fs.existsSync(TEMPLATE_PATH)) {
-      Logger.error(
+      logger.error(
         `Template file not found: ${TEMPLATE_PATH}. Run 'npm run create-react-app' to create it.`,
       );
       return "";
@@ -46,11 +47,13 @@ function isSPARequest(res) {
  * Generates a stable cache key from parts, filtering out empty values.
  * @param {string} prefix - Cache key prefix.
  * @param {Object} metaTags - The meta tags object.
+ * @param {string} [extra=""] - Extra data to differentiate the cache (e.g., URL).
  * @returns {string}
  */
-function buildCacheKey(prefix, metaTags) {
+function buildCacheKey(prefix, metaTags, extra = "") {
   const parts = [
     prefix,
+    extra,
     metaTags.titleMeta || "_",
     metaTags.descriptionMeta || "_",
     metaTags.langMeta || "_",
@@ -89,6 +92,8 @@ class Template {
         scriptsInHead = [],
         scriptsInBody = [],
         cache = true,
+        revalidate = false,
+        cacheKey = null,
         metaTags = {},
         skeleton = true,
       } = options;
@@ -130,9 +135,11 @@ class Template {
       res.type("text/html");
       res.status(200);
 
-      const cacheKey = buildCacheKey(`react:${component}`, metaTags);
-      if (!props.debug && cache && CACHE_TEMPLATE[cacheKey]) {
-        return res.send(CACHE_TEMPLATE[cacheKey]);
+      const extraKey = res.req ? res.req.originalUrl : "";
+      const finalCacheKey = cacheKey || buildCacheKey(`react:${component}`, metaTags, extraKey);
+
+      if (!props.debug && cache && !revalidate && CACHE_TEMPLATE[finalCacheKey]) {
+        return res.send(CACHE_TEMPLATE[finalCacheKey]);
       }
 
       const baseTemplate = getBaseTemplate();
@@ -206,10 +213,10 @@ class Template {
         .replace(/__SKELETON__/g, skeletonHtml);
 
       html = this.minifyHtml(html);
-      if (cache && !props.debug) CACHE_TEMPLATE[cacheKey] = html;
+      if (cache && !props.debug) CACHE_TEMPLATE[finalCacheKey] = html;
       return res.send(html);
     } catch (error) {
-      Logger.error(`Template render error: ${error.message}`);
+      logger.error(`Template render error: ${error.message}`);
       return res.status(500).send("Internal Server Error");
     }
   }
@@ -234,6 +241,8 @@ class Template {
         scriptsInHead = [],
         scriptsInBody = [],
         cache = true,
+        revalidate = false,
+        cacheKey = null,
         metaTags = {},
         withAssets = false,
         replace = true,
@@ -279,12 +288,15 @@ class Template {
 
       res.type("text/html");
 
-      const cacheKey = buildCacheKey(
+      const extraKey = res.req ? res.req.originalUrl : "";
+      const finalCacheKey = cacheKey || buildCacheKey(
         `html:${templateOrContent}`,
         metaTags,
+        extraKey
       );
-      if (!props.debug && cache && CACHE_TEMPLATE[cacheKey]) {
-        return res.send(CACHE_TEMPLATE[cacheKey]);
+
+      if (!props.debug && cache && !revalidate && CACHE_TEMPLATE[finalCacheKey]) {
+        return res.send(CACHE_TEMPLATE[finalCacheKey]);
       }
 
       if (replace) {
@@ -358,10 +370,10 @@ class Template {
       }
 
       html = this.minifyHtml(html);
-      if (cache && !props.debug) CACHE_TEMPLATE[cacheKey] = html;
+      if (cache && !props.debug) CACHE_TEMPLATE[finalCacheKey] = html;
       res.send(html);
     } catch (error) {
-      Logger.error(`Error rendering HTML template: ${error.message}`);
+      logger.error(`Error rendering HTML template: ${error.message}`);
       res.status(500).send("Internal Server Error");
     }
   }
