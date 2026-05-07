@@ -110,7 +110,6 @@ class Template {
         langHtml = metaTags.langMeta;
       }
 
-      // SPA mode: return JSON instead of HTML
       if (isSPARequest(res)) {
         return res.json({
           meta: {
@@ -240,7 +239,6 @@ class Template {
         replace = true,
       } = options;
 
-      // SPA mode for renderHtml
       if (isSPARequest(res)) {
         return res.json({
           meta: {

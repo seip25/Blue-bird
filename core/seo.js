@@ -20,9 +20,8 @@ class SEO {
    */
   static generateSitemap(routesConfig, options = {}) {
     const { languages = [], defaultLanguage = "en" } = options;
-    const host = (props.host || "http://localhost").replace(/\/$/, "");
-    const port = props.port && props.port !== 80 && props.port !== 443 ? `:${props.port}` : "";
-    const baseUrl = `${host}${port}`;
+    const host = (props.appUrl || "http://localhost").replace(/\/$/, "");
+    const baseUrl = `${host}`;
     const date = new Date().toISOString().split("T")[0];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -32,15 +31,12 @@ class SEO {
     routesConfig.forEach((route) => {
       const { path: routePath } = route;
 
-      // Default path (no prefix)
       xml += `
         <url>
             <loc>${baseUrl}${routePath}</loc>
             <lastmod>${date}</lastmod>
             <priority>${routePath === "/" ? "1.0" : "0.8"}</priority>
         </url>`;
-
-      // Language-prefixed paths
       if (languages.length > 0) {
         languages.forEach((lang) => {
           const langPath = `/${lang}${routePath === "/" ? "" : routePath}`;
@@ -66,12 +62,11 @@ class SEO {
    * @returns {string} The generated robots.txt content.
    */
   static generateRobots() {
-    const host = (props.host || "http://localhost").replace(/\/$/, "");
-    const port = props.port && props.port !== 80 && props.port !== 443 ? `:${props.port}` : "";
+    const host = (props.appUrl || "http://localhost").replace(/\/$/, "");
     return `User-agent: *
 Allow: /
 
-Sitemap: ${host}${port}/sitemap.xml
+Sitemap: ${host}/sitemap.xml
 `;
   }
 

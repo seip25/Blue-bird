@@ -35,6 +35,7 @@ class Config {
       version: process.env.VERSION || "1.0.0",
       langMeta: process.env.LANGMETA || "en",
       host: process.env.HOST || "http://localhost",
+      appUrl: process.env.APP_URL || process.env.HOST || "http://localhost",
       port: Number.isNaN(portRaw) ? 3000 : portRaw,
       static: {
         path: process.env.STATIC_PATH || "frontend/public",

@@ -16,7 +16,8 @@ class ProjectInit {
         const itemsToCopy = [
             "backend",
             "frontend",
-            ".env_example"
+            ".env_example",
+            "AGENTS.md"
         ];
 
         try {

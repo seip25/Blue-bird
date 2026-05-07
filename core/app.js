@@ -72,6 +72,7 @@ class App {
     this.middlewares = options.middlewares || [];
     this.port = options.port || props.port;
     this.host = options.host || props.host;
+    this.appUrl = options.appUrl || props.appUrl;
     this.logger = options.logger ?? false;
     this.notFound = options.notFound ?? true;
     this.json = options.json ?? true;
@@ -177,7 +178,7 @@ class App {
           version: "1.0.0",
           description: "Blue Bird Framework API Documentation",
         },
-        url: `${this.host}:${this.port}`,
+        url: this.appUrl ? this.appUrl : `${this.host}:${this.port}`,
         route: "/docs",
       };
 
@@ -290,7 +291,10 @@ class App {
         this.app.listen(this.port, () => {
           console.log(
             chalk.bold.blue("Blue Bird Server Online\n") +
-              chalk.bold.cyan("Host: ") +
+              chalk.bold.cyan("App URL: ") +
+              chalk.green(`${this.appUrl}`) +
+              "\n" +
+              chalk.bold.cyan("Internal: ") +
               chalk.green(`${this.host}:${this.port}`) +
               "\n" +
               chalk.gray("────────────────────────────────"),

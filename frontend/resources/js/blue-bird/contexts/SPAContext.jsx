@@ -196,7 +196,9 @@ export function SPAProvider({
         }
 
         const data = await response.json();
-
+        if (data.lang) {
+          document.documentElement.setAttribute("lang", data.lang);
+        }
         if (data.meta) {
           updateMeta(data.meta);
           setPageMeta(data.meta);
