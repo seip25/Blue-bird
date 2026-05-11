@@ -17,7 +17,10 @@ class Config {
   /**
    * Retrieves application properties from environment variables or default values.
    * Results are cached after first call for performance.
-   * @returns {Object} The configuration properties object.
+   * @returns {{debug: boolean, descriptionMeta: string, keywordsMeta: string, titleMeta: string, authorMeta: string, description: string, title: string, version: string, langMeta: string, host: string, appUrl: string, port: number, static: {path: string, options: Object}}} The configuration properties object.
+   * @example
+   * const props = Config.props();
+   * console.log(props);
    */
   static props() {
     if (_cachedProps) return _cachedProps;

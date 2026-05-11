@@ -184,6 +184,8 @@ class Template {
         : "";
       const skeletonHtml = skeleton ? this.skeletonHtml() : "";
 
+      const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
+
       const ogTags = `
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${description}" />
@@ -210,6 +212,7 @@ class Template {
         .replace(/__VITE_ASSETS__/g, this.vite_assets())
         .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags)
         .replace(/__STYLES_SKELETON__/g, stylesSkeleton)
+        .replace(/__CANONICAL_URL__/g, canonicalUrl)
         .replace(/__SKELETON__/g, skeletonHtml);
 
       html = this.minifyHtml(html);
@@ -338,6 +341,8 @@ class Template {
           ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
         `;
 
+        const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
+
         html = html
           .replace(/__LANG__/g, this.escapeHtml(langHtml))
           .replace(/__TITLE__/g, title)
@@ -347,6 +352,7 @@ class Template {
           .replace(/__HEAD_OPTIONS__/g, headOptions + ogTags)
           .replace(/__CLASS_BODY__/g, classBody)
           .replace(/__VITE_ASSETS__/g, withAssets ? this.vite_assets() : "")
+          .replace(/__CANONICAL_URL__/g, canonicalUrl)
           .replace(/__STYLES_SKELETON__/g, "");
 
         if (html.includes("__LINK_STYLES__")) {

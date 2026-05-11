@@ -160,7 +160,7 @@ class App {
       this.app.use(middleware);
     });
 
-    if (this.logger) this._middlewareLogger();
+    if (this.logger || props.debug) this._middlewareLogger(this.logger);
 
     this.app.use((req, res, next) => {
       res.setHeader("X-Powered-By", "Blue Bird");
@@ -202,13 +202,14 @@ class App {
    * Middleware that logs incoming HTTP requests to the console and to a log file.
    * @private
    */
-  _middlewareLogger() {
+  _middlewareLogger(logger = false) {
     this.app.use((req, res, next) => {
       const method = req.method;
       const url = req.url.replace(
         /(password|token|authorization)=([^&]+)/gi,
         "$1=***",
       );
+      if (url.includes("chrome")) return;
       const params =
         Object.keys(req.params).length > 0
           ? ` ${JSON.stringify(req.params)}`
@@ -218,7 +219,8 @@ class App {
       const time = `${now.split("T")[0]} ${now.split("T")[1].split(".")[0]}`;
       let message = ` ${time} -${ip} -[${method}] ${url} ${params}`;
 
-      this.loggerInstance.info(message);
+      if (logger) this.loggerInstance.info(message);
+
       if (props.debug) {
         message = `${chalk.bold.green(time)} - ${chalk.bold.cyan(ip)} -[${chalk.bold.red(method)}] ${chalk.bold.blue(url)} ${chalk.bold.yellow(params)}`;
         console.log(message);
@@ -290,13 +292,13 @@ class App {
         this.app.listen(this.port, () => {
           console.log(
             chalk.bold.blue("Blue Bird Server Online\n") +
-              chalk.bold.cyan("App URL: ") +
-              chalk.green(`${this.appUrl}`) +
-              "\n" +
-              chalk.bold.cyan("Internal: ") +
-              chalk.green(`${this.host}:${this.port}`) +
-              "\n" +
-              chalk.gray("────────────────────────────────"),
+            chalk.bold.cyan("App URL: ") +
+            chalk.green(`${this.appUrl}`) +
+            "\n" +
+            chalk.bold.cyan("Internal: ") +
+            chalk.green(`${this.host}:${this.port}`) +
+            "\n" +
+            chalk.gray("────────────────────────────────"),
           );
         });
       })

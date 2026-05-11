@@ -94,20 +94,48 @@ class Auth {
       const token =
         req.cookies?.auth || req.headers.authorization?.split(" ")[1];
 
+      const isContentTypeJson = req.headers["content-type"] === "application/json";
+
       if (!token) {
-        if (options.redirect) return res.redirect(options.redirect);
-        return res.status(401).json({ message: "Unauthorized" });
+        if (options.redirect && !isContentTypeJson) return res.redirect(options.redirect);
+        return isContentTypeJson ? res.status(401).json({ message: "Unauthorized" }) : res.status(401).send();
       }
 
       const decoded = this.verifyToken(token);
       if (!decoded) {
-        if (options.redirect) return res.redirect(options.redirect);
-        return res.status(401).json({ message: "Unauthorized" });
+        if (options.redirect && !isContentTypeJson) return res.redirect(options.redirect);
+        return isContentTypeJson ? res.status(401).json({ message: "Unauthorized" }) : res.status(401).send();
       }
 
       req[options.key || "user"] = decoded;
       next();
     };
+  }
+
+  /**
+   * Logs in a user by setting an authentication cookie.
+   * @param {import('express').Response} res - The response object.
+   * @param {Object} data - The data to store in the token.
+   * @param {string} [key="auth"] - The key for the cookie.
+   * @param {Object} [options={cookie: {maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict"}}] - Options for the cookie.
+   * @returns {string} The generated token.
+   */
+  static login(res, data, key = "auth", options = { cookie: { maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict" } }) {
+    const token = this.generateToken(data);
+    res.cookie(key, token, options.cookie);
+    return token;
+  }
+
+  /**
+   * Logs out a user by clearing the authentication cookie.
+   * @param {import('express').Response} res - The response object.
+   * @param {string} [key="auth"] - The key for the cookie.
+   * @param {Object} [options={cookie: {maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict"}}] - Options for the cookie.
+   * @returns {boolean} True if the cookie was cleared successfully.
+   */
+  static logout(res, key = "auth", options = { cookie: { maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict" } }) {
+    res.clearCookie(key, options.cookie);
+    return true;
   }
 }
 

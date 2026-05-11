@@ -69,7 +69,8 @@ class Upload {
      * const url = Upload.url("file.jpg", "uploads");
      */
     static url(filename, folder = "uploads") {
-        return `${props.host}:${props.port}/${folder}/${filename}`;
+        const appUrl = props.appUrl ?? `${props.host}:${props.port}`;
+        return `${appUrl}/${folder}/${filename}`;
     }
 }
 

@@ -20,7 +20,7 @@ class SEO {
    */
   static generateSitemap(routesConfig, options = {}) {
     const { languages = [], defaultLanguage = "en" } = options;
-    const host = (props.appUrl || "http://localhost").replace(/\/$/, "");
+    const host = (props.appUrl || `${props.host}:${props.port}`).replace(/\/$/, "");
     const baseUrl = `${host}`;
     const date = new Date().toISOString().split("T")[0];
 
