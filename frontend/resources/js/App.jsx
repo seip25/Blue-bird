@@ -30,12 +30,10 @@ function generateRoutes(routes, languages = []) {
   const allRoutes = [];
 
   routes.forEach(({ path: routePath, element }) => {
-    // Base path
     allRoutes.push(
       <Route key={routePath} path={routePath} element={element} />
     );
 
-    // Language-prefixed paths (only if multiple languages are used)
     if (languages && languages.length > 0) {
       languages.forEach((lang) => {
         const langPath = `/${lang}${routePath === "/" ? "" : routePath}`;
@@ -56,7 +54,7 @@ export default function App(_props) {
     <ThemeProvider>
       <LanguageProvider initialLang={lang}>
         <Router>
-          <SPAProvider languages={LANGUAGES} defaultLanguage={DEFAULT_LANGUAGE}>
+          <SPAProvider languages={LANGUAGES} defaultLanguage={DEFAULT_LANGUAGE} {..._props} >
             <Suspense fallback={<Skeleton />}>
               <Routes>
                 {generateRoutes(ROUTES, LANGUAGES)}

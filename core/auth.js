@@ -1,6 +1,10 @@
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
+import Config from "./config.js";
 
+const propsConfig = Config.props();
+const jwtSecret = propsConfig.jwtSecret;
+const production = propsConfig.debug;
 /**
  * Auth class to handle JWT generation, verification and protection with AES-256-GCM encryption.
  */
@@ -49,13 +53,13 @@ class Auth {
   /**
    * Generates an encrypted JWT token.
    * @param {Object} payload - The data to store in the token.
-   * @param {string} [secret=process.env.JWT_SECRET] - The secret key.
+   * @param {string} [secret=process.env.JWT_SECRET] - The secret key .
    * @param {string} [expiresIn="24h"] - Expiration time.
    * @returns {string} The generated token.
    */
   static generateToken(
     payload,
-    secret = process.env.JWT_SECRET,
+    secret = jwtSecret,
     expiresIn = "24h"
   ) {
     if (!secret)
@@ -70,7 +74,7 @@ class Auth {
    * @param {string} [secret=process.env.JWT_SECRET] - The secret key.
    * @returns {Object|null} The decoded and decrypted payload or null if invalid.
    */
-  static verifyToken(token, secret = process.env.JWT_SECRET) {
+  static verifyToken(token, secret = jwtSecret) {
     if (!secret)
       throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
     try {
@@ -84,30 +88,42 @@ class Auth {
 
   /**
    * Middleware to protect routes. Checks for token in Cookies or Authorization header.
-   * @param {Object} options - Options for protection.
+   * @param {Object} [options={}] - Options for protection.
    * @param {string} [options.redirect=null] - URL to redirect if not authenticated.
    * @param {string} [options.key="user"] - Key to store the decoded token in the request.
+   * @param {string} [options.cookieKey="auth"] - The cookie key to look for the token.
    * @returns {Function} Express middleware.
+   * @example
+   * router.get("/profile", Auth.protect(), (req, res) => { ... });
+   * // Or with custom cookie key:
+   * router.get("/admin", Auth.protect({ cookieKey: "admin_session" }), (req, res) => { ... });
    */
-  static protect(options = { redirect: null, key: "user" }) {
+  static protect(options = {}) {
+    const { redirect = null, key = "user", cookieKey = "auth" } = options;
+
     return (req, res, next) => {
       const token =
-        req.cookies?.auth || req.headers.authorization?.split(" ")[1];
+        req.cookies?.[cookieKey] || req.headers.authorization?.split(" ")[1];
 
-      const isContentTypeJson = req.headers["content-type"] === "application/json";
+      const isContentTypeJson =
+        req.headers["content-type"] === "application/json";
 
       if (!token) {
-        if (options.redirect && !isContentTypeJson) return res.redirect(options.redirect);
-        return isContentTypeJson ? res.status(401).json({ message: "Unauthorized" }) : res.status(401).send();
+        if (redirect && !isContentTypeJson) return res.redirect(redirect);
+        return isContentTypeJson
+          ? res.status(401).json({ message: "Unauthorized" })
+          : res.status(401).send();
       }
 
       const decoded = this.verifyToken(token);
       if (!decoded) {
-        if (options.redirect && !isContentTypeJson) return res.redirect(options.redirect);
-        return isContentTypeJson ? res.status(401).json({ message: "Unauthorized" }) : res.status(401).send();
+        if (redirect && !isContentTypeJson) return res.redirect(redirect);
+        return isContentTypeJson
+          ? res.status(401).json({ message: "Unauthorized" })
+          : res.status(401).send();
       }
 
-      req[options.key || "user"] = decoded;
+      req[key || "user"] = decoded;
       next();
     };
   }
@@ -117,12 +133,29 @@ class Auth {
    * @param {import('express').Response} res - The response object.
    * @param {Object} data - The data to store in the token.
    * @param {string} [key="auth"] - The key for the cookie.
-   * @param {Object} [options={cookie: {maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict"}}] - Options for the cookie.
-   * @returns {string} The generated token.
+   * @param {Object} [options={}] - Options for the cookie and token.
+   * @param {string} [options.expiresIn="24h"] - Token expiration (e.g., "1h", "7d").
+   * @param {import('express').CookieOptions} [options.cookie] - Express cookie options.
+   * @returns {Promise<string>} The generated token.
+   * @example
+   * await Auth.login(res, { id: 1, name: "Admin" });
    */
-  static login(res, data, key = "auth", options = { cookie: { maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict" } }) {
-    const token = this.generateToken(data);
-    res.cookie(key, token, options.cookie);
+  static async login(res, data, key = "auth", options = {}) {
+    const { expiresIn = "24h", cookie = {} } = options;
+
+    const token = this.generateToken(data, jwtSecret, expiresIn);
+
+    const defaultCookieOptions = {
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: production,
+      sameSite: "strict",
+      path: "/",
+    };
+
+    const finalCookieOptions = { ...defaultCookieOptions, ...cookie };
+
+    res.cookie(key, token, finalCookieOptions);
     return token;
   }
 
@@ -130,11 +163,16 @@ class Auth {
    * Logs out a user by clearing the authentication cookie.
    * @param {import('express').Response} res - The response object.
    * @param {string} [key="auth"] - The key for the cookie.
-   * @param {Object} [options={cookie: {maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict"}}] - Options for the cookie.
-   * @returns {boolean} True if the cookie was cleared successfully.
+   * @param {import('express').CookieOptions} [options={}] - Options for clearing the cookie.
+   * @returns {Promise<boolean>} True if the cookie was cleared successfully.
+   * @example
+   * await Auth.logout(res);
    */
-  static logout(res, key = "auth", options = { cookie: { maxAge: 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: "strict" } }) {
-    res.clearCookie(key, options.cookie);
+  static async logout(res, key = "auth", options = {}) {
+    const defaultOptions = {
+      path: "/",
+    };
+    res.clearCookie(key, { ...defaultOptions, ...options });
     return true;
   }
 }

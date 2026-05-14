@@ -40,6 +40,7 @@ class Config {
       host: process.env.HOST || "http://localhost",
       appUrl: process.env.APP_URL || process.env.HOST || "http://localhost",
       port: Number.isNaN(portRaw) ? 3000 : portRaw,
+      jwtSecret: process.env.JWT_SECRET,
       static: {
         path: process.env.STATIC_PATH || "frontend/public",
         options: {},

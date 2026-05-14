@@ -3,11 +3,16 @@ import Card from '../blue-bird/components/Card';
 import Header from '../components/Header';
 import { useLanguage } from '../blue-bird/contexts/LanguageContext';
 import Typography from '../blue-bird/components/Typography';
+import { useSPA } from '../blue-bird/contexts/SPAContext.jsx';
 
 export default function Home() {
   const { t } = useLanguage();
+  const { navigateToLang, pageProps, pageMeta } = useSPA();
+  console.log("pageProps", pageProps);
+  console.log("pageMeta", pageMeta);
+
   useEffect(() => {
-    // Example API call to the backend
+
     fetch("/api/login", {
       method: "POST",
       headers: {

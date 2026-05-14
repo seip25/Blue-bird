@@ -28,7 +28,7 @@ const SPAContext = createContext({
  * @param {Array<string>} [props.languages=[]] - Supported language codes.
  * @param {string} [props.defaultLanguage="en"] - Default language.
  */
-export function SPAProvider({
+export function SPAProvider({ props,
   children,
   languages = [],
   defaultLanguage = "en",
@@ -36,7 +36,7 @@ export function SPAProvider({
   const location = useLocation();
   const navigate = useNavigate();
   const { lang, setLang } = useLanguage();
-  const [pageProps, setPageProps] = useState({});
+  const [pageProps, setPageProps] = useState(props);
   const [pageMeta, setPageMeta] = useState({});
   const [loading, setLoading] = useState(false);
   const isFirstRender = useRef(true);
@@ -136,7 +136,6 @@ export function SPAProvider({
       }
     });
 
-    // Update OG tags
     const ogUpdates = {
       "og:title": meta.titleMeta,
       "og:description": meta.descriptionMeta,
@@ -153,20 +152,20 @@ export function SPAProvider({
   }, []);
 
   useEffect(() => {
-    // Sync language from URL prefix if present
     const urlLang = detectLangFromPath(location.pathname);
     if (urlLang) {
       setLang(urlLang);
     } else if (languages.length > 0 && !isFirstRender.current) {
-      // On subsequent navigations, if prefix is missing, revert to default
       setLang(defaultLanguage);
     }
 
-    // Skip fetch on initial render
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
+
+    setPageProps({});
+    setPageMeta({});
 
     if (abortRef.current) {
       abortRef.current.abort();

@@ -123,19 +123,57 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 
 ## 4. Authentication (Auth)
 
-The system includes built-in JWT handling. The framework assumes tokens are passed via Cookies or the `Authorization` header.
+The system includes built-in JWT handling with AES-256-GCM encryption. The framework handles tokens via Cookies or the `Authorization` header.
+
+### Protecting Routes
+Use `Auth.protect()` as a middleware to secure routes.
 
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
 // Protect an API route (returns 401 if failed):
 router.get("/profile", Auth.protect(), (req, res) => {
-    // The user payload is attached to req.user
+    // The decrypted user payload is attached to req.user
     res.json({ user: req.user });
 });
 
 // Protect a React route (redirects to login):
 router.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => { ... });
+
+// Custom cookie key and storage key:
+router.get("/admin", Auth.protect({ 
+    cookieKey: "admin_session", 
+    key: "admin" 
+}), (req, res) => {
+    res.json({ admin: req.admin });
+});
+```
+
+### Login and Logout
+The `Auth` class provides helpers to handle session management via cookies.
+
+```javascript
+// Login a user
+router.post("/login", async (req, res) => {
+    const user = { id: 1, name: "John" };
+    
+    // Generates JWT and sets "auth" cookie (24h default)
+    await Auth.login(res, user);
+    
+    res.json({ message: "Logged in" });
+});
+
+// Logout a user
+router.post("/logout", async (req, res) => {
+    await Auth.logout(res);
+    res.json({ message: "Logged out" });
+});
+
+// Customizing Login (key, expiration, cookie options)
+await Auth.login(res, user, "my_session", {
+    expiresIn: "7d",
+    cookie: { httpOnly: true, secure: true }
+});
 ```
 
 ## 5. Performance Coaching (Cache)

@@ -9,37 +9,40 @@ setInterval(() => {
     }
 }, 300000).unref();
 /**
- * Cache Middleware
- * @example 
- * router.get("/stats",
-    Cache.middleware(120),
-    controller.stats
-);
- * */
+ * Simple in-memory Cache class to provide middleware for Express routes.
+ * Caches JSON responses based on the request URL.
+ */
 class Cache {
+  /**
+   * Middleware to cache responses.
+   * @param {number} [seconds=60] - Number of seconds to cache the response.
+   * @returns {Function} Express middleware function.
+   * @example
+   * router.get("/stats", Cache.middleware(120), (req, res) => {
+   *     res.json({ ok: true });
+   * });
+   */
+  static middleware(seconds = 60) {
+    return (req, res, next) => {
+      const key = req.originalUrl;
 
-    static middleware(seconds = 60) {
-        return (req, res, next) => {
+      if (CACHE[key] && CACHE[key].expiry > Date.now()) {
+        return res.json(CACHE[key].data);
+      }
 
-            const key = req.originalUrl;
+      const originalJson = res.json.bind(res);
 
-            if (CACHE[key] && CACHE[key].expiry > Date.now()) {
-                return res.json(CACHE[key].data);
-            }
-
-            const originalJson = res.json.bind(res);
-
-            res.json = (body) => {
-                CACHE[key] = {
-                    data: body,
-                    expiry: Date.now() + seconds * 1000
-                };
-                return originalJson(body);
-            };
-
-            next();
+      res.json = (body) => {
+        CACHE[key] = {
+          data: body,
+          expiry: Date.now() + seconds * 1000,
         };
-    }
+        return originalJson(body);
+      };
+
+      next();
+    };
+  }
 }
 
 export default Cache;

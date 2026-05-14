@@ -4,9 +4,13 @@ import { useLanguage } from '../blue-bird/contexts/LanguageContext';
 
 import Card from '../blue-bird/components/Card';
 import Typography from '../blue-bird/components/Typography'
+import { useSPA } from '../blue-bird/contexts/SPAContext.jsx';
 
 export default function About() {
   const { t } = useLanguage();
+  const { navigateToLang, pageProps, pageMeta } = useSPA();
+  console.log("pageProps", pageProps);
+  console.log("pageMeta", pageMeta);
   return (
     <div
       className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 min-h-screen"
