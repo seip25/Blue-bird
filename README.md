@@ -1,6 +1,6 @@
 # Blue Bird Framework
 
-**The Future of Express & React Development**
+**Express Framework — Built for Speed**
 
 ![Blue Bird Logo](https://seip25.github.io/Blue-bird/blue-bird.png)
 
@@ -10,18 +10,21 @@
 
 ## 🌟 Introduction / Introducción
 
-**Blue Bird** is a powerful, opinionated structure based on **Express** and **React**. It's designed to help developers build fast, scalable applications,apis and everything pre-configured.
+**Blue Bird** is a powerful, opinionated framework built on **Express**. It's designed to help developers build fast, scalable applications and APIs with everything pre-configured: validation, security, JWT authentication, EJS rendering with layout caching, i18n translations, automatic HTML minification, SEO, and hot-reload.
 
-**Blue Bird** es una estructura potente basada en **Express** y **React**. Está diseñada para ayudar a los desarrolladores a construir aplicaciones rápidas ,apis escalables   y todo pre-configurado.
+**Blue Bird** es un framework potente basado en **Express**. Está diseñado para ayudar a los desarrolladores a construir aplicaciones rápidas, APIs escalables y todo pre-configurado: validación, seguridad, autenticación JWT, renderizado EJS con caché de layouts, traducción i18n, minificación HTML automática, SEO y hot-reload.
 
  
 
 ## 🚀 Key Features / Características Clave
 
-- ⚡ **All-In-One**: Express, React, Vite, JWT Auth, and Validations ready to go.
+- ⚡ **All-In-One**: Express, JWT Auth, Validations, EJS Rendering, Layout system, i18n, and Caching.
 - 💎 **Flexible**: Extensible via standard Express `.use()` middleware. 
 - 🔐 **Secure**: Integrated JWT authentication and multi-language validation.
 - 📁 **Uploads**: Easy file handling with Multer-based helpers.
+- 🚀 **Fast Rendering**: EJS views with dual caching (view cache in prod + core HTML cache with TTL).
+- 🧹 **Optimized**: Automatic HTML minification and Gzip compression for superior SEO metrics.
+- 🔄 **Hot Reload**: Automatic browser refresh on EJS, HTML, CSS, and JS changes in dev mode.
 
  
 
@@ -39,23 +42,12 @@ npx blue-bird
 *This copies the base structure: `backend`, `frontend`, and `.env`.*
 *Esto copia la estructura base: `backend`, `frontend` y `.env`.*
 
-### 3. Setup React
+### 3. Development / Desarrollo
 ```bash
-npm run react
-```
-*Configures React, React Router, and Vite automatically.*
-*Configura React, React Router y Vite automáticamente.*
-
-### 4. Development / Desarrollo
-```bash
-# Start Backend (Express)
 npm run dev
-
-# Start Frontend (Vite)
-npm run vite:dev
 ```
 
-<hr />
+---
 
 ## 📖 Documentation / Documentación
 
@@ -64,7 +56,7 @@ Check out our full documentation for detailed API reference and examples:
 - 🇺🇸 [English Documentation](https://seip25.github.io/Blue-bird/en.html)
 - 🇪🇸 [Documentación en Español](https://seip25.github.io/Blue-bird/index.html)
 
-<hr />
+---
 
 ## 📄 License / Licencia
 
@@ -72,7 +64,7 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 Distribuido bajo la **Licencia MIT**. Mira `LICENSE` para más información.
 
-<hr />
+---
 
 <div align="center">
   <p>Made with ❤️ by <strong>Seip25</strong></p>

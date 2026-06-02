@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "node:fs";
 import chalk from "chalk";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -9,6 +10,8 @@ import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
 import Debug from "./debug.js";
+import Template from "./template.js";
+import SEO from "./seo.js";
 
 const __dirname = Config.dirname();
 const props = Config.props();
@@ -32,12 +35,12 @@ class App {
    * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
    * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
    * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
-   * @param {boolean|Object} [options.swagger=false] - Enable swagger
+   * @param {boolean|Object} [options.swagger=false] - Enable swagger.
    * @param {boolean} [options.compression=true] - Enable Gzip compression.
    * @example
    * const app = new App({
    *     routes: [],
-   *     cors: {}, // { origin: "https://domain:port" }
+   *     cors: {},
    *     middlewares: [],
    *     port: 3000,
    *     host: "http://localhost",
@@ -45,24 +48,14 @@ class App {
    *     notFound: true,
    *     json: true,
    *     urlencoded: true,
-   *     static: {
-   *         path: "public",
-   *         options: {}
+   *     static: { path: "public", options: {} },
+   *     cookieParser: true,
+   *     rateLimit: { windowMs: 10 * 60 * 1000, max: 50 },
+   *     swagger: {
+   *         info: { title: "Blue Bird API", version: "1.0.0", description: "API Documentation" },
+   *         url: "http://localhost:8000"
    *     },
-   *      cookieParser: true,
-   *      rateLimit: {
-   *       windowMs: 10 * 60 * 1000,
-   *        max: 50
-   *         },
-   *          swagger:{
-   *          info: {
-   *             title: "Blue Bird API",
-   *             version: "1.0.0",
-   *             description: "Blue Bird Framework API Documentation"
-   *            },
-   *           url : "http://localhost:8000"
-   *          },
-   *          compression: true
+   *     compression: true
    * });
    */
   constructor(options = {}) {
@@ -82,7 +75,10 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
+    this.translate = options.translate ?? props.translate ?? false;
     this.loggerInstance = new Logger();
+    /** @type {Set<import('http').ServerResponse>} */
+    this._hotReloadClients = new Set();
     this._ready = this._dispatch();
   }
 
@@ -98,12 +94,11 @@ class App {
   use(record) {
     this.app.use(record);
   }
+
   /**
    * Sets a configuration value in the Express application.
    * @param {string} key - The configuration key.
    * @param {*} value - The value to set for the configuration key.
-   * @example
-   * app.set("port", 3000);
    */
   set(key, value) {
     this.app.set(key, value);
@@ -111,14 +106,100 @@ class App {
 
   /**
    * Bootstraps the application by configuring global middlewares and routes.
-   * Sets up JSON parsing, URL encoding, CORS, and custom middlewares.
    * @private
    */
   async _dispatch() {
+    this.app.set("view engine", "ejs");
+    this.app.set("views", path.join(__dirname, "frontend"));
+    if (!props.debug) {
+      this.app.set("view cache", true);
+    }
+
     if (this.compression) this.app.use(compression());
     if (this.json) this.app.use(express.json());
     if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }));
     if (this.cookieParser) this.app.use(cookieParser());
+
+    if (this.translate) {
+      const locales = this._loadLocales();
+      const activeLanguages = Object.keys(locales);
+
+      this.app.use((req, res, next) => {
+        let detectedLang = "";
+
+        const pathSegments = req.path.split("/").filter(Boolean);
+        const firstSegment = pathSegments[0];
+
+        if (firstSegment && activeLanguages.includes(firstSegment)) {
+          detectedLang = firstSegment;
+          const prefixLength = firstSegment.length + 1;
+          let newUrl = req.url.substring(prefixLength);
+          if (!newUrl.startsWith("/")) {
+            newUrl = "/" + newUrl;
+          }
+          req.url = newUrl;
+        }
+
+        if (!detectedLang && req.query.lang && typeof req.query.lang === "string") {
+          const queryLang = req.query.lang.toLowerCase();
+          if (activeLanguages.includes(queryLang)) {
+            detectedLang = queryLang;
+          }
+        }
+
+        if (!detectedLang && req.cookies && req.cookies.lang) {
+          const cookieLang = req.cookies.lang.toLowerCase();
+          if (activeLanguages.includes(cookieLang)) {
+            detectedLang = cookieLang;
+          }
+        }
+
+        if (!detectedLang && req.headers["accept-language"]) {
+          const acceptLang = req.headers["accept-language"].split(",")[0].split("-")[0].toLowerCase();
+          if (activeLanguages.includes(acceptLang)) {
+            detectedLang = acceptLang;
+          }
+        }
+
+        req.lang = detectedLang || "en";
+        res.locals.lang = req.lang;
+
+        res.locals.t = (key, variables = {}) => {
+          const dictionary = locales[req.lang] || locales["en"] || {};
+          let value = dictionary[key] ?? key;
+
+          if (typeof value === "string" && variables) {
+            Object.entries(variables).forEach(([k, v]) => {
+              const val = String(v);
+              value = value.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), val);
+              value = value.replace(new RegExp(`\\{${k}\\}`, "g"), val);
+            });
+          }
+          return value;
+        };
+
+        next();
+      });
+    } else {
+      this.app.use((req, res, next) => {
+        req.lang = "en";
+        res.locals.lang = "en";
+        res.locals.t = (key) => key;
+        next();
+      });
+    }
+
+    this.app.use((req, res, next) => {
+      const originalSend = res.send.bind(res);
+      res.send = (body) => {
+        if (typeof body === "string" && res.getHeader("content-type")?.includes("text/html")) {
+          body = Template.minifyHtml(body);
+        }
+        return originalSend(body);
+      };
+      next();
+    });
+
     if (this.static.path)
       this.app.use(
         express.static(
@@ -152,7 +233,6 @@ class App {
       }
 
       const limiter = rateLimit(optionsRateLimiter);
-
       this.app.use(limiter);
     }
 
@@ -169,6 +249,7 @@ class App {
 
     if (props.debug) {
       Debug.middlewareMetrics(this.app);
+      this._setupHotReload();
     }
 
     if (this.swagger) {
@@ -193,14 +274,68 @@ class App {
 
     this._dispatchRoutes();
 
+    SEO.registerEndpoints(this.app);
+
     if (this.notFound) this._notFoundDefault();
 
     this._errorHandler();
   }
 
   /**
+   * Sets up hot-reload using Server-Sent Events (SSE).
+   * Watches the frontend/ directory for .ejs, .html, .css, .js file changes and notifies connected browsers.
+   * Also clears the Template cache on file changes so fresh content is served.
+   * Only active when DEBUG=true in .env.
+   * @private
+   */
+  _setupHotReload() {
+    this.app.get("/__hot-reload", (req, res) => {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+      res.write("data: connected\n\n");
+      this._hotReloadClients.add(res);
+      req.on("close", () => {
+        this._hotReloadClients.delete(res);
+      });
+    });
+
+    const frontendPath = path.join(__dirname, "frontend");
+    let debounceTimer = null;
+
+    const notifyClients = () => {
+      this._hotReloadClients.forEach((client) => {
+        try {
+          client.write("data: reload\n\n");
+        } catch (_) {
+          this._hotReloadClients.delete(client);
+        }
+      });
+    };
+
+    try {
+      fs.watch(frontendPath, { recursive: true }, (eventType, filename) => {
+        if (!filename) return;
+        if (/\.(ejs|html|css|js)$/i.test(filename)) {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            console.log(chalk.magenta(`[Hot Reload] ${filename} changed`));
+            Template.clearCache();
+            notifyClients();
+          }, 200);
+        }
+      });
+    } catch (_) {
+      console.log(chalk.yellow("[Hot Reload] Could not watch frontend/ directory"));
+    }
+  }
+
+  /**
    * Middleware that logs incoming HTTP requests to the console and to a log file.
    * @private
+   * @param {boolean} [logger=false]
    */
   _middlewareLogger(logger = false) {
     this.app.use((req, res, next) => {
@@ -231,7 +366,6 @@ class App {
 
   /**
    * Global error handler for the application.
-   * Catches all errors and responds with a standardized JSON structure.
    * @private
    */
   _errorHandler() {
@@ -272,9 +406,9 @@ class App {
       this.app.use(route.path, route.router);
     });
   }
+
   /**
    * Default 404 handler for unmatched routes.
-   * Returns a JSON response with a "Not Found" message.
    * @private
    */
   _notFoundDefault() {
@@ -282,10 +416,35 @@ class App {
       return res.status(404).json({ message: "Not Found" });
     });
   }
+
   /**
    * Starts the HTTP server and begins listening for incoming connections.
-   * Waits for dispatch to complete before starting.
    */
+  /**
+   * Loads translation locale JSON files from frontend/locales/
+   * @private
+   * @returns {Object<string, Object>}
+   */
+  _loadLocales() {
+    const locales = {};
+    const localesPath = path.join(__dirname, "frontend", "locales");
+    if (fs.existsSync(localesPath)) {
+      try {
+        const files = fs.readdirSync(localesPath);
+        files.forEach((file) => {
+          if (file.endsWith(".json")) {
+            const lang = path.basename(file, ".json");
+            const content = fs.readFileSync(path.join(localesPath, file), "utf-8");
+            locales[lang] = JSON.parse(content);
+          }
+        });
+      } catch (error) {
+        this.loggerInstance.error(`Error loading locales: ${error.message}`);
+      }
+    }
+    return locales;
+  }
+
   run() {
     this._ready
       .then(() => {
@@ -298,6 +457,7 @@ class App {
             chalk.bold.cyan("Internal: ") +
             chalk.green(`${this.host}:${this.port}`) +
             "\n" +
+            (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
             chalk.gray("────────────────────────────────"),
           );
         });

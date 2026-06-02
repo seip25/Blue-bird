@@ -5,7 +5,7 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 /**
- * Scaffolds an authentication system with Raw DB Queries, JWT, React Frontend, and i18n support.
+ * Scaffolds an authentication system with Raw DB Queries, JWT, and API routes.
  */
 class ScaffoldingAuth {
     constructor() {
@@ -20,13 +20,11 @@ class ScaffoldingAuth {
         try {
             this.setupDatabaseAndServices();
             this.createBackendRoutes();
-            this.createFrontendComponents();
             this.modifyEntryFiles();
 
             console.log(chalk.blue("\nAuth Scaffolding completed successfully!"));
             console.log(chalk.white("You can use the native database connection provided in backend/databases/connection.js"));
             console.log(chalk.white("OR we recommend using an ORM like Prisma. If you migrate to an ORM, adapt backend/databases/services/auth.service.js to use it."));
-            console.log(chalk.white("Update your App.jsx to use the newly created React components."));
             console.log(chalk.yellow("Running setup script to execute database migrations..."));
             try {
                 execSync('node  --env-file=.env backend/databases/setup_tables.js', { stdio: "inherit", cwd: this.appDir });
@@ -476,7 +474,6 @@ import Config from "@seip/blue-bird/core/config.js";
 import crypto from "node:crypto";
 import AuthService from "../databases/services/auth.service.js";
 import { compare } from "bcrypt";
-import Template from "@seip/blue-bird/core/template.js";
 
 const routerAuth = new Router("/auth");
 const props = Config.props();
@@ -626,7 +623,7 @@ import Auth from "@seip/blue-bird/core/auth.js";
 const routerAuthenticated = new Router();
 
 routerAuthenticated.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
-    return Template.renderReact(res, "App", { title: "Dashboard" });
+    return Template.render(res, "index", { metaTags: { titleMeta: "Dashboard" } });
 });
 
 export default routerAuthenticated;
@@ -635,350 +632,9 @@ export default routerAuthenticated;
         console.log(chalk.green("✓ Backend auth and authenticated routes generated."));
     }
 
-    createFrontendComponents() {
-        const pagesDir = path.join(this.frontendDir, "resources", "js", "pages", "auth");
-        if (!fs.existsSync(pagesDir)) fs.mkdirSync(pagesDir, { recursive: true });
-
-        const loginContent = `import { useState } from 'react';
-import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { Link } from 'react-router-dom';
-import Card from '../../blue-bird/components/Card.jsx';
-import Input from '../../blue-bird/components/Input.jsx';
-import Button from '../../blue-bird/components/Button.jsx';
-import Typography from '../../blue-bird/components/Typography.jsx';
-
-export default function Login() {
-    const { t, lang, setLang } = useLanguage();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const lang = localStorage.getItem("blue_bird_lang") ?? "en";
-        try {
-            const res = await fetch('/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password , lang })
-            });
-            const data = await res.json();
-             if (!res.ok) {
-                if (data.deleted_account_error) throw new Error(t('deleted_account_error'));
-                throw new Error(t('error_login') || t('error_general') || data.message);
-            }
-            window.location.href = '/dashboard';
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-            <Card className="w-full max-w-md">
-                <div className="mb-6 text-center">
-                    <Typography variant="h3">{t('login')}</Typography>
-                </div>
-                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    <Input label={t('password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
-                </form>
-                <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
-                    <Link to="/forgot-password" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('forgot_password')}</Link>
-                    <Link to="/register" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('dont_have_account_register')}</Link>
-                </div>
-                <div className="mt-6 flex justify-center space-x-4 text-sm border-t dark:border-slate-800 pt-4">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
-                </div>
-            </Card>
-        </div>
-    );
-}
-`;
-        fs.writeFileSync(path.join(pagesDir, "Login.jsx"), loginContent, "utf-8");
-
-        const registerContent = `import { useState } from 'react';
-import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { Link } from 'react-router-dom';
-import Card from '../../blue-bird/components/Card.jsx';
-import Input from '../../blue-bird/components/Input.jsx';
-import Button from '../../blue-bird/components/Button.jsx';
-import Typography from '../../blue-bird/components/Typography.jsx';
-
-export default function Register() {
-    const { t, lang, setLang } = useLanguage();
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [password_confirmation, setPasswordConfirmation] = useState('');
-    const [error, setError] = useState(null);
-    const [message, setMessage] = useState(null);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setMessage(null);
-        const lang = localStorage.getItem("blue_bird_lang") ?? "en";
-        try {
-            const res = await fetch('/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, password_confirmation, lang })
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                if (data.password_confirmation_error) throw new Error(t('password_confirmation_err'));
-                if (data.deleted_account_error) throw new Error(t('deleted_account_error'));
-                if (data.error_email_register) throw new Error(t('error_email_register'));
-                throw new Error(data.message || t('error_general'));
-            }
-            else{
-                setMessage(t('register_success') || 'Register success');
-                setEmail('');
-                setName('');
-                setPassword('');
-                setPasswordConfirmation('');
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 4000);
-            }
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-            <Card className="w-full max-w-md">
-                <div className="mb-6 text-center">
-                    <Typography variant="h3">{t('register')}</Typography>
-                </div>
-                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
-                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label={t('name')} type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    <Input label={t('password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    <Input label={t('password_confirmation') || 'Confirm Password'} type="password" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
-                    
-                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
-                </form>
-                <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
-                </div>
-                <div className="mt-6 flex justify-center space-x-4 text-sm border-t dark:border-slate-800 pt-4">
-                    <button onClick={() => setLang('en')} className={\`\${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
-                    <button onClick={() => setLang('es')} className={\`\${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
-                </div>
-            </Card>
-        </div>
-    );
-}
-`;
-        fs.writeFileSync(path.join(pagesDir, "Register.jsx"), registerContent, "utf-8");
-
-        const forgotPasswordContent = `import { useState } from 'react';
-import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { Link } from 'react-router-dom';
-import Card from '../../blue-bird/components/Card.jsx';
-import Input from '../../blue-bird/components/Input.jsx';
-import Button from '../../blue-bird/components/Button.jsx';
-import Typography from '../../blue-bird/components/Typography.jsx';
-
-export default function ForgotPassword() {
-    const { t, lang, setLang } = useLanguage();
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(null);
-        setError(null);
-        try {
-            const res = await fetch('/auth/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t('error_general'));
-             setMessage(t('If the email is valid, a password reset link has been sent') || data.message);
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-            <Card className="w-full max-w-md">
-                <div className="mb-4 text-center">
-                    <Typography variant="h3">{t('forgot_password') || 'Forgot Password'}</Typography>
-                </div>
-                <div className="mb-6 text-center">
-                    <Typography variant="muted">{t('forgot_password_desc') || 'Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.'}</Typography>
-                </div>
-                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
-                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label={t('email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
-                </form>
-                <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
-                </div>
-            </Card>
-        </div>
-    );
-}
-`;
-        fs.writeFileSync(path.join(pagesDir, "ForgotPassword.jsx"), forgotPasswordContent, "utf-8");
-
-        const resetPasswordContent = `import { useState, useEffect } from 'react';
-import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-import { useLocation, Link } from 'react-router-dom';
-import Card from '../../blue-bird/components/Card.jsx';
-import Input from '../../blue-bird/components/Input.jsx';
-import Button from '../../blue-bird/components/Button.jsx';
-import Typography from '../../blue-bird/components/Typography.jsx';
-
-export default function ResetPassword() {
-    const { t, lang, setLang } = useLanguage();
-    const [password, setPassword] = useState('');
-    const [password_confirmation, setPasswordConfirmation] = useState('');
-    const [token, setToken] = useState('');
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
-
-    const search = useLocation().search;
-    useEffect(() => {
-        const urlParams = new URLSearchParams(search);
-        const t = urlParams.get('token');
-        if (t) setToken(t);
-    }, [search]);
-
-    useEffect(() => {
-        if (token) {
-            const fetchUser = async () => {
-                const res = await fetch('/auth/reset-password/validate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                if (!res.ok) return window.location.href = '/login';
-            };
-            fetchUser();
-        }
-    }, [token]);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage(null);
-        setError(null);
-        try {
-            const res = await fetch('/auth/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password, password_confirmation })
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                if (data.password_confirmation) throw new Error(t('password_confirmation_err'));
-                if (data.token) throw new Error(t('error_token_reset') || data.message);
-                throw new Error(data.message || t('error_general'));
-            }
-            setMessage(data.message);
-            setTimeout(() => { window.location.href = '/login'; }, 2000);
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-            <Card className="w-full max-w-md">
-                <div className="mb-6 text-center">
-                    <Typography variant="h3">Reset Password</Typography>
-                </div>
-                {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded-md text-sm">{error}</div>}
-                {message && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded-md text-sm">{message}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="hidden" value={token} required />
-                    <Input label={'New ' + (t('password') || 'Password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    <Input label={t('password_confirmation') || 'Confirm Password'} type="password" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
-                    <Button type="submit" className="w-full mt-2">{t('submit')}</Button>
-                </form>
-                <div className="mt-6 text-center text-sm">
-                    <Link to="/login" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline">{t('back_to_login') || 'Back to login'}</Link>
-                </div>
-            </Card>
-        </div>
-    );
-}
-
-`;
-        fs.writeFileSync(path.join(pagesDir, "ResetPassword.jsx"), resetPasswordContent, "utf-8");
-
-        const dashboardContent = ` import { useLanguage } from '../../blue-bird/contexts/LanguageContext.jsx';
-        import { useEffect, useState } from 'react';
-        import Button from '../../blue-bird/components/Button.jsx';
-        import Typography from '../../blue-bird/components/Typography.jsx';
-        import Card from '../../blue-bird/components/Card.jsx';
-        
-        export default function Dashboard() {
-            const { t, lang, setLang } = useLanguage();
-            const [user, setUser] = useState(null);
-        
-            useEffect(() => {
-                const fetchUser = async () => {
-                    const res = await fetch('/auth/validate');
-                    if (!res.ok) return window.location.href = '/login';
-                    const data = await res.json();
-                    setUser(data.user);
-                };
-                fetchUser();
-            }, []);
-        
-            const logout = async () => {
-                const res = await fetch('/auth/logout');
-                if (!res.ok) throw new Error(t('error_general'));
-                return window.location.href = '/login';
-            };
-        
-            if (!user) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100"><Typography variant="p">Loading...</Typography></div>;
-        
-            return (
-                <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col">
-                    <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                        <Typography variant="h4">{t('dashboard')}</Typography>
-                        <div className="flex items-center space-x-4">
-                            <button onClick={() => setLang('en')} className={\`text-sm transition-colors hover:text-slate-900 dark:hover:text-slate-100 \${lang === 'en' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>EN</button>
-                            <button onClick={() => setLang('es')} className={\`text-sm transition-colors hover:text-slate-900 dark:hover:text-slate-100 \${lang === 'es' ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}\`}>ES</button>
-                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-2"></div>
-                            <Button variant="ghost" onClick={logout} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30">{t('logout')}</Button>
-                        </div>
-                    </header>
-                    <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-                        <Card>
-                            <Typography variant="h3" className="mb-2">Welcome, {user.email}!</Typography>
-                            <Typography variant="muted">You are successfully logged into your dashboard.</Typography>
-                        </Card>
-                    </main>
-                </div>
-            );
-        }
-        
-`;
-        const authenticatedPagesDir = path.join(this.frontendDir, "resources", "js", "pages", "authenticated");
-        if (!fs.existsSync(authenticatedPagesDir)) fs.mkdirSync(authenticatedPagesDir, { recursive: true });
-        fs.writeFileSync(path.join(authenticatedPagesDir, "Dashboard.jsx"), dashboardContent, "utf-8");
-
-        console.log(chalk.green("✓ Frontend React UI Components generated."));
-    }
-
+    /**
+     * Modifies the backend entry file to include auth routes.
+     */
     modifyEntryFiles() {
         const backendIndexFile = path.join(this.backendDir, "index.js");
         if (fs.existsSync(backendIndexFile)) {
@@ -1001,31 +657,6 @@ export default function ResetPassword() {
                 console.log(chalk.green("✓ backend/index.js updated to include new routes."));
             }
         }
-
-        const appJsxFile = path.join(this.frontendDir, "resources", "js", "App.jsx");
-        if (fs.existsSync(appJsxFile)) {
-            let appJsx = fs.readFileSync(appJsxFile, "utf-8");
-            if (!appJsx.includes("LanguageProvider")) {
-                appJsx = appJsx.replace(
-                    /import\s+Home\s+from\s+["']\.\/pages\/Home["'];?/,
-                    "import { LanguageProvider } from './blue-bird/contexts/LanguageContext.jsx';\nimport Login from './pages/auth/Login.jsx';\nimport Register from './pages/auth/Register.jsx';\nimport ForgotPassword from './pages/auth/ForgotPassword.jsx';\nimport ResetPassword from './pages/auth/ResetPassword.jsx';\nimport Dashboard from './pages/authenticated/Dashboard.jsx';\nimport Home from './pages/Home';"
-                );
-                appJsx = appJsx.replace(
-                    /<Router>/,
-                    "<LanguageProvider>\n      <Router>"
-                );
-                appJsx = appJsx.replace(
-                    /<\/Router>/,
-                    "</Router>\n    </LanguageProvider>"
-                );
-                appJsx = appJsx.replace(
-                    /<Route\s+path=["']\/about["']\s+element=\{<About\s*\/?>\}\s*\/?>/,
-                    '<Route path="/about" element={<About />} />\n            <Route path="/login" element={<Login />} />\n            <Route path="/register" element={<Register />} />\n            <Route path="/forgot-password" element={<ForgotPassword />} />\n            <Route path="/reset-password" element={<ResetPassword />} />\n            <Route path="/dashboard" element={<Dashboard />} />'
-                );
-                fs.writeFileSync(appJsxFile, appJsx, "utf-8");
-                console.log(chalk.green("✓ frontend/resources/js/App.jsx updated with routes and Provider."));
-            }
-        }
     }
 }
 
@@ -1035,3 +666,4 @@ export default initializer;
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     initializer.run();
 }
+

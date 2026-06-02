@@ -1,7 +1,7 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.4.8",
-  "description": "Express + React opinionated framework with SPA or API architecture and built-in JWT auth",
+  "version": "0.5.0",
+  "description": "Express opinionated framework with HTML rendering, API architecture, built-in JWT auth, validation, caching, and SEO",
   "type": "module",
   "bin": {
     "blue-bird": "core/cli/init.js"
@@ -12,9 +12,11 @@
   },
   "keywords": [
     "express",
-    "react",
     "framework",
-    "vite"
+    "html",
+    "api",
+    "jwt",
+    "seo"
   ],
   "author": "Seip25",
   "license": "MIT",
@@ -25,34 +27,21 @@
   "scripts": {
     "dev": "node --watch --env-file=.env backend/index.js",
     "start": "node --env-file=.env backend/index.js",
-    "create-react-app": "node core/cli/react.js",
-    "react": "node core/cli/react.js",
     "init": "node core/cli/init.js",
     "route": "node core/cli/route.js",
-    "component": "node core/cli/component.js",
-    "swagger-install": "node core/cli/swagger.js",
-    "vite:dev": "vite",
-    "vite:build": "vite build"
+    "swagger-install": "node core/cli/swagger.js"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.2",
     "chalk": "^5.6.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.2.0",
-    "tailwindcss": "^4.2.2",
     "xss": "^1.0.15"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^7.3.1"
   }
 }

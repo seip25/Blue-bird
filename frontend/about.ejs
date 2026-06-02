@@ -1,0 +1,89 @@
+<div class="min-h-screen bg-slate-950 text-white font-sans antialiased selection:bg-blue-500 selection:text-white">
+  <!-- Nav Bar -->
+  <header class="sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between backdrop-blur-md bg-slate-900/60 border border-white/10 rounded-2xl px-6 py-3 shadow-lg">
+      <div class="flex items-center space-x-3">
+        <!-- Logo -->
+        <a href="<%= lang === 'es' ? '/es/' : '/' %>" class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-white bg-clip-text text-transparent">Blue Bird</span>
+        </a>
+      </div>
+
+      <!-- Nav Links -->
+      <nav class="hidden md:flex space-x-8 text-sm font-medium text-slate-300">
+        <a href="<%= lang === 'es' ? '/es/' : '/' %>" class="hover:text-blue-400 transition-colors"><%= t('home_link') %></a>
+        <a href="<%= lang === 'es' ? '/es/about' : '/about' %>" class="hover:text-blue-400 transition-colors"><%= t('about_link') %></a>
+      </nav>
+
+      <!-- Language selector -->
+      <div class="flex items-center space-x-2 bg-slate-900 border border-white/10 rounded-xl p-1 text-sm font-semibold">
+        <a href="/en<%= req.originalUrl.replace(/^\/(en|es)/, '') %>" class="px-3 py-1.5 rounded-lg transition-all <%= lang === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white' %>">
+          EN
+        </a>
+        <a href="/es<%= req.originalUrl.replace(/^\/(en|es)/, '') %>" class="px-3 py-1.5 rounded-lg transition-all <%= lang === 'es' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white' %>">
+          ES
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Section -->
+  <main class="max-w-4xl mx-auto px-4 py-16">
+    <div class="space-y-12">
+      <!-- Back Button -->
+      <div>
+        <a href="<%= lang === 'es' ? '/es/' : '/' %>" class="inline-flex items-center text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Dashboard
+        </a>
+      </div>
+
+      <!-- About Header -->
+      <div class="space-y-4">
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
+          <%= t('about') %>
+        </h1>
+        <p class="text-lg text-slate-300 leading-relaxed">
+          <%= t('about_description') %>
+        </p>
+      </div>
+
+      <!-- Technical Architecture Grid -->
+      <div class="pt-8 border-t border-white/10 space-y-6">
+        <h2 class="text-2xl font-bold">Framework Capabilities</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-400">
+          <div class="bg-slate-900/50 border border-white/5 p-6 rounded-2xl">
+            <h3 class="font-bold text-white text-base mb-2">HTML Minifier</h3>
+            <p>Every HTML view is parsed, comments are stripped, and whitespace is compressed instantly, delivering minimum payload sizes to ensure superior SEO metrics.</p>
+          </div>
+          <div class="bg-slate-900/50 border border-white/5 p-6 rounded-2xl">
+            <h3 class="font-bold text-white text-base mb-2">Dual Cache Layers</h3>
+            <p>EJS views are cached at the Express engine level in production, while the framework core caches fully compiled outputs in memory with optional time-to-live expiration.</p>
+          </div>
+          <div class="bg-slate-900/50 border border-white/5 p-6 rounded-2xl">
+            <h3 class="font-bold text-white text-base mb-2">i18n Locale Resolution</h3>
+            <p>Dynamic detection from URI prefixes, query strings, headers, or cookies. It falls back to default English mappings, avoiding any controller duplication.</p>
+          </div>
+          <div class="bg-slate-900/50 border border-white/5 p-6 rounded-2xl">
+            <h3 class="font-bold text-white text-base mb-2">Gzip Compression</h3>
+            <p>All textual assets, compiled pages, and REST API payloads are compressed via Gzip before network transit to ensure low latency and high score audits.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-8 bg-slate-950 mt-16">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
+      <p><%= t('footer') %></p>
+    </div>
+  </footer>
+</div>

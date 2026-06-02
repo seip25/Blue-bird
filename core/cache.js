@@ -27,17 +27,36 @@ class Cache {
       const key = req.originalUrl;
 
       if (CACHE[key] && CACHE[key].expiry > Date.now()) {
-        return res.json(CACHE[key].data);
+        const cached = CACHE[key];
+        if (cached.type === "json") {
+          return res.json(cached.data);
+        } else {
+          res.type("text/html");
+          return res.send(cached.data);
+        }
       }
 
       const originalJson = res.json.bind(res);
+      const originalSend = res.send.bind(res);
 
       res.json = (body) => {
         CACHE[key] = {
+          type: "json",
           data: body,
           expiry: Date.now() + seconds * 1000,
         };
         return originalJson(body);
+      };
+
+      res.send = (body) => {
+        if (typeof body === "string") {
+          CACHE[key] = {
+            type: "html",
+            data: body,
+            expiry: Date.now() + seconds * 1000,
+          };
+        }
+        return originalSend(body);
       };
 
       next();

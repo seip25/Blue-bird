@@ -1,47 +1,28 @@
-import Router from "@seip/blue-bird/core/router.js";
-import Template from "@seip/blue-bird/core/template.js";
-import App from "@seip/blue-bird/core/app.js";
-import seoData from "./seo.js";
+import Router from "../../core/router.js";
+import Template from "../../core/template.js";
+import App from "../../core/app.js";
 
-const routerFrontendExample = new Router();
-routerFrontendExample.use(App.helmet()); // Helmet for frontend router
+const routerFrontendExample = new Router("/", { seo: true, languages: ["en", "es"] });
+routerFrontendExample.use(App.helmet());
 
-/* Render HTML frontend/landing.html */
-routerFrontendExample.get("/landing", (req, res) => {
-  return Template.renderHtml(res, "landing", {
+routerFrontendExample.get("/", (req, res) => {
+  return Template.render(res, "index", {
     metaTags: {
-      titleMeta: "Landing Example",
-      descriptionMeta: "Description meta",
-      keywordsMeta: "keywordsMeta"
+      titleMeta: "Home - Blue Bird",
+      descriptionMeta: "Welcome to Blue Bird Framework",
+      keywordsMeta: "blue bird, framework, express"
     }
   });
 });
-/* End Render HTML frontend/landing.html */
 
-/* SEO example */
-routerFrontendExample.seo(
-  [
-    {
-      path: "/",
-      component: "Home",
-      seoKey: "home",//key in seo.js data
-      props: { id: 1, name: "Name" },// Props pass to react component or 
-    },
-    {
-      path: "/about",
-      component: "About",
-      seoKey: "about",//key in seo.js data 
-      props: { id: 2, name: "Name 2" },
-    },
-  ],
-  { languages: ["en", "es"], defaultLanguage: "en", seoData },
-);
-/* End SEO example */
-
-/* Render React example for '*' route (catch all routes) */
-routerFrontendExample.get("*", (req, res) => {
-  return Template.renderReact(res, "App");
+routerFrontendExample.get("/about", (req, res) => {
+  return Template.render(res, "about", {
+    metaTags: {
+      titleMeta: "About - Blue Bird",
+      descriptionMeta: "About Blue Bird Framework",
+      keywordsMeta: "about, blue bird, framework"
+    }
+  });
 });
-/* End Render React example */
 
 export default routerFrontendExample;

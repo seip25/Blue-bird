@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import ejs from "ejs";
 import Config from "./config.js";
 import Logger from "./logger.js";
 
@@ -7,47 +8,25 @@ const __dirname = Config.dirname();
 const props = Config.props();
 const logger = new Logger();
 
-const TEMPLATE_PATH = path.join(__dirname, "frontend", "index.html");
-let BASE_TEMPLATE = null;
-let CACHE_TEMPLATE = {};
+/** @type {Object<string, {html: string, expiry: number}>} */
+const CACHE_TEMPLATE = {};
 
-/**
- * Loads the base HTML template lazily on first use.
- * Prevents crash at boot if frontend/index.html doesn't exist yet.
- * @returns {string} The base HTML template contents.
- */
-function getBaseTemplate() {
-  if (BASE_TEMPLATE === null) {
-    if (!fs.existsSync(TEMPLATE_PATH)) {
-      logger.error(
-        `Template file not found: ${TEMPLATE_PATH}. Run 'npm run create-react-app' to create it.`,
-      );
-      return "";
+const FILE_CACHE = {};
+
+setInterval(() => {
+  const now = Date.now();
+  for (const key in CACHE_TEMPLATE) {
+    if (CACHE_TEMPLATE[key].expiry > 0 && CACHE_TEMPLATE[key].expiry <= now) {
+      delete CACHE_TEMPLATE[key];
     }
-    BASE_TEMPLATE = fs.readFileSync(TEMPLATE_PATH, "utf-8");
   }
-  return BASE_TEMPLATE;
-}
-
-/**
- * Checks if the current request is a frontend SPA navigation request.
- * @param {import('express').Response} res - Express response object.
- * @returns {boolean}
- */
-function isSPARequest(res) {
-  const req = res.req;
-  if (!req) return false;
-  return (
-    req.query?.source === "frontend" ||
-    req.headers?.["x-blue-bird-spa"] === "true"
-  );
-}
+}, 30000).unref();
 
 /**
  * Generates a stable cache key from parts, filtering out empty values.
- * @param {string} prefix - Cache key prefix.
- * @param {Object} metaTags - The meta tags object.
- * @param {string} [extra=""] - Extra data to differentiate the cache (e.g., URL).
+ * @param {string} prefix
+ * @param {Object} metaTags
+ * @param {string} [extra=""]
  * @returns {string}
  */
 function buildCacheKey(prefix, metaTags, extra = "") {
@@ -63,94 +42,108 @@ function buildCacheKey(prefix, metaTags, extra = "") {
 }
 
 /**
- * Lightweight HTML template renderer optimized for SPA environments.
+ * HTML template renderer for Express applications.
+ * Renders HTML files from the frontend directory with SEO placeholders and in-memory caching.
  */
 class Template {
   /**
-   * Renders the base HTML template for a React application.
-   * Supports SPA mode: when `?source=frontend` is detected, returns JSON with meta/props.
+   * Renders an EJS template file or raw HTML string with SEO meta tag injection and caching.
    *
    * @static
-   * @method renderReact
    * @param {import('express').Response} res - Express response object.
-   * @param {string} [component="App"] - Root React component name.
-   * @param {Object} [componentProps={}] - Props for the React component.
+   * @param {string} templateOrContent - File name (without .ejs extension, resolved from frontend/) or raw HTML string.
    * @param {Object} [options={}] - Rendering configuration.
+   * @param {string} [options.langHtml="en"] - HTML lang attribute value.
+   * @param {string} [options.classBody="body"] - CSS class for the body element.
+   * @param {Array<{tag: string, attrs: Object}>} [options.head=[]] - Extra head elements to inject.
+   * @param {Array<{href: string}>} [options.linkStyles=[]] - Stylesheet links to inject.
+   * @param {Array<{src: string}>} [options.scriptsInHead=[]] - Script tags for the head.
+   * @param {Array<{src: string}>} [options.scriptsInBody=[]] - Script tags for the body.
+   * @param {boolean} [options.cache=true] - Enable response caching (only active when DEBUG=false).
+   * @param {number} [options.cacheLife=0] - Cache TTL in seconds. 0 means no expiration.
+   * @param {string|null} [options.cacheKey=null] - Custom cache key. Auto-generated if null.
+   * @param {Object} [options.metaTags={}] - SEO meta tags to inject into the template.
+   * @param {boolean} [options.replace=true] - Whether to perform placeholder replacements.
+   * @returns {void}
+   *
+   * @example
+   * Template.render(res, "landing", {
+   *   metaTags: { titleMeta: "Home", descriptionMeta: "Welcome" }
+   * });
+   *
+   * @example
+   * Template.render(res, "landing", {
+   *   cache: true,
+   *   cacheLife: 120,
+   *   metaTags: { titleMeta: "Cached Page" }
+   * });
    */
-  static renderReact(
-    res,
-    component = "App",
-    componentProps = {},
-    options = {},
-  ) {
+  static render(res, templateOrContent = "", options = {}) {
     try {
-      let {
-        langHtml = options.langHtml || props.langMeta || "en",
+      const {
+        langHtml = "en",
         classBody = "body",
         head = [],
         linkStyles = [],
         scriptsInHead = [],
         scriptsInBody = [],
         cache = true,
-        revalidate = false,
+        cacheLife = 0,
         cacheKey = null,
         metaTags = {},
-        skeleton = true,
       } = options;
 
-      const metaTagsDefault = {
-        titleMeta: props.titleMeta,
-        descriptionMeta: props.descriptionMeta,
-        keywordsMeta: props.keywordsMeta,
-        authorMeta: props.authorMeta,
-        langMeta: props.langMeta,
-        ogImage: "",
-        ogType: "website",
-        twitterCard: "summary_large_image",
-      };
-
-      metaTags = { ...metaTagsDefault, ...metaTags };
-
-      if (metaTags.langMeta && !options.langHtml) {
-        langHtml = metaTags.langMeta;
-      }
-
-      if (isSPARequest(res)) {
-        return res.json({
-          meta: {
-            titleMeta: metaTags.titleMeta || "",
-            descriptionMeta: metaTags.descriptionMeta || "",
-            keywordsMeta: metaTags.keywordsMeta || "",
-            authorMeta: metaTags.authorMeta || "",
-            ogImage: metaTags.ogImage || "",
-            ogType: metaTags.ogType || "website",
-            twitterCard: metaTags.twitterCard || "summary_large_image",
-          },
-          props: componentProps.props || componentProps,
-          component: component,
-          lang: langHtml,
-        });
-      }
-
       res.type("text/html");
-      res.status(200);
 
       const extraKey = res.req ? res.req.originalUrl : "";
-      const finalCacheKey = cacheKey || buildCacheKey(`react:${component}`, metaTags, extraKey);
+      const finalCacheKey =
+        cacheKey || buildCacheKey(`html:${templateOrContent}`, metaTags, extraKey);
 
-      if (!props.debug && cache && !revalidate && CACHE_TEMPLATE[finalCacheKey]) {
-        return res.send(CACHE_TEMPLATE[finalCacheKey]);
+      if (!props.debug && cache && CACHE_TEMPLATE[finalCacheKey]) {
+        const cached = CACHE_TEMPLATE[finalCacheKey];
+        if (cached.expiry === 0 || cached.expiry > Date.now()) {
+          return res.send(cached.html);
+        }
+        delete CACHE_TEMPLATE[finalCacheKey];
       }
 
-      const baseTemplate = getBaseTemplate();
-      if (!baseTemplate) {
-        return res.status(500).send("Template not found");
+      const isFile =
+        !templateOrContent.includes("<") && templateOrContent.length < 100;
+
+      let templateStr = "";
+      let filePath = "";
+
+      if (isFile) {
+        filePath = path.join(
+          __dirname,
+          "frontend",
+          `${templateOrContent}.ejs`,
+        );
+        const fileCacheKey = `file:${templateOrContent}`;
+        if (!props.debug && FILE_CACHE[fileCacheKey]) {
+          templateStr = FILE_CACHE[fileCacheKey];
+        } else if (fs.existsSync(filePath)) {
+          templateStr = fs.readFileSync(filePath, "utf-8");
+          if (!props.debug) FILE_CACHE[fileCacheKey] = templateStr;
+        } else {
+          templateStr = templateOrContent;
+        }
+      } else {
+        templateStr = templateOrContent;
       }
 
-      const title = this.escapeHtml(metaTags.titleMeta || "");
-      const description = this.escapeHtml(metaTags.descriptionMeta || "");
-      const keywords = this.escapeHtml(metaTags.keywordsMeta || "");
-      const author = this.escapeHtml(metaTags.authorMeta || "");
+      const title = this.escapeHtml(
+        metaTags.titleMeta || props.titleMeta || "",
+      );
+      const description = this.escapeHtml(
+        metaTags.descriptionMeta || props.descriptionMeta || "",
+      );
+      const keywords = this.escapeHtml(
+        metaTags.keywordsMeta || props.keywordsMeta || "",
+      );
+      const author = this.escapeHtml(
+        metaTags.authorMeta || props.authorMeta || "",
+      );
       const ogImage = this.escapeHtml(metaTags.ogImage || "");
       const ogType = this.escapeHtml(metaTags.ogType || "website");
       const twitterCard = this.escapeHtml(
@@ -166,6 +159,25 @@ class Template {
         )
         .join("");
 
+      const ogTags = `
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="${description}" />
+        <meta property="og:type" content="${ogType}" />
+        ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ""}
+        <meta name="twitter:card" content="${twitterCard}" />
+        <meta name="twitter:title" content="${title}" />
+        <meta name="twitter:description" content="${description}" />
+        ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
+      `;
+
+      const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
+
+      const hotReloadScript = props.debug
+        ? `<script>
+(function(){var s=new EventSource("/__hot-reload");s.onmessage=function(){location.reload()};s.onerror=function(){s.close();setTimeout(function(){location.reload()},2000)};})();
+</script>`
+        : "";
+
       const linkTags = linkStyles
         .map((item) => `<link rel="stylesheet" href="${item.href}" />`)
         .join("");
@@ -178,246 +190,113 @@ class Template {
         .map((item) => `<script src="${item.src}"></script>`)
         .join("");
 
-      const propsJson = JSON.stringify(componentProps).replace(/'/g, "&#39;");
-      const stylesSkeleton = skeleton
-        ? `<style>${this.skeletonStyles()}</style>`
-        : "";
-      const skeletonHtml = skeleton ? this.skeletonHtml() : "";
+      const ejsData = {
+        req: res.req,
+        ...res.locals,
+        ...options,
+        metaTags: { ...props, ...options.metaTags }
+      };
 
-      const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
-
-      const ogTags = `
-        <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="${description}" />
-        <meta property="og:type" content="${ogType}" />
-        ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ""}
-        <meta name="twitter:card" content="${twitterCard}" />
-        <meta name="twitter:title" content="${title}" />
-        <meta name="twitter:description" content="${description}" />
-        ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
-      `;
-
-      let html = baseTemplate
-        .replace(/__LANG__/g, this.escapeHtml(langHtml))
-        .replace(/__TITLE__/g, title)
-        .replace(/__DESCRIPTION__/g, description)
-        .replace(/__KEYWORDS__/g, keywords)
-        .replace(/__AUTHOR__/g, author)
-        .replace(/__HEAD_OPTIONS__/g, headOptions + ogTags)
-        .replace(/__LINK_STYLES__/g, linkTags)
-        .replace(/__SCRIPTS_HEAD__/g, scriptsHeadTags)
-        .replace(/__CLASS_BODY__/g, classBody)
-        .replace(/__COMPONENT__/g, component)
-        .replace(/__PROPS__/g, propsJson)
-        .replace(/__VITE_ASSETS__/g, this.vite_assets())
-        .replace(/__SCRIPTS_BODY__/g, scriptsBodyTags)
-        .replace(/__STYLES_SKELETON__/g, stylesSkeleton)
-        .replace(/__CANONICAL_URL__/g, canonicalUrl)
-        .replace(/__SKELETON__/g, skeletonHtml);
-
-      html = this.minifyHtml(html);
-      if (cache && !props.debug) CACHE_TEMPLATE[finalCacheKey] = html;
-      return res.send(html);
-    } catch (error) {
-      logger.error(`Template render error: ${error.message}`);
-      return res.status(500).send("Internal Server Error");
-    }
-  }
-
-  /**
-   * Renders an HTML file or raw content with SEO support and caching.
-   * Supports SPA mode: when `?source=frontend` is detected, returns JSON.
-   *
-   * @static
-   * @method renderHtml
-   * @param {import('express').Response} res - Express response object.
-   * @param {string} templateOrContent - File name (in frontend/) or HTML string.
-   * @param {Object} [options={}] - Configuration options.
-   */
-  static renderHtml(res, templateOrContent = "", options = {}) {
-    try {
-      const {
-        langHtml = "en",
-        classBody = "body",
-        head = [],
-        linkStyles = [],
-        scriptsInHead = [],
-        scriptsInBody = [],
-        cache = true,
-        revalidate = false,
-        cacheKey = null,
-        metaTags = {},
-        withAssets = false,
-        replace = true,
-      } = options;
-
-      if (isSPARequest(res)) {
-        return res.json({
-          meta: {
-            titleMeta: metaTags.titleMeta || props.titleMeta || "",
-            descriptionMeta:
-              metaTags.descriptionMeta || props.descriptionMeta || "",
-            keywordsMeta: metaTags.keywordsMeta || props.keywordsMeta || "",
-            authorMeta: metaTags.authorMeta || props.authorMeta || "",
-          },
-          props: {},
-          component: null,
-          lang: langHtml,
+      let childHtml = "";
+      try {
+        childHtml = ejs.render(templateStr, ejsData, {
+          cache: !props.debug,
+          filename: filePath || undefined
         });
+      } catch (err) {
+        logger.error(`Error compiling child EJS template: ${err.message}`);
+        throw err;
       }
 
-      let html = "";
-      const isFile =
-        !templateOrContent.includes("<") && templateOrContent.length < 100;
-
-      if (isFile) {
-        const filePath = path.join(
-          __dirname,
-          "frontend",
-          `${templateOrContent}.html`,
-        );
-        const fileCacheKey = `file:${templateOrContent}`;
-        if (cache && CACHE_TEMPLATE[fileCacheKey]) {
-          html = CACHE_TEMPLATE[fileCacheKey];
-        } else if (fs.existsSync(filePath)) {
-          html = fs.readFileSync(filePath, "utf-8");
-          if (cache) CACHE_TEMPLATE[fileCacheKey] = html;
-        } else {
-          html = templateOrContent;
-        }
+      const layoutPath = path.join(__dirname, "frontend", "layout.ejs");
+      let layoutStr = "";
+      if (fs.existsSync(layoutPath)) {
+        layoutStr = fs.readFileSync(layoutPath, "utf-8");
       } else {
-        html = templateOrContent;
+        layoutStr = `<!DOCTYPE html><html lang="<%= langHtml %>"><head><title><%= title %></title><%- headOptions %><%- linkStyles %><%- scriptsHead %></head><body class="<%= classBody %>"><%- body %><%- scriptsBody %></body></html>`;
       }
 
-      res.type("text/html");
+      const layoutData = {
+        ...ejsData,
+        body: childHtml,
+        langHtml: options.langHtml || res.locals.lang || "en",
+        title,
+        description,
+        keywords,
+        author,
+        canonicalUrl,
+        classBody,
+        headOptions: headOptions + ogTags + hotReloadScript,
+        linkStyles: linkTags,
+        scriptsHead: scriptsHeadTags,
+        scriptsBody: scriptsBodyTags
+      };
 
-      const extraKey = res.req ? res.req.originalUrl : "";
-      const finalCacheKey = cacheKey || buildCacheKey(
-        `html:${templateOrContent}`,
-        metaTags,
-        extraKey
-      );
-
-      if (!props.debug && cache && !revalidate && CACHE_TEMPLATE[finalCacheKey]) {
-        return res.send(CACHE_TEMPLATE[finalCacheKey]);
+      let finalHtml = "";
+      try {
+        finalHtml = ejs.render(layoutStr, layoutData, {
+          cache: !props.debug,
+          filename: layoutPath
+        });
+      } catch (err) {
+        logger.error(`Error compiling layout EJS template: ${err.message}`);
+        throw err;
       }
 
-      if (replace) {
-        const title = this.escapeHtml(
-          metaTags.titleMeta || props.titleMeta || "",
-        );
-        const description = this.escapeHtml(
-          metaTags.descriptionMeta || props.descriptionMeta || "",
-        );
-        const keywords = this.escapeHtml(
-          metaTags.keywordsMeta || props.keywordsMeta || "",
-        );
-        const author = this.escapeHtml(
-          metaTags.authorMeta || props.authorMeta || "",
-        );
-        const ogImage = this.escapeHtml(metaTags.ogImage || "");
-        const ogType = this.escapeHtml(metaTags.ogType || "website");
-        const twitterCard = this.escapeHtml(
-          metaTags.twitterCard || "summary_large_image",
-        );
+      finalHtml = this.minifyHtml(finalHtml);
 
-        const headOptions = head
-          .map(
-            (item) =>
-              `<${item.tag} ${Object.entries(item.attrs)
-                .map(([k, v]) => `${k}="${v}"`)
-                .join(" ")} />`,
-          )
-          .join("");
-
-        const ogTags = `
-          <meta property="og:title" content="${title}" />
-          <meta property="og:description" content="${description}" />
-          <meta property="og:type" content="${ogType}" />
-          ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ""}
-          <meta name="twitter:card" content="${twitterCard}" />
-          <meta name="twitter:title" content="${title}" />
-          <meta name="twitter:description" content="${description}" />
-          ${ogImage ? `<meta name="twitter:image" content="${ogImage}" />` : ""}
-        `;
-
-        const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
-
-        html = html
-          .replace(/__LANG__/g, this.escapeHtml(langHtml))
-          .replace(/__TITLE__/g, title)
-          .replace(/__DESCRIPTION__/g, description)
-          .replace(/__KEYWORDS__/g, keywords)
-          .replace(/__AUTHOR__/g, author)
-          .replace(/__HEAD_OPTIONS__/g, headOptions + ogTags)
-          .replace(/__CLASS_BODY__/g, classBody)
-          .replace(/__VITE_ASSETS__/g, withAssets ? this.vite_assets() : "")
-          .replace(/__CANONICAL_URL__/g, canonicalUrl)
-          .replace(/__STYLES_SKELETON__/g, "");
-
-        if (html.includes("__LINK_STYLES__")) {
-          const linkTags = linkStyles
-            .map((item) => `<link rel="stylesheet" href="${item.href}" />`)
-            .join("");
-          html = html.replace(/__LINK_STYLES__/g, linkTags);
-        }
-        if (html.includes("__SCRIPTS_HEAD__")) {
-          const scriptsHeadTags = scriptsInHead
-            .map((item) => `<script src="${item.src}"></script>`)
-            .join("");
-          html = html.replace(/__SCRIPTS_HEAD__/g, scriptsHeadTags);
-        }
-        if (html.includes("__SCRIPTS_BODY__")) {
-          const scriptsBodyTags = scriptsInBody
-            .map((item) => `<script src="${item.src}"></script>`)
-            .join("");
-          html = html.replace(/__SCRIPTS_BODY__/g, scriptsBodyTags);
-        }
+      if (cache && !props.debug) {
+        CACHE_TEMPLATE[finalCacheKey] = {
+          html: finalHtml,
+          expiry: cacheLife > 0 ? Date.now() + cacheLife * 1000 : 0,
+        };
       }
-
-      html = this.minifyHtml(html);
-      if (cache && !props.debug) CACHE_TEMPLATE[finalCacheKey] = html;
-      res.send(html);
+      res.send(finalHtml);
     } catch (error) {
       logger.error(`Error rendering HTML template: ${error.message}`);
       res.status(500).send("Internal Server Error");
     }
   }
 
-  static vite_assets() {
-    if (props.debug) {
-      return `
-<script type="module">
-import RefreshRuntime from "http://localhost:5173/build/@react-refresh";
-RefreshRuntime.injectIntoGlobalHook(window);
-window.$RefreshReg$ = () => {};
-window.$RefreshSig$ = () => (type) => type;
-window.__vite_plugin_react_preamble_installed__ = true;
-</script>
-<script type="module" src="http://localhost:5173/build/@vite/client"></script>
-<script type="module" src="http://localhost:5173/build/Main.jsx"></script>`;
+  /**
+   * Clears cached rendered templates.
+   * @static
+   * @param {string} [key] - Specific cache key to clear. If omitted, clears all cached templates.
+   *
+   * @example
+   * Template.clearCache();
+   *
+   * @example
+   * Template.clearCache("html:landing|/|Home|Welcome|_|_");
+   */
+  static clearCache(key) {
+    if (key) {
+      delete CACHE_TEMPLATE[key];
+      delete FILE_CACHE[key];
+    } else {
+      for (const k in CACHE_TEMPLATE) delete CACHE_TEMPLATE[k];
+      for (const k in FILE_CACHE) delete FILE_CACHE[k];
     }
-
-    const buildPath = path.join(__dirname, props.static.path, "build");
-    let manifestPath = path.join(buildPath, "manifest.json");
-    if (!fs.existsSync(manifestPath))
-      manifestPath = path.join(buildPath, ".vite", "manifest.json");
-
-    if (fs.existsSync(manifestPath)) {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      const entry = manifest["Main.jsx"];
-      if (entry) {
-        let html = "";
-        (entry.css || []).forEach((cssFile) => {
-          html += `<link rel="stylesheet" href="/build/${cssFile}">`;
-        });
-        html += `<script type="module" src="/build/${entry.file}"></script>`;
-        return html;
-      }
-    }
-    return "";
   }
 
+  /**
+   * Returns all active cache keys for rendered templates.
+   * @static
+   * @returns {string[]} Array of cache key strings.
+   *
+   * @example
+   * const keys = Template.getCacheKeys();
+   */
+  static getCacheKeys() {
+    return Object.keys(CACHE_TEMPLATE);
+  }
+
+  /**
+   * Removes HTML comments and collapses whitespace for smaller payloads.
+   * @static
+   * @param {string} html
+   * @returns {string}
+   */
   static minifyHtml(html) {
     return html
       .replace(/<!--(?!\[if).*?-->/gs, "")
@@ -426,6 +305,12 @@ window.__vite_plugin_react_preamble_installed__ = true;
       .trim();
   }
 
+  /**
+   * Escapes HTML special characters to prevent XSS in template injection.
+   * @static
+   * @param {string} [str=""]
+   * @returns {string}
+   */
   static escapeHtml(str = "") {
     return String(str)
       .replace(/&/g, "&amp;")
@@ -433,45 +318,6 @@ window.__vite_plugin_react_preamble_installed__ = true;
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
-  }
-
-  static skeletonStyles() {
-    return `
-            @keyframes sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-            .sk-animate-pulse { animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-            .sk-container { min-height: 100vh; width: 100%; background-color: #f9fafb; padding: 1rem; box-sizing: border-box; }
-            .sk-inner { display: flex; flex-direction: column; gap: 1.5rem; }
-            .sk-header { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 1rem; }
-            .sk-btn-text { height: 2.5rem; width: 8rem; background-color: #d1d5db; border-radius: 0.5rem; }
-            .sk-avatar { height: 2.5rem; width: 2.5rem; background-color: #d1d5db; border-radius: 9999px; }
-            .sk-btn { height: 2.5rem; width: 6rem; background-color: #d1d5db; border-radius: 0.5rem; }
-            .sk-hero { height: 12rem; width: 100%; background-color: #d1d5db; border-radius: 1rem; }
-            .sk-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
-            .sk-card { display: flex; flex-direction: column; gap: 0.75rem; }
-            .sk-card-img { height: 10rem; width: 100%; background-color: #d1d5db; border-radius: 0.75rem; }
-            .sk-footer { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-            .sk-text-full { height: 1rem; width: 100%; background-color: #e5e7eb; border-radius: 0.25rem; }
-            @media (min-width: 768px) { .sk-grid { grid-template-columns: repeat(3, 1fr); } .sk-hero { height: 16rem; } }
-            html.dark .sk-container { background-color: #0b0f19; }
-            html.dark .sk-btn-text, html.dark .sk-avatar, html.dark .sk-btn, html.dark .sk-hero, html.dark .sk-card-img { background-color: #374151; }
-            html.dark .sk-text-full { background-color: #1f2937; }
-        `;
-  }
-
-  static skeletonHtml() {
-    return `
-            <div class="sk-container">
-                <div class="sk-inner sk-animate-pulse">
-                    <div class="sk-header"><div class="sk-btn-text"></div><div class="flex gap-4"><div class="sk-avatar"></div><div class="sk-btn"></div></div></div>
-                    <div class="sk-hero"></div>
-                    <div class="sk-grid">
-                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
-                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
-                        <div class="sk-card"><div class="sk-card-img"></div><div class="sk-text-full"></div></div>
-                    </div>
-                </div>
-            </div>
-        `;
   }
 }
 
