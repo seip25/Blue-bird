@@ -259,6 +259,7 @@ async function main() {
     projectName = "bluebird";
   }
   process.env.BLUEBIRD_PROJECT_NAME = projectName;
+  process.env.TITLE = projectName;
 
   const args = process.argv.slice(3);
   const command = args[0];

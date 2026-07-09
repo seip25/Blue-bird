@@ -32,17 +32,21 @@
 ## 🛠️ Quick Start / Inicio Rápido
 
 ### 1. Installation / Instalación
+
 ```bash
 npm install @seip/blue-bird
 ```
 
 ### 2. Initialize Project / Inicializar
+
 ```bash
 npx blue-bird
 ```
+
 _This copies the base structure: `backend`, `frontend`, `docker`, `docker-compose.yml`, `AGENTS.md`, and `.env`._
 
 ### 3. Run Development Server / Modo Desarrollo
+
 ```bash
 npm run dev
 ```
@@ -77,6 +81,7 @@ project/
 ## 📖 Core Modules Documentation / Documentación de Módulos
 
 ### 1. Routing & SEO (`Router`)
+
 Do not use Express' native router. Always use Blue Bird's wrapper class:
 
 ```javascript
@@ -98,8 +103,8 @@ router.get("/", (req, res) => {
   return Template.render(res, "index", {
     metaTags: {
       titleMeta: "Home",
-      descriptionMeta: "Welcome to Blue Bird Framework"
-    }
+      descriptionMeta: "Welcome to Blue Bird Framework",
+    },
   });
 });
 ```
@@ -107,9 +112,11 @@ router.get("/", (req, res) => {
 ---
 
 ### 2. HTML Template Rendering (`Template`)
+
 Renders raw HTML files from `frontend/templates/`. Replaces double-curly placeholders `{{variable}}` with matching values from options, metaTags, or system env.
 
 #### Standard Placeholders
+
 - `{{lang}}`: Selected/active language code.
 - `{{title}}` or `{{titleMeta}}`: Page HTML title.
 - `{{canonicalUrl}}`: Canonical page URL for crawlers.
@@ -122,29 +129,31 @@ import Template from "@seip/blue-bird/core/template.js";
 
 router.get("/about", (req, res) => {
   return Template.render(res, "about", {
-    cache: 60,         // Cache TTL in seconds (only when DEBUG=false)
-    minify: true,      // Automatically minifies whitespace and strips comments
+    cache: 60, // Cache TTL in seconds (only when DEBUG=false)
+    minify: true, // Automatically minifies whitespace and strips comments
     metaTags: {
       titleMeta: "About Us",
-      descriptionMeta: "Learn more about us"
-    }
+      descriptionMeta: "Learn more about us",
+    },
   });
 });
 ```
 
 #### Cache Controls
+
 - `DEBUG=true` -> Cache is always bypassed.
 - `DEBUG=false` -> Cached in-memory for TTL duration.
 - Programmatic management:
   ```javascript
-  Template.clearCache();       // Clear all cache
-  Template.clearCache("about");// Clear specific cache key
-  Template.getCacheKeys();     // Returns active cache keys
+  Template.clearCache(); // Clear all cache
+  Template.clearCache("about"); // Clear specific cache key
+  Template.getCacheKeys(); // Returns active cache keys
   ```
 
 ---
 
 ### 3. Data Validation (`Validator`)
+
 Validates request payloads using a JSON schema. Returns structured `400 Bad Request` payloads automatically on schema failures.
 
 ```javascript
@@ -153,7 +162,7 @@ import Validator from "@seip/blue-bird/core/validate.js";
 const userSchema = {
   email: { required: true, email: true },
   password: { required: true, min: 8 },
-  bio: { required: false }
+  bio: { required: false },
 };
 
 const validateUser = new Validator(userSchema, "en");
@@ -166,9 +175,11 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 ---
 
 ### 4. JWT Authentication (`Auth`)
+
 Secure user sessions using stateless AES-256-GCM encrypted JWTs stored in secure HTTP-Only cookies.
 
 #### Protecting Routes
+
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
@@ -184,6 +195,7 @@ router.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
 ```
 
 #### Authentication Sessions
+
 ```javascript
 router.post("/login", async (req, res) => {
   const user = { id: 1, name: "John Doe" };
@@ -200,6 +212,7 @@ router.post("/logout", async (req, res) => {
 ---
 
 ### 5. Performance Cache Middleware (`Cache`)
+
 Applies caching at the route handler level. Automatically caches JSON payloads (`res.json`) and rendered outputs (`res.send`).
 
 ```javascript
@@ -214,6 +227,7 @@ router.get("/stats", Cache.middleware(60), (req, res) => {
 ---
 
 ### 6. Security Headers (`Helmet`)
+
 Apply security headers per-router. Preserves the framework's custom powered-by header by default:
 
 ```javascript
@@ -230,11 +244,13 @@ webRouter.use(App.helmet());
 Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments.
 
 ### Commands Syntax:
+
 ```bash
 npx blue-bird docker <command> [options]
 ```
 
 ### Supported Actions:
+
 - **`npx blue-bird docker start`**: Boots the production stack (Node.js App + MySQL).
 - **`npx blue-bird docker start mysql`**: Boots the MySQL container only (great for local HTTP development).
 - **`npx blue-bird docker stop`**: Stops all active containers.
@@ -251,7 +267,8 @@ npx blue-bird docker <command> [options]
 You can deploy Blue Bird applications to production using two main workflows:
 
 ### A. Docker Container Stack (Recommended)
-1. Configure `.env` with production keys and your custom `BLUEBIRD_PROJECT_NAME`.
+
+1. Configure `.env` with production keys,DEBUG=false and your custom `TITLE`.
 2. Build the production image:
    ```bash
    npx blue-bird docker build
@@ -262,7 +279,9 @@ You can deploy Blue Bird applications to production using two main workflows:
    ```
 
 ### B. Standard PM2 / Node.js Runtime
+
 To deploy in a standard Linux environment using PM2 process manager:
+
 1. Install PM2 globally:
    ```bash
    npm install pm2 -g

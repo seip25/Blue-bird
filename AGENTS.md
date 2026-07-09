@@ -39,8 +39,8 @@ router.get("/", (req, res) => {
   return Template.render(res, "index", {
     metaTags: {
       titleMeta: "Home",
-      descriptionMeta: "Welcome to my site"
-    }
+      descriptionMeta: "Welcome to my site",
+    },
   });
 });
 
@@ -48,8 +48,8 @@ router.get("/about", (req, res) => {
   return Template.render(res, "about", {
     metaTags: {
       titleMeta: "About Us",
-      descriptionMeta: "Learn more about us"
-    }
+      descriptionMeta: "Learn more about us",
+    },
   });
 });
 ```
@@ -97,8 +97,8 @@ router.get("/", (req, res) => {
       titleMeta: "Home",
       descriptionMeta: "Welcome",
       keywordsMeta: "home, welcome",
-      authorMeta: "Blue Bird"
-    }
+      authorMeta: "Blue Bird",
+    },
   });
 });
 ```
@@ -107,14 +107,15 @@ router.get("/", (req, res) => {
 
 ```javascript
 Template.render(res, "index", {
-  cache: 60,         /** Cache TTL in seconds. Default: 60 (only active when DEBUG=false) */
-  minify: true,      /** Automatically compress whitespace and remove comments. Default: true */
-  cacheKey: "home",  /** Optional custom cache key */
-  metaTags: { titleMeta: "Home" }
+  cache: 60 /** Cache TTL in seconds. Default: 60 (only active when DEBUG=false) */,
+  minify: true /** Automatically compress whitespace and remove comments. Default: true */,
+  cacheKey: "home" /** Optional custom cache key */,
+  metaTags: { titleMeta: "Home" },
 });
 ```
 
 **Cache behavior:**
+
 - `DEBUG=true` → Cache is always bypassed (reads from disk every time).
 - `DEBUG=false` + `cache` > 0 → Output HTML is cached in memory for the specified duration in seconds.
 - `DEBUG=false` + `cache: false` (or 0) → Bypasses caching entirely.
@@ -130,7 +131,9 @@ Template.getCacheKeys();
 ```
 
 ### Hot Reload (Development)
+
 When `DEBUG=true` in `.env`, Blue Bird automatically:
+
 1. Injects a hot-reload script into every rendered template.
 2. Watches `frontend/` for `.html`, `.css`, and `.js` file changes.
 3. Notifies connected browsers via Server-Sent Events (SSE) to reload.
@@ -167,45 +170,51 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 The system includes built-in JWT handling with AES-256-GCM encryption. The framework handles tokens via Cookies or the `Authorization` header.
 
 ### Protecting Routes
+
 Use `Auth.protect()` as a middleware to secure routes.
 
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
 router.get("/profile", Auth.protect(), (req, res) => {
-    res.json({ user: req.user });
+  res.json({ user: req.user });
 });
 
 router.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
-    Template.render(res, "dashboard");
+  Template.render(res, "dashboard");
 });
 
-router.get("/admin", Auth.protect({ 
-    cookieKey: "admin_session", 
-    key: "admin" 
-}), (req, res) => {
+router.get(
+  "/admin",
+  Auth.protect({
+    cookieKey: "admin_session",
+    key: "admin",
+  }),
+  (req, res) => {
     res.json({ admin: req.admin });
-});
+  },
+);
 ```
 
 ### Login and Logout
+
 The `Auth` class provides helpers to handle session management via cookies.
 
 ```javascript
 router.post("/login", async (req, res) => {
-    const user = { id: 1, name: "John" };
-    await Auth.login(res, user);
-    res.json({ message: "Logged in" });
+  const user = { id: 1, name: "John" };
+  await Auth.login(res, user);
+  res.json({ message: "Logged in" });
 });
 
 router.post("/logout", async (req, res) => {
-    await Auth.logout(res);
-    res.json({ message: "Logged out" });
+  await Auth.logout(res);
+  res.json({ message: "Logged out" });
 });
 
 await Auth.login(res, user, "my_session", {
-    expiresIn: "7d",
-    cookie: { httpOnly: true, secure: true }
+  expiresIn: "7d",
+  cookie: { httpOnly: true, secure: true },
 });
 ```
 
@@ -253,7 +262,7 @@ npx blue-bird docker mysql          # Runs interactive MySQL client terminal ins
 npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
 ```
 
-The container names and virtual networks are namespaced by the `BLUEBIRD_PROJECT_NAME` environment variable parsed from `.env` to prevent resource collisions on VPS hosts.
+The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts.
 
 ## 9. AI Development Guidelines
 
