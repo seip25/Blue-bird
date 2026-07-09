@@ -160,6 +160,8 @@
                         <div class="sticky top-24 space-y-1">
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-3">Core Modules
                             </p>
+                            <a href="#doc-install"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Installation &amp; Setup</a>
                             <a href="#doc-env"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Configuration
                                 (.env)</a>
@@ -220,11 +222,46 @@
                             </div>
                         </div>
 
+                        <!-- Installation Section -->
+                        <article id="doc-install" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span
+                                    class="w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center text-sm font-bold">1</span>
+                                Installation &amp; Setup / Instalación y Configuración
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Get your project up and running with Blue Bird in three simple steps / Comienza tu proyecto con Blue Bird en tres simples pasos:
+                            </p>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Installation / Instalación</h4>
+                            <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                Install the framework package in your project directory / Instala el paquete del framework en el directorio de tu proyecto:
+                            </p>
+                            <pre><code class="language-bash">npm install @seip/blue-bird</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Initialize Project / Inicializar</h4>
+                            <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                Run the initialization tool to generate the default application directory structure / Ejecuta la herramienta de inicialización para crear la estructura básica de directorios por defecto:
+                            </p>
+                            <pre><code class="language-bash">npx blue-bird</code></pre>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                This will generate files such as <code>.env</code>, <code>backend/</code>, <code>frontend/</code>, and other basic configurations. / Esto generará archivos como <code>.env</code>, la estructura de <code>backend/</code> y las plantillas de <code>frontend/</code>.
+                            </p>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Package Configuration / Configurar package.json</h4>
+                            <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                Ensure your <code>package.json</code> is set to use ES Modules by adding <code>"type": "module"</code> / Asegúrate de que tu <code>package.json</code> esté configurado para usar ES Modules agregando <code>"type": "module"</code>:
+                            </p>
+                            <pre><code class="language-json">{
+  "type": "module"
+}</code></pre>
+                        </article>
+
                         <!-- Config Section -->
                         <article id="doc-env" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-slate-700 text-white flex items-center justify-center text-sm font-bold">1</span>
+                                    class="w-8 h-8 rounded-lg bg-slate-700 text-white flex items-center justify-center text-sm font-bold">2</span>
                                 Configuration (.env)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -275,7 +312,7 @@ DB_PORT=3306</code></pre>
                         <article id="doc-app" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm font-bold">2</span>
+                                    class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm font-bold">3</span>
                                 Application Class (App)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -300,8 +337,8 @@ app.run();</code></pre>
                         <article id="doc-router" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center text-sm font-bold">3</span>
-                                Routing & SEO
+                                    class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center text-sm font-bold">4</span>
+                                Routing &amp; SEO
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
                                 Do not use native Express routers. Always use Blue Bird's custom <code>Router</code>
@@ -335,7 +372,7 @@ export default router;</code></pre>
                         <article id="doc-template" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">4</span>
+                                    class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">5</span>
                                 Template Engine (Template)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -377,7 +414,7 @@ Template.clearCache("about");</code></pre>
                         <article id="doc-validator" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">5</span>
+                                    class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">6</span>
                                 Validation (Validator)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -404,7 +441,7 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
                         <article id="doc-auth" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                    class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">7</span>
                                 Authentication (Auth)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -437,7 +474,7 @@ router.post("/api/logout", async (req, res) => {
                         <article id="doc-cache" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">7</span>
+                                    class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">8</span>
                                 Cache Middleware
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -456,7 +493,7 @@ router.get("/api/statistics", Cache.middleware(60), (req, res) => {
                         <article id="doc-helmet" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">8</span>
+                                    class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">9</span>
                                 Helmet Security
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -477,7 +514,7 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                         <article id="doc-docker" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">9</span>
+                                    class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
                                 Docker CLI Command Wrapper
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -513,7 +550,7 @@ npx blue-bird docker prune</code></pre>
                         <article id="doc-production" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                    class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">11</span>
                                 Production Setup (VPS / PM2)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
