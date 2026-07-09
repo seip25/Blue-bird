@@ -2,8 +2,6 @@
 
 **High-Performance Express Framework — Built for Speed, Caching, and Visual Excellence**
 
-![Blue Bird Logo](https://seip25.github.io/Blue-bird/blue-bird.png)
-
 [![npm version](https://img.shields.io/npm/v/@seip/blue-bird.svg)](https://www.npmjs.com/package/@seip/blue-bird)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
