@@ -32,6 +32,18 @@
     "swagger-install": "node core/cli/swagger.js",
     "docker": "node core/cli/init.js docker"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "core",
+    "backend",
+    "frontend",
+    "docker",
+    "docker-compose.yml",
+    "AGENTS.md",
+    ".env_example"
+  ],
   "dependencies": {
     "chalk": "^5.6.2",
     "compression": "^1.8.1",
