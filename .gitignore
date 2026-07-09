@@ -3,4 +3,3 @@ logs
 .env
 package-lock.json
 *.db
-docs/

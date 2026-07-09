@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blue Bird Framework | High-Performance Express Framework for Modern Web Apps">
+    <meta name="keywords" content="Blue Bird Framework, Express, Raw HTML, Node.js, JavaScript, Docker, Caching">
+    <meta name="author" content="Seip">
+    <link rel="icon" href="blue-bird.png">
+    <title>Blue Bird Framework — Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 1);
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at top right, #e0f2fe 0%, #ffffff 50%, #f0f9ff 100%);
+        }
+
+        pre {
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: 1.5rem 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 font-sans selection:bg-brand-200">
+
+    <header class="fixed top-0 w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <svg class="w-8 h-8 text-brand-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.09-.36.18-.57.18s-.41-.09-.57-.18l-7.9-4.44c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.9-4.44c.16-.09.36-.18.57-.18s.41.09.57.18l7.9 4.44c.32.17.53.5.53.88v9z" />
+                    </svg>
+                    <span class="text-xl font-bold tracking-tight">Blue Bird <span
+                            class="text-brand-500">Framework</span></span>
+                </div>
+                <nav class="hidden md:flex gap-8 text-sm font-semibold text-slate-600">
+                    <a href="#quickstart" class="hover:text-brand-500 transition-colors">Get Started</a>
+                    <a href="#philosophy" class="hover:text-brand-500 transition-colors">Philosophy</a>
+                    <a href="#docs" class="hover:text-brand-500 transition-colors">Documentation</a>
+                    <a href="https://www.npmjs.com/package/@seip/blue-bird" target="_blank"
+                        class="bg-slate-900 text-white px-4 py-1.5 rounded-full hover:bg-slate-800 transition-all font-bold">NPM</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="quickstart" class="relative overflow-hidden pt-32 pb-20 hero-gradient">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                <h1 class="text-5xl md:text-7xl font-extrabold text-slate-900 mb-6 leading-tight">
+                    High-Performance <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-indigo-600">Express Framework.</span>
+                </h1>
+                <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+                    Designed for maximum speed. Pure HTML template rendering with instant in-memory caching, AES-256-GCM encrypted sessions, and a comprehensive Docker CLI workflow.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 items-center">
+                    <a href="#docs"
+                        class="bg-brand-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-brand-200 hover:bg-brand-600 transition-all">View
+                        Documentation</a>
+                    <div class="flex items-center gap-2 bg-white p-2 pl-4 rounded-xl border border-slate-200 shadow-sm">
+                        <code class="text-brand-600 font-bold">npm install @seip/blue-bird</code>
+                        <button onclick="navigator.clipboard.writeText('npm install @seip/blue-bird')"
+                            class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><svg class="w-5 h-5" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3">
+                                </path>
+                            </svg></button>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-100/30 blur-[120px] rounded-full -z-10">
+            </div>
+        </section>
+
+        <!-- Philosophy Section -->
+        <section id="philosophy" class="py-20 bg-white">
+            <div class="max-w-4xl mx-auto px-4 text-center">
+                <h2 class="text-3xl font-bold text-slate-900 mb-8 underline decoration-brand-500 decoration-4 underline-offset-8">
+                    The Blue Bird Philosophy</h2>
+                <p class="text-lg text-slate-600 leading-relaxed mb-8">
+                    Stop wasting time configuring CORS, security headers, database configurations, and authentication layouts. Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing clean business logic, using pure static HTML views with instant render speeds.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-brand-600 mb-2">⚡ Hybrid Speed Architecture</h4>
+                        <p class="text-sm text-slate-500">Pure HTML views compiled directly from memory, combined with a robust Express JSON API backend. It keeps CPU, RAM, and Disk IO footprint at a bare minimum.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-brand-600 mb-2">🐳 Built-in Orchestration</h4>
+                        <p class="text-sm text-slate-500">Includes a comprehensive Docker Compose CLI wrapper to bootstrap, build, stop, and clean dev and production environments with zero manual scripting.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation Section -->
+        <section id="docs" class="py-20 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col lg:flex-row gap-12">
+                    <!-- Sidebar Navigation -->
+                    <aside class="lg:w-64 flex-shrink-0">
+                        <div class="sticky top-24 space-y-1">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-3">Core Modules</p>
+                            <a href="#doc-env"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Configuration (.env)</a>
+                            <a href="#doc-app"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Application (App)</a>
+                            <a href="#doc-router"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Routing & SEO</a>
+                            <a href="#doc-template"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Template Engine</a>
+                            <a href="#doc-validator"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Validation</a>
+                            <a href="#doc-auth"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Authentication</a>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Utilities</p>
+                            <a href="#doc-cache"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Cache Middleware</a>
+                            <a href="#doc-helmet"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Helmet Security</a>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Devops & Deployment</p>
+                            <a href="#doc-docker"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Docker CLI Wrapper</a>
+                            <a href="#doc-production"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Production Setup</a>
+                        </div>
+                    </aside>
+
+                    <!-- Documentation Content -->
+                    <div class="flex-1 max-w-4xl">
+                        <!-- Stat Highlights -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                            <div class="p-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl text-white">
+                                <div class="text-2xl mb-4">⚡</div>
+                                <h4 class="font-bold text-lg mb-2">RAM Caching</h4>
+                                <p class="text-slate-400 text-sm">HTML compile results are stored in the server's RAM. Delivers responses in microseconds.</p>
+                            </div>
+                            <div class="p-8 bg-gradient-to-br from-indigo-600 to-brand-600 rounded-3xl text-white shadow-xl shadow-brand-100">
+                                <div class="text-2xl mb-4">🛡️</div>
+                                <h4 class="font-bold text-lg mb-2">Safe by Design</h4>
+                                <p class="text-indigo-100 text-sm">Strict AES-256-GCM session tokens and automatic XSS filtering on incoming requests.</p>
+                            </div>
+                            <div class="p-8 bg-slate-100 rounded-3xl border border-slate-200 text-slate-800">
+                                <div class="text-2xl mb-4">📦</div>
+                                <h4 class="font-bold text-lg mb-2">Clean Minify</h4>
+                                <p class="text-slate-500 text-sm">Automatic production code minification. Drops white space and strips comments on compile.</p>
+                            </div>
+                        </div>
+
+                        <!-- Config Section -->
+                        <article id="doc-env" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-slate-700 text-white flex items-center justify-center text-sm font-bold">1</span>
+                                Configuration (.env)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Settings are structured inside the `.env` configuration file. Standard variables configure ports, debugging levels, and Docker databases.
+                            </p>
+                            <pre><code class="language-ini"># Server Config
+DEBUG=false
+PORT=3000
+HOST="localhost"
+APP_URL="http://localhost"
+STATIC_PATH="frontend/public"
+
+# Database Configuration (Used for local development outside Docker)
+DATABASE_URL="file:./dev.db"
+
+# Database / Docker Configuration
+DB_NAME="blue_bird"
+DB_USER="root"
+DB_PASSWORD="root"
+DB_PORT=3306</code></pre>
+                        </article>
+
+                        <!-- App Section -->
+                        <article id="doc-app" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm font-bold">2</span>
+                                Application Class (App)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Initializes the framework server, setting up default parsers, static routes, secure CORS policies, cookies, and route handlers.
+                            </p>
+                            <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
+import routerFrontend from "./routes/frontend.js";
+import routerApi from "./routes/api.js";
+
+const app = new App({
+  port: 3000,
+  routes: [routerFrontend, routerApi],
+  cors: { origin: "http://localhost:3000" },
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 }
+});
+
+app.run();</code></pre>
+                        </article>
+
+                        <!-- Router Section -->
+                        <article id="doc-router" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center text-sm font-bold">3</span>
+                                Routing & SEO
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Do not use native Express routers. Always use Blue Bird's custom <code>Router</code> class wrapper. Set `{ seo: true }` to automatically populate the site maps.
+                            </p>
+                            <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
+import Template from "@seip/blue-bird/core/template.js";
+
+// Instantiates a router with sitemap/robots automation enabled
+const router = new Router("/", { seo: true });
+
+router.get("/", (req, res) => {
+  return Template.render(res, "index", {
+    metaTags: {
+      titleMeta: "Home Page",
+      descriptionMeta: "Welcome to our application"
+    }
+  });
+});
+
+export default router;</code></pre>
+                            <div class="p-5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 leading-relaxed">
+                                <strong>💡 SEO Automation:</strong> A router initialized with <code>{ seo: true }</code> registers sitemap mappings automatically. The system will expose live dynamically updated endpoints at <code>/sitemap.xml</code> and <code>/robots.txt</code>.
+                            </div>
+                        </article>
+
+                        <!-- Template Engine Section -->
+                        <article id="doc-template" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">4</span>
+                                Template Engine (Template)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Renders physical static <code>.html</code> files located in <code>frontend/templates/</code>. Replaces standard tags dynamically at speed:
+                            </p>
+                            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                                <div class="bg-slate-100 p-3 rounded-lg"><code class="text-brand-600 font-bold">{{title}}</code>: Meta title tag</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><code class="text-brand-600 font-bold">{{description}}</code>: Meta description text</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><code class="text-brand-600 font-bold">{{keywords}}</code>: Meta keywords string</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><code class="text-brand-600 font-bold">{{lang}}</code>: Active page language</div>
+                            </div>
+                            <pre><code class="language-javascript">import Template from "@seip/blue-bird/core/template.js";
+
+router.get("/about", (req, res) => {
+  return Template.render(res, "about", {
+    cache: 60, // TTL in seconds (skipped when DEBUG=true)
+    minify: true, // Compress code & strip comments in production
+    metaTags: {
+      titleMeta: "About Us",
+      descriptionMeta: "Read more about our operations"
+    }
+  });
+});</code></pre>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">Programmatic Cache Invalidation</h4>
+                            <pre><code class="language-javascript">// Clear all cached pages in memory
+Template.clearCache();
+
+// Clear specific page cache
+Template.clearCache("about");</code></pre>
+                        </article>
+
+                        <!-- Validation Section -->
+                        <article id="doc-validator" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">5</span>
+                                Validation (Validator)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Checks request payload schemas automatically. It cleanses strings to prevent cross-site scripting (XSS) by default, and responds with a standard <code>400 Bad Request</code> validation array on failures.
+                            </p>
+                            <pre><code class="language-javascript">import Validator from "@seip/blue-bird/core/validate.js";
+
+const userSchema = {
+  email: { required: true, email: true },
+  password: { required: true, min: 8 },
+  bio: { required: false } // Cleansed from XSS scripts automatically
+};
+
+const validateUser = new Validator(userSchema, "en");
+
+routerApi.post("/users", validateUser.middleware(), (req, res) => {
+  res.json({ success: true });
+});</code></pre>
+                        </article>
+
+                        <!-- Auth Section -->
+                        <article id="doc-auth" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                Authentication (Auth)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Implements stateless JWT authentication. Payload structures are encrypted with military-grade AES-256-GCM algorithms and set inside secure, signed cookies or read from header strings.
+                            </p>
+                            <pre><code class="language-javascript">import Auth from "@seip/blue-bird/core/auth.js";
+
+// 1. Protecting routes (API returns 401, Web pages redirect to target path)
+router.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
+  Template.render(res, "dashboard");
+});
+
+// 2. Logging in and setting session cookies
+router.post("/api/login", async (req, res) => {
+  const user = { id: 1, name: "John Doe", role: "admin" };
+  await Auth.login(res, user);
+  res.json({ success: true });
+});
+
+// 3. Logging out and clearing cookies
+router.post("/api/logout", async (req, res) => {
+  await Auth.logout(res);
+  res.json({ success: true });
+});</code></pre>
+                        </article>
+
+                        <!-- Cache Section -->
+                        <article id="doc-cache" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">7</span>
+                                Cache Middleware
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                For database or heavy operations, cache the resulting JSON/HTML stream automatically using our routing middleware cache wrapper.
+                            </p>
+                            <pre><code class="language-javascript">import Cache from "@seip/blue-bird/core/cache.js";
+
+// Cache this API result for 60 seconds
+router.get("/api/statistics", Cache.middleware(60), (req, res) => {
+  res.json({ computedData: [10, 20, 30] });
+});</code></pre>
+                        </article>
+
+                        <!-- Helmet Section -->
+                        <article id="doc-helmet" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">8</span>
+                                Helmet Security
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Protect HTTP response headers by applying Helmet rules. You can declare Helmet policies per-router. Custom configuration keeps <code>X-Powered-By: Blue Bird</code> headers active by default.
+                            </p>
+                            <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
+
+const apiRouter = new Router("/api");
+apiRouter.use(App.helmet()); // Uses default policies
+
+const secureWebRouter = new Router("/web");
+secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables CSP restrictions</code></pre>
+                        </article>
+
+                        <!-- Docker Section -->
+                        <article id="doc-docker" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">9</span>
+                                Docker CLI Command Wrapper
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Manage development containers and full-stack deployments directly using the built-in Docker CLI tool wrapper.
+                            </p>
+                            <pre><code class="language-bash"># Start Production Application Stack (App + MySQL)
+npx blue-bird docker start prod
+
+# Start MySQL Database Container Only (Ideal for Local Development)
+npx blue-bird docker start mysql
+
+# Stop All Running Project Containers
+npx blue-bird docker stop
+
+# Rebuild Node.js Application Production Container Image
+npx blue-bird docker build
+
+# Check Active Containers Status
+npx blue-bird docker ps
+
+# Tail Live Node.js Container Logs
+npx blue-bird docker logs
+
+# Run Interactive MySQL Client Shell Inside the Database Container
+npx blue-bird docker db
+
+# Remove Unused Volumes, Dangling Images, and Buildkit Cache
+npx blue-bird docker prune</code></pre>
+                        </article>
+
+                        <!-- Production Section -->
+                        <article id="doc-production" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                Production Setup (VPS / PM2)
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Outside of Docker, you can run and manage production instances using PM2 process manager for maximum uptime and automated cluster scaling.
+                            </p>
+                            <pre><code class="language-bash"># Install PM2 globally
+npm install pm2 -g
+
+# Start the application in production mode
+pm2 start backend/index.js --name "blue-bird-app" --node-args="--env-file=.env"
+
+# Save the PM2 cluster layout to restore automatically on reboots
+pm2 save
+
+# Make PM2 restart automatically on system startup
+pm2 startup</code></pre>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 py-16">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-slate-500 italic">Blue Bird Framework &copy; 2026. Made with ❤️ by Seip25.</p>
+        </div>
+    </footer>
+
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>
