@@ -388,6 +388,7 @@ class App {
   static helmet(options = {}) {
     const defaultOptions = {
       contentSecurityPolicy: props.debug ? false : undefined,
+      hidePoweredBy: false,
     };
     return helmet({ ...defaultOptions, ...options });
   }
