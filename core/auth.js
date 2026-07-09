@@ -4,7 +4,7 @@ import Config from "./config.js";
 
 const propsConfig = Config.props();
 const jwtSecret = propsConfig.jwtSecret;
-const production = propsConfig.debug;
+const production = !propsConfig.debug;
 /**
  * Auth class to handle JWT generation, verification and protection with AES-256-GCM encryption.
  */

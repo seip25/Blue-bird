@@ -1,6 +1,6 @@
 {
-  "name": "@seip/blue-bird-framework",
-  "version": "0.0.1",
+  "name": "@seip/blue-bird",
+  "version": "0.5.1",
   "description": "Express opinionated framework with HTML rendering, API architecture, built-in JWT auth, validation, caching, and SEO",
   "type": "module",
   "bin": {
@@ -36,7 +36,6 @@
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",

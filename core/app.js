@@ -75,7 +75,6 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
-    this.translate = options.translate ?? props.translate ?? false;
     this.loggerInstance = new Logger();
     /** @type {Set<import('http').ServerResponse>} */
     this._hotReloadClients = new Set();
@@ -109,94 +108,14 @@ class App {
    * @private
    */
   async _dispatch() {
-    this.app.set("view engine", "ejs");
-    this.app.set("views", path.join(__dirname, "frontend"));
-    if (!props.debug) {
-      this.app.set("view cache", true);
-    }
-
     if (this.compression) this.app.use(compression());
     if (this.json) this.app.use(express.json());
     if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }));
     if (this.cookieParser) this.app.use(cookieParser());
 
-    if (this.translate) {
-      const locales = this._loadLocales();
-      const activeLanguages = Object.keys(locales);
-
-      this.app.use((req, res, next) => {
-        let detectedLang = "";
-
-        const pathSegments = req.path.split("/").filter(Boolean);
-        const firstSegment = pathSegments[0];
-
-        if (firstSegment && activeLanguages.includes(firstSegment)) {
-          detectedLang = firstSegment;
-          const prefixLength = firstSegment.length + 1;
-          let newUrl = req.url.substring(prefixLength);
-          if (!newUrl.startsWith("/")) {
-            newUrl = "/" + newUrl;
-          }
-          req.url = newUrl;
-        }
-
-        if (!detectedLang && req.query.lang && typeof req.query.lang === "string") {
-          const queryLang = req.query.lang.toLowerCase();
-          if (activeLanguages.includes(queryLang)) {
-            detectedLang = queryLang;
-          }
-        }
-
-        if (!detectedLang && req.cookies && req.cookies.lang) {
-          const cookieLang = req.cookies.lang.toLowerCase();
-          if (activeLanguages.includes(cookieLang)) {
-            detectedLang = cookieLang;
-          }
-        }
-
-        if (!detectedLang && req.headers["accept-language"]) {
-          const acceptLang = req.headers["accept-language"].split(",")[0].split("-")[0].toLowerCase();
-          if (activeLanguages.includes(acceptLang)) {
-            detectedLang = acceptLang;
-          }
-        }
-
-        req.lang = detectedLang || "en";
-        res.locals.lang = req.lang;
-
-        res.locals.t = (key, variables = {}) => {
-          const dictionary = locales[req.lang] || locales["en"] || {};
-          let value = dictionary[key] ?? key;
-
-          if (typeof value === "string" && variables) {
-            Object.entries(variables).forEach(([k, v]) => {
-              const val = String(v);
-              value = value.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), val);
-              value = value.replace(new RegExp(`\\{${k}\\}`, "g"), val);
-            });
-          }
-          return value;
-        };
-
-        next();
-      });
-    } else {
-      this.app.use((req, res, next) => {
-        req.lang = "en";
-        res.locals.lang = "en";
-        res.locals.t = (key) => key;
-        next();
-      });
-    }
-
     this.app.use((req, res, next) => {
-      const originalSend = res.send.bind(res);
-      res.send = (body) => {
-        if (typeof body === "string" && res.getHeader("content-type")?.includes("text/html")) {
-          body = Template.minifyHtml(body);
-        }
-        return originalSend(body);
-      };
+      req.lang = req.query?.lang || req.body?.lang || req.cookies?.lang || "en";
+      res.locals.lang = req.lang;
       next();
     });
 
@@ -204,7 +123,10 @@ class App {
       this.app.use(
         express.static(
           path.join(__dirname, this.static.path),
-          this.static.options,
+          { ...this.static.options, setHeaders: (res) => {
+            res.setHeader("X-Powered-By", "Blue Bird"); 
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }},
         ),
       );
 
@@ -243,8 +165,8 @@ class App {
     if (this.logger || props.debug) this._middlewareLogger(this.logger);
 
     this.app.use((req, res, next) => {
-      res.setHeader("X-Powered-By", "Blue Bird");
-      next();
+      res.setHeader("X-Powered-By", "Blue Bird"); 
+       next();
     });
 
     if (props.debug) {
@@ -283,19 +205,24 @@ class App {
 
   /**
    * Sets up hot-reload using Server-Sent Events (SSE).
-   * Watches the frontend/ directory for .ejs, .html, .css, .js file changes and notifies connected browsers.
+   * Watches the frontend/ directory for .html, .css, .js file changes and notifies connected browsers.
    * Also clears the Template cache on file changes so fresh content is served.
    * Only active when DEBUG=true in .env.
    * @private
    */
   _setupHotReload() {
     this.app.get("/__hot-reload", (req, res) => {
+      res.setHeader("x-no-compression", "true");
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
       });
       res.write("data: connected\n\n");
+      if (typeof res.flush === "function") {
+        res.flush();
+      }
       this._hotReloadClients.add(res);
       req.on("close", () => {
         this._hotReloadClients.delete(res);
@@ -309,6 +236,9 @@ class App {
       this._hotReloadClients.forEach((client) => {
         try {
           client.write("data: reload\n\n");
+          if (typeof client.flush === "function") {
+            client.flush();
+          }
         } catch (_) {
           this._hotReloadClients.delete(client);
         }
@@ -318,7 +248,7 @@ class App {
     try {
       fs.watch(frontendPath, { recursive: true }, (eventType, filename) => {
         if (!filename) return;
-        if (/\.(ejs|html|css|js)$/i.test(filename)) {
+        if (/\.(html|css|js)$/i.test(filename)) {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             console.log(chalk.magenta(`[Hot Reload] ${filename} changed`));
@@ -420,30 +350,6 @@ class App {
   /**
    * Starts the HTTP server and begins listening for incoming connections.
    */
-  /**
-   * Loads translation locale JSON files from frontend/locales/
-   * @private
-   * @returns {Object<string, Object>}
-   */
-  _loadLocales() {
-    const locales = {};
-    const localesPath = path.join(__dirname, "frontend", "locales");
-    if (fs.existsSync(localesPath)) {
-      try {
-        const files = fs.readdirSync(localesPath);
-        files.forEach((file) => {
-          if (file.endsWith(".json")) {
-            const lang = path.basename(file, ".json");
-            const content = fs.readFileSync(path.join(localesPath, file), "utf-8");
-            locales[lang] = JSON.parse(content);
-          }
-        });
-      } catch (error) {
-        this.loggerInstance.error(`Error loading locales: ${error.message}`);
-      }
-    }
-    return locales;
-  }
 
   run() {
     this._ready

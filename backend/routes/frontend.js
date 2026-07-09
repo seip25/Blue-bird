@@ -2,7 +2,8 @@ import Router from "../../core/router.js";
 import Template from "../../core/template.js";
 import App from "../../core/app.js";
 
-const routerFrontendExample = new Router("/", { seo: true, languages: ["en", "es"] });
+const routerFrontendExample = new Router("/", { seo: true });
+
 routerFrontendExample.use(App.helmet());
 
 routerFrontendExample.get("/", (req, res) => {

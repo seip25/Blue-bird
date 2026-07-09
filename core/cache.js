@@ -38,23 +38,28 @@ class Cache {
 
       const originalJson = res.json.bind(res);
       const originalSend = res.send.bind(res);
+      let cachedInRequest = false;
 
       res.json = (body) => {
-        CACHE[key] = {
-          type: "json",
-          data: body,
-          expiry: Date.now() + seconds * 1000,
-        };
+        if (!cachedInRequest) {
+          CACHE[key] = {
+            type: "json",
+            data: body,
+            expiry: Date.now() + seconds * 1000,
+          };
+          cachedInRequest = true;
+        }
         return originalJson(body);
       };
 
       res.send = (body) => {
-        if (typeof body === "string") {
+        if (!cachedInRequest && typeof body === "string") {
           CACHE[key] = {
             type: "html",
             data: body,
             expiry: Date.now() + seconds * 1000,
           };
+          cachedInRequest = true;
         }
         return originalSend(body);
       };

@@ -41,7 +41,6 @@ class Config {
       appUrl: process.env.APP_URL || process.env.HOST || "http://localhost",
       port: Number.isNaN(portRaw) ? 3000 : portRaw,
       jwtSecret: process.env.JWT_SECRET,
-      translate: process.env.TRANSLATE === "true",
       static: {
         path: process.env.STATIC_PATH || "frontend/public",
         options: {},

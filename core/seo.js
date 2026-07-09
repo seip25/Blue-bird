@@ -68,7 +68,7 @@ class SEO {
         <url>
             <loc>${host}${langPath}</loc>
             <lastmod>${date}</lastmod>
-            <priority>0.8</priority>
+            <priority>1</priority>
         </url>`;
         });
       }
