@@ -102,6 +102,7 @@ class Template {
         filePath = path.join(
           __dirname,
           "frontend",
+          "templates",
           `${templateOrContent}.html`,
         );
         const fileCacheKey = `file:${templateOrContent}`;
