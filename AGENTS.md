@@ -237,7 +237,25 @@ webRouter.use(App.helmet());
 webRouter.use(App.helmet({ contentSecurityPolicy: false }));
 ```
 
-## 8. AI Development Guidelines
+## 8. Docker Compose CLI
+
+Blue Bird features a built-in Docker Compose CLI wrapper to deploy and manage containerized development databases and production stacks.
+
+```bash
+# Manage containers using blue-bird CLI
+npx blue-bird docker start          # Starts production app + mysql database
+npx blue-bird docker start mysql    # Starts MySQL container only (useful for local development)
+npx blue-bird docker stop           # Stops all running containers
+npx blue-bird docker build          # Builds/rebuilds application image
+npx blue-bird docker ps             # Shows status of active containers
+npx blue-bird docker logs           # Tails Node.js app container logs
+npx blue-bird docker mysql          # Runs interactive MySQL client terminal inside the container
+npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
+```
+
+The container names and virtual networks are namespaced by the `BLUEBIRD_PROJECT_NAME` environment variable parsed from `.env` to prevent resource collisions on VPS hosts.
+
+## 9. AI Development Guidelines
 
 1. **Frontend**: Use static HTML templates inside `frontend/` (e.g. `.html` files). Standard static files belong in `frontend/public/`.
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.

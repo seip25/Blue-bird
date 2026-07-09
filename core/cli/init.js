@@ -22,6 +22,8 @@ class ProjectInit {
         const itemsToCopy = [
             "backend",
             "frontend",
+            "docker",
+            "docker-compose.yml",
             ".env_example",
             "AGENTS.md"
         ];
@@ -76,7 +78,8 @@ class ProjectInit {
                 "start": "node --env-file=.env backend/index.js",
                 "init": "blue-bird",
                 "route": "blue-bird route",
-                "swagger-install": "blue-bird swagger-install"
+                "swagger-install": "blue-bird swagger-install",
+                "docker": "blue-bird docker"
             };
 
             let updated = false;
@@ -123,4 +126,5 @@ const command = args[0];
 
 if (command === "route") import("./route.js");
 else if (command === "swagger-install") import("./swagger.js");
+else if (command === "docker") import("./docker.js");
 else initializer.run();

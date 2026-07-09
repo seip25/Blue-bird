@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Blue Bird Framework — Docker Compose
+#
+# DEVELOPMENT / DATABASE ONLY:
+#   npx blue-bird docker start mysql   → Only MySQL container
+#
+# PRODUCTION:
+#   npx blue-bird docker start prod    → MySQL + Node.js app container
+#   npx blue-bird docker stop          → Stop all containers
+#
+# Multi-project VPS support:
+#   Each project uses BLUEBIRD_PROJECT_NAME (or sanitised TITLE) to name
+#   containers and networks uniquely.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Node.js App (Production only) ─────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ${BLUEBIRD_PROJECT_NAME:-bluebird}-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=mysql://root:${DB_PASSWORD:-root}@mysql:3306/${DB_NAME:-blue_bird}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - bluebird_net
+    profiles:
+      - prod
+
+  # ── MySQL Database ─────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: ${BLUEBIRD_PROJECT_NAME:-bluebird}-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-blue_bird}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bluebird_net
+
+volumes:
+  mysql_data:
+
+networks:
+  bluebird_net:
+    name: ${BLUEBIRD_PROJECT_NAME:-bluebird}_network
+    driver: bridge

@@ -29,7 +29,8 @@
     "start": "node --env-file=.env backend/index.js",
     "init": "node core/cli/init.js",
     "route": "node core/cli/route.js",
-    "swagger-install": "node core/cli/swagger.js"
+    "swagger-install": "node core/cli/swagger.js",
+    "docker": "node core/cli/init.js docker"
   },
   "dependencies": {
     "chalk": "^5.6.2",
