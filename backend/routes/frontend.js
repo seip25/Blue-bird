@@ -4,7 +4,7 @@ import App from "@seip/blue-bird/core/app.js";
 
 const routerFrontendExample = new Router("/", { seo: true });
 
-routerFrontendExample.use(App.helmet());
+//routerFrontendExample.use(App.helmet());
 
 routerFrontendExample.get("/", (req, res) => {
   return Template.render(res, "index", {
