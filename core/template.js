@@ -75,19 +75,33 @@ class Template {
         metaTags = {},
       } = options;
 
-      res.type("text/html");
+      const isSpaRequest =
+        res.req &&
+        (res.req.headers["x-bluebird-spa"] === "true" ||
+          res.req.query?.source === "frontend");
 
       const extraKey = res.req ? res.req.originalUrl : "";
+      const cachePrefix = isSpaRequest ? "spa:" : "html:";
       const finalCacheKey =
-        cacheKey || buildCacheKey(`html:${templateOrContent}`, metaTags, extraKey);
+        cacheKey ||
+        buildCacheKey(`${cachePrefix}${templateOrContent}`, metaTags, extraKey);
 
-      const cacheDuration = typeof cache === "number" ? cache : (cache ? 60 : 0);
+      const cacheDuration = typeof cache === "number" ? cache : cache ? 60 : 0;
       const isCacheEnabled = !props.debug && cacheDuration > 0;
 
       if (isCacheEnabled && CACHE_TEMPLATE[finalCacheKey]) {
         const cached = CACHE_TEMPLATE[finalCacheKey];
         if (cached.expiry === 0 || cached.expiry > Date.now()) {
-          return res.send(cached.html);
+          if (isSpaRequest) {
+            res.removeHeader("Content-Security-Policy");
+            res.removeHeader("X-Frame-Options");
+            res.removeHeader("X-Content-Type-Options");
+            res.type("application/json");
+            return res.json(cached.json);
+          } else {
+            res.type("text/html");
+            return res.send(cached.html);
+          }
         }
         delete CACHE_TEMPLATE[finalCacheKey];
       }
@@ -119,7 +133,8 @@ class Template {
       }
 
       const title = metaTags.titleMeta || props.titleMeta || "";
-      const description = metaTags.descriptionMeta || props.descriptionMeta || "";
+      const description =
+        metaTags.descriptionMeta || props.descriptionMeta || "";
       const keywords = metaTags.keywordsMeta || props.keywordsMeta || "";
       const author = metaTags.authorMeta || props.authorMeta || "";
       const canonicalUrl = metaTags.canonicalUrl || props.appUrl || "";
@@ -154,13 +169,24 @@ class Template {
 
       for (const [k, v] of Object.entries(metaTags)) {
         if (typeof v !== "object" && !escapes[k] && !raws[k]) {
-          finalHtml = finalHtml.replaceAll(`{{${k}}}`, this.escapeHtml(String(v)));
+          finalHtml = finalHtml.replaceAll(
+            `{{${k}}}`,
+            this.escapeHtml(String(v)),
+          );
         }
       }
 
       for (const [k, v] of Object.entries(options)) {
-        if (k !== "metaTags" && typeof v !== "object" && !escapes[k] && !raws[k]) {
-          finalHtml = finalHtml.replaceAll(`{{${k}}}`, this.escapeHtml(String(v)));
+        if (
+          k !== "metaTags" &&
+          typeof v !== "object" &&
+          !escapes[k] &&
+          !raws[k]
+        ) {
+          finalHtml = finalHtml.replaceAll(
+            `{{${k}}}`,
+            this.escapeHtml(String(v)),
+          );
         }
       }
 
@@ -179,12 +205,51 @@ class Template {
         finalHtml = this.minifyHtml(finalHtml);
       }
 
+      if (isSpaRequest) {
+        let bodyContent = "";
+        const match = finalHtml.match(
+          /<([a-zA-Z0-9\-]+)[^>]*id="blueBird-spa-content"[^>]*>([\s\S]*?)<\/\1>/i,
+        );
+        if (match) {
+          bodyContent = match[2];
+        } else {
+          bodyContent = finalHtml;
+        }
+
+        res.removeHeader("Content-Security-Policy");
+        res.removeHeader("X-Frame-Options");
+        res.removeHeader("X-Content-Type-Options");
+        res.type("application/json");
+
+        const spaData = {
+          meta: {
+            title: title,
+            description: description,
+            keywords: keywords,
+            author: author,
+          },
+          body: bodyContent,
+          css: options.linkStyles ? options.linkStyles.map((s) => s.href) : [],
+        };
+
+        if (isCacheEnabled) {
+          CACHE_TEMPLATE[finalCacheKey] = {
+            json: spaData,
+            expiry: cacheDuration > 0 ? Date.now() + cacheDuration * 1000 : 0,
+          };
+        }
+
+        return res.json(spaData);
+      }
+
       if (isCacheEnabled) {
         CACHE_TEMPLATE[finalCacheKey] = {
           html: finalHtml,
           expiry: cacheDuration > 0 ? Date.now() + cacheDuration * 1000 : 0,
         };
       }
+
+      res.type("text/html");
       res.send(finalHtml);
     } catch (error) {
       logger.error(`Error rendering HTML template: ${error.message}`);

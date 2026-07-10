@@ -298,6 +298,67 @@ To deploy in a standard Linux environment using PM2 process manager:
 
 ---
 
+---
+
+## ⚡ Hybrid SPA & Preact Integration
+
+Blue Bird natively integrates high-performance Hybrid Single Page Application (SPA) support:
+* **Server-Side:** The `Template` class intercepts SPA requests and returns only the `#blueBird-spa-content` section wrapped in an optimized JSON payload. These requests feature cleaned headers (removing strict CSP/Frame rules to minimize footprint) and are cached independently in RAM.
+* **Client-Side (`blue-bird.js`):** The SPA engine intercepts local anchor link click events, plays animated *fadeOut* and *fadeIn* transitions using Anime.js, updates metadata, and injects the new HTML fragments.
+
+### Preact Integration (Reactive Component Structure)
+
+You can inject rich interactivity by adding Preact and HTM via Import Maps directly, without any build steps or bundlers:
+
+#### 1. Load the Import Map in your HTML head:
+```html
+<head>
+    <!-- ... -->
+    <script type="importmap">
+        {
+            "imports": {
+                "preact": "https://esm.sh/preact@10.19.2",
+                "preact/hooks": "https://esm.sh/preact@10.19.2/hooks",
+                "htm/preact": "https://esm.sh/htm@3.1.1/preact"
+            }
+        }
+    </script>
+    <script src="/js/blue-bird.js"></script>
+</head>
+```
+
+#### 2. Declare the component inside the `#blueBird-spa-content` container:
+```html
+<main id="blueBird-spa-content">
+    <div id="counter-app"></div>
+
+    <script type="module">
+        import { render } from 'preact';
+        import { useState } from 'preact/hooks';
+        import { html } from 'htm/preact';
+
+        function Counter() {
+            const [count, setCount] = useState(0);
+            return html`
+                <div class="p-6 bg-slate-900 border border-white/10 rounded-2xl">
+                    <h2 class="text-lg font-bold">Preact Counter</h2>
+                    <p class="text-3xl text-blue-400 font-extrabold my-2">${count}</p>
+                    <button class="px-4 py-2 bg-blue-600 rounded-lg text-white font-semibold" onClick=${() => setCount(count + 1)}>
+                        Increment
+                    </button>
+                </div>
+            `;
+        }
+
+        render(html`<${Counter} />`, document.getElementById('counter-app'));
+    </script>
+</main>
+```
+
+When navigating between pages using the SPA engine, any scripts of type `module` inside the page body will automatically execute in the DOM, mounting and updating your Preact "interactivity islands".
+
+---
+
 ## 📄 License / Licencia
 
 Distributed under the **MIT License**. See `LICENSE` for more information.

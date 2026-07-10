@@ -11,8 +11,8 @@ routerFrontendExample.get("/", (req, res) => {
     metaTags: {
       titleMeta: "Home - Blue Bird",
       descriptionMeta: "Welcome to Blue Bird Framework",
-      keywordsMeta: "blue bird, framework, express"
-    }
+      keywordsMeta: "blue bird, framework, express",
+    },
   });
 });
 
@@ -21,8 +21,18 @@ routerFrontendExample.get("/about", (req, res) => {
     metaTags: {
       titleMeta: "About - Blue Bird",
       descriptionMeta: "About Blue Bird Framework",
-      keywordsMeta: "about, blue bird, framework"
-    }
+      keywordsMeta: "about, blue bird, framework",
+    },
+  });
+});
+
+routerFrontendExample.get("/preact_example", (req, res) => {
+  return Template.render(res, "preact_example", {
+    metaTags: {
+      titleMeta: "Preact Example - Blue Bird",
+      descriptionMeta: "Preact Example Blue Bird Framework",
+      keywordsMeta: "preact, example, blue bird, framework",
+    },
   });
 });
 

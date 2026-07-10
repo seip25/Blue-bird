@@ -161,7 +161,8 @@
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-3">Core Modules
                             </p>
                             <a href="#doc-install"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Installation &amp; Setup</a>
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Installation
+                                &amp; Setup</a>
                             <a href="#doc-env"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Configuration
                                 (.env)</a>
@@ -186,6 +187,11 @@
                             <a href="#doc-helmet"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Helmet
                                 Security</a>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">
+                                Frontend &amp; SPA</p>
+                            <a href="#doc-spa"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">SPA
+                                Engine &amp; Preact</a>
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Devops
                                 & Deployment</p>
                             <a href="#doc-docker"
@@ -227,30 +233,32 @@
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
                                     class="w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center text-sm font-bold">1</span>
-                                Installation &amp; Setup / Instalación y Configuración
+                                Installation &amp; Setup
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
-                                Get your project up and running with Blue Bird in three simple steps / Comienza tu proyecto con Blue Bird en tres simples pasos:
+                                Get your project up and running with Blue Bird in three simple steps
                             </p>
 
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Installation / Instalación</h4>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Installation</h4>
                             <p class="text-slate-600 mb-2 leading-relaxed text-sm">
-                                Install the framework package in your project directory / Instala el paquete del framework en el directorio de tu proyecto:
+                                Install the framework package in your project directory
                             </p>
                             <pre><code class="language-bash">npm install @seip/blue-bird</code></pre>
 
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Initialize Project / Inicializar</h4>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Initialize Project</h4>
                             <p class="text-slate-600 mb-2 leading-relaxed text-sm">
-                                Run the initialization tool to generate the default application directory structure / Ejecuta la herramienta de inicialización para crear la estructura básica de directorios por defecto:
+                                Run the initialization tool to generate the default application directory structure
                             </p>
                             <pre><code class="language-bash">npx blue-bird</code></pre>
                             <p class="text-slate-600 mb-4 leading-relaxed text-sm">
-                                This will generate files such as <code>.env</code>, <code>backend/</code>, <code>frontend/</code>, and other basic configurations. / Esto generará archivos como <code>.env</code>, la estructura de <code>backend/</code> y las plantillas de <code>frontend/</code>.
+                                This will generate files such as <code>.env</code>, <code>backend/</code>,
+                                <code>frontend/</code>, and other basic configurations.
                             </p>
 
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Package Configuration / Configurar package.json</h4>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Package Configuration</h4>
                             <p class="text-slate-600 mb-2 leading-relaxed text-sm">
-                                Ensure your <code>package.json</code> is set to use ES Modules by adding <code>"type": "module"</code> / Asegúrate de que tu <code>package.json</code> esté configurado para usar ES Modules agregando <code>"type": "module"</code>:
+                                Ensure your <code>package.json</code> is set to use ES Modules by adding
+                                <code>"type": "module"</code>
                             </p>
                             <pre><code class="language-json">{
   "type": "module"
@@ -510,11 +518,159 @@ const secureWebRouter = new Router("/web");
 secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables CSP restrictions</code></pre>
                         </article>
 
+                        <!-- SPA Section -->
+                        <article id="doc-spa" class="mb-24 scroll-mt-24">
+                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                <span
+                                    class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                Hybrid SPA &amp; Preact Integration
+                            </h3>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Blue Bird includes native single page application (SPA) support. The server intercepts
+                                SPA requests via header <code>X-blueBird-SPA: true</code>, returning a JSON payload
+                                containing the <code>#blueBird-spa-content</code> element body. This drastically reduces
+                                CPU, RAM, and network consumption by eliminating repetitive layout renders.
+                            </p>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                <strong>How it works under the hood:</strong> When the user clicks an internal link, the
+                                SPA client engine (bundled in <code>blue-bird.js</code>) intercepts the event, triggers
+                                a CSS/opacity fadeOut transition on the content container, and requests the page using a
+                                lightweight AJAX fetch with the header <code>X-blueBird-SPA: true</code>. The server
+                                intercepts this request, reads the page from the memory cache (using separate
+                                <code>spa:</code> prefixes), removes boilerplate headers (like strict security frames
+                                and CSP checks to minimize bandwidth), and returns only the page body metadata and
+                                content. Finally, the client injects the content, runs scripts, and triggers a smooth
+                                slide-up fadeIn transition.
+                            </p>
+                            <p
+                                class="text-slate-600 mb-6 leading-relaxed font-semibold bg-slate-100 p-4 border border-slate-200 rounded-xl">
+                                Note: This client-side bundle and SPA behavior are entirely optional. If you prefer a
+                                traditional multi-page website (MPA) with standard browser reloads, you can simply
+                                remove the <code>&lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;</code> reference
+                                from your layout templates. The server will automatically fallback to serving full HTML
+                                views.
+                            </p>
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                Below is the standard setup for layout templates (Home and About) and the typical JSON
+                                payload returned by the server when navigating dynamically.
+                            </p>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Default Home Template (index.html)</h4>
+                            <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="{{lang}}"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;{{title}}&lt;/title&gt;
+    &lt;script src="/js/tailwind.js"&gt;&lt;/script&gt;
+    &lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body class="bg-slate-950 text-white"&gt;
+    &lt;header&gt;
+        &lt;nav&gt;
+            &lt;a href="/"&gt;Home&lt;/a&gt;
+            &lt;a href="/about"&gt;About&lt;/a&gt;
+            &lt;a href="/preact_example"&gt;Preact Example&lt;/a&gt;
+        &lt;/nav&gt;
+    &lt;/header&gt;
+
+    &lt;!-- Content container --&gt;
+    &lt;main id="blueBird-spa-content" class="max-w-7xl mx-auto px-4"&gt;
+        &lt;h1&gt;Welcome to Home Page&lt;/h1&gt;
+        &lt;p&gt;This content is dynamic.&lt;/p&gt;
+    &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Default About Template (about.html)</h4>
+                            <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="{{lang}}"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;{{title}}&lt;/title&gt;
+    &lt;script src="/js/tailwind.js"&gt;&lt;/script&gt;
+    &lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body class="bg-slate-950 text-white"&gt;
+    &lt;header&gt;
+        &lt;nav&gt;
+            &lt;a href="/"&gt;Home&lt;/a&gt;
+            &lt;a href="/about"&gt;About&lt;/a&gt;
+            &lt;a href="/preact_example"&gt;Preact Example&lt;/a&gt;
+        &lt;/nav&gt;
+    &lt;/header&gt;
+
+    &lt;!-- Content container --&gt;
+    &lt;main id="blueBird-spa-content" class="max-w-4xl mx-auto px-4"&gt;
+        &lt;h1&gt;About Us&lt;/h1&gt;
+        &lt;p&gt;This is the about page content.&lt;/p&gt;
+    &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Typical SPA JSON Response</h4>
+                            <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                When clicking on <code>/about</code> from the home page, the client requests the URL
+                                with the <code>X-blueBird-SPA: true</code> header. The server responds with this JSON
+                                payload instead of a full page reload:
+                            </p>
+                            <pre><code class="language-json">{
+    "meta": {
+        "title": "About - Blue Bird",
+        "description": "About Blue Bird Framework",
+        "keywords": "about, blue bird, framework",
+        "author": "Blue Bird"
+    },
+    "body": "&lt;div class=\"space-y-12\"&gt;&lt;h1&gt;About Us&lt;/h1&gt;&lt;p&gt;This is the about page content.&lt;/p&gt;&lt;/div&gt;",
+    "css": []
+}</code></pre>
+
+                            <p class="text-slate-600 mb-6 leading-relaxed">
+                                You can integrate <strong>Preact</strong> directly without bundlers or compilation using
+                                Import Maps and the script loading engine from the <code>blue-bird.js</code> bundle:
+                            </p>
+                            <pre><code class="language-html">&lt;!-- Load in head section --&gt;
+
+&lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;
+
+&lt;!-- Inside main container #blueBird-spa-content --&gt;
+&lt;main id="blueBird-spa-content"&gt;
+    &lt;div id="preact-app"&gt;&lt;/div&gt;
+    &lt;script type="importmap"&gt;
+{
+    "imports": {
+        "preact": "https://esm.sh/preact@10.19.2",
+        "preact/hooks": "https://esm.sh/preact@10.19.2/hooks",
+        "htm/preact": "https://esm.sh/htm@3.1.1/preact"
+    }
+}
+&lt;/script&gt;
+
+    &lt;script type="module"&gt;
+        import { render } from 'preact';
+        import { useState } from 'preact/hooks';
+        import { html } from 'htm/preact';
+
+        function App() {
+            const [count, setCount] = useState(0);
+            return html`
+                &lt;div class="p-6 bg-slate-900 rounded-2xl"&gt;
+                    &lt;h2 class="text-lg text-white"&gt;Preact Counter&lt;/h2&gt;
+                    &lt;p class="text-2xl text-blue-400 font-extrabold"&gt;${count}&lt;/p&gt;
+                    &lt;button onClick=${(e) =&gt; setCount(count + 1)}&gt;Increment&lt;/button&gt;
+                &lt;/div&gt;
+            `;
+        }
+
+        render(html`&lt;${App} /&gt;`, document.getElementById('preact-app'));
+    &lt;/script&gt;
+&lt;/main&gt;</code></pre>
+                        </article>
+
                         <!-- Docker Section -->
                         <article id="doc-docker" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                    class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">11</span>
                                 Docker CLI Command Wrapper
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
@@ -550,7 +706,7 @@ npx blue-bird docker prune</code></pre>
                         <article id="doc-production" class="mb-24 scroll-mt-24">
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
-                                    class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">11</span>
+                                    class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
                                 Production Setup (VPS / PM2)
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">

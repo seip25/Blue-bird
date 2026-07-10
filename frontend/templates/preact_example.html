@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link rel="canonical" href="{{canonicalUrl}}" />
+    <meta name="description" content="{{description}}">
+    <meta name="keywords" content="{{keywords}}">
+    <meta name="author" content="{{author}}">
+    <link rel="icon" href="/favicon.ico" />
+    <script src="/js/tailwind.js"></script>
+    <script src="/js/blue-bird.js"></script>
+
+</head>
+
+<body class="min-h-screen bg-slate-950 text-white font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <header class="sticky top-0 z-50 px-4 py-3">
+        <div
+            class="max-w-7xl mx-auto flex items-center justify-between backdrop-blur-md bg-slate-900/60 border border-white/10 rounded-2xl px-6 py-3 shadow-lg">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </div>
+                <span
+                    class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-white bg-clip-text text-transparent">Blue
+                    Bird</span>
+            </div>
+
+            <nav class="flex space-x-8 text-sm font-medium text-slate-300">
+                <a href="/" class="hover:text-blue-400 transition-colors">Home</a>
+                <a href="/about" class="hover:text-blue-400 transition-colors">About</a>
+                <a href="/preact_example" class="hover:text-blue-400 transition-colors">Preact Example</a>
+            </nav>
+        </div>
+    </header>
+
+
+    <!-- Inside main container #blueBird-spa-content -->
+    <main id="blueBird-spa-content">
+        <div id="preact-app"></div>
+        <script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.2",
+            "preact/hooks": "https://esm.sh/preact@10.19.2/hooks",
+            "htm/preact": "https://esm.sh/htm@3.1.1/preact"
+        }
+    }
+    </script>
+
+        <script type="module">
+            import { render } from 'preact';
+            import { useState } from 'preact/hooks';
+            import { html } from 'htm/preact';
+
+            function App() {
+                const [count, setCount] = useState(0);
+                return html`
+                <div class="p-6 bg-slate-900 rounded-2xl">
+                    <h2 class="text-lg text-white">Preact Counter</h2>
+                    <p class="text-2xl text-blue-400 font-extrabold">${count}</p>
+                    <button class="p-2 bg-blue-600 rounded-lg text-white font-semibold" onClick=${() => setCount(count + 1)}>Increment</button>
+                </div>
+            `;
+            }
+
+            render(html`<${App} />`, document.getElementById('preact-app'));
+        </script>
+    </main>
+</body>
+
+</html>

@@ -264,7 +264,26 @@ npx blue-bird docker prune          # Cleans unused volumes, dangling images, an
 
 The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts.
 
-## 9. AI Development Guidelines
+## 9. Hybrid SPA & Preact Integration
+
+Blue Bird includes a high-performance Hybrid SPA rendering feature.
+1. **Server Detection**: `Template.render` intercepts SPA requests (header `X-blueBird-SPA: true` or query `?source=frontend`). It returns a parsed JSON payload with `meta`, `body` (only content inside `#blueBird-spa-content`), and `css` stylesheets.
+2. **SPA Direct Caching**: SPA requests are cached separately (key `spa:<template>`). The server strips security headers (CSP, Frame-Options, Content-Type-Options) to reduce JSON payload bytes.
+3. **Preact Islands**: Use import maps to render dynamic reactive zones. Simply add scripts of type `module` inside `#blueBird-spa-content`, and they will automatically execute and render on each navigation.
+
+```html
+<script type="importmap">
+    {
+        "imports": {
+            "preact": "https://esm.sh/preact@10.19.2",
+            "preact/hooks": "https://esm.sh/preact@10.19.2/hooks",
+            "htm/preact": "https://esm.sh/htm@3.1.1/preact"
+        }
+    }
+</script>
+```
+
+## 10. AI Development Guidelines
 
 1. **Frontend**: Use static HTML templates inside `frontend/` (e.g. `.html` files). Standard static files belong in `frontend/public/`.
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
