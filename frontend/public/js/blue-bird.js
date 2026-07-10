@@ -1197,40 +1197,40 @@ window.Animations = {
     fadeUp: (selector, delay = 0) => {
         return anime({
             targets: selector,
-            translateY: [40, 0],
+            translateY: [20, 0],
             opacity: [0, 1],
-            duration: 800,
+            duration: 350,
             delay: delay,
-            easing: 'easeOutQuint'
+            easing: 'easeOutQuad'
         });
     },
     fadeIn: (selector, delay = 0) => {
         return anime({
             targets: selector,
             opacity: [0, 1],
-            duration: 600,
+            duration: 250,
             delay: delay,
-            easing: 'easeInOutQuad'
+            easing: 'easeOutQuad'
         });
     },
     staggerFadeUp: (selector) => {
         return anime({
             targets: selector,
-            translateY: [30, 0],
-            opacity: [0, 1],
-            delay: anime.stagger(200, { start: 200 }),
-            duration: 700,
-            easing: 'easeOutBack'
-        });
-    },
-    easeOutBack: (selector, delay = 300) => {
-        return anime({
-            targets: selector,
             translateY: [15, 0],
             opacity: [0, 1],
-            scale: [0.9, 1],
-            delay: anime.stagger(80, { start: delay }),
-            duration: 600,
+            delay: anime.stagger(60, { start: 100 }),
+            duration: 300,
+            easing: 'easeOutCubic'
+        });
+    },
+    easeOutBack: (selector, delay = 150) => {
+        return anime({
+            targets: selector,
+            translateY: [10, 0],
+            opacity: [0, 1],
+            scale: [0.95, 1],
+            delay: anime.stagger(50, { start: delay }),
+            duration: 350,
             easing: 'easeOutBack'
         });
     }
@@ -1266,8 +1266,8 @@ window.Animations = {
             await anime({
                 targets: container,
                 opacity: 0,
-                translateY: [0, -15],
-                duration: 150,
+                translateY: [0, -8],
+                duration: 100,
                 easing: 'easeInQuad'
             }).finished;
         }
@@ -1371,8 +1371,8 @@ window.Animations = {
                 anime({
                     targets: container,
                     opacity: [0, 1],
-                    translateY: [15, 0],
-                    duration: 300,
+                    translateY: [8, 0],
+                    duration: 200,
                     easing: 'easeOutQuad'
                 });
             }
