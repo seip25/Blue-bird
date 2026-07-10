@@ -1208,9 +1208,9 @@ window.Animations = {
         return anime({
             targets: selector,
             opacity: [0, 1],
-            duration: 250,
+            duration: 600,
             delay: delay,
-            easing: 'easeOutQuad'
+            easing: 'easeInOutQuad'
         });
     },
     staggerFadeUp: (selector) => {
@@ -1262,7 +1262,7 @@ window.Animations = {
     async function navigate(url, push = true) {
         const container = document.getElementById(CONTENT_ID);
         
-        if (container) {
+        if (container && window.enabledAnime !== false) {
             await anime({
                 targets: container,
                 opacity: 0,
@@ -1368,13 +1368,30 @@ window.Animations = {
                     }
                 }
 
-                anime({
-                    targets: container,
-                    opacity: [0, 1],
-                    translateY: [8, 0],
-                    duration: 200,
-                    easing: 'easeOutQuad'
-                });
+                if (window.enabledAnime !== false) {
+                    anime({
+                        targets: container,
+                        opacity: [0, 1],
+                        duration: 150,
+                        easing: 'easeOutQuad'
+                    });
+
+                    const animTargets = container.querySelectorAll('h1, h2, h3, h4, p, button, a.px-8, .grid > div, .bg-slate-900\\/50, .bg-slate-900\\/40, li');
+                    if (animTargets.length > 0) {
+                        anime({
+                            targets: animTargets,
+                            translateY: [12, 0],
+                            opacity: [0, 1],
+                            scale: [0.97, 1],
+                            delay: anime.stagger(35, { start: 40 }),
+                            duration: 300,
+                            easing: 'easeOutBack'
+                        });
+                    }
+                } else {
+                    container.style.opacity = 1;
+                    container.style.transform = 'none';
+                }
             }
 
             if (push) {

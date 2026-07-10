@@ -549,6 +549,8 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                 remove the <code>&lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;</code> reference
                                 from your layout templates. The server will automatically fallback to serving full HTML
                                 views.
+                                <br><br>
+                                Additionally, if you want to keep the SPA navigation features but <strong>disable the Anime.js visual transitions globally</strong>, you can define <code>window.enabledAnime = false;</code> in a script block before loading the <code>blue-bird.js</code> script.
                             </p>
                             <p class="text-slate-600 mb-6 leading-relaxed">
                                 Below is the standard setup for layout templates (Home and About) and the typical JSON
@@ -562,6 +564,8 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
     &lt;meta charset="UTF-8"&gt;
     &lt;title&gt;{{title}}&lt;/title&gt;
     &lt;script src="/js/tailwind.js"&gt;&lt;/script&gt;
+    &lt;!-- Enable or disable SPA transitions globally (default: true) --&gt;
+    &lt;script&gt;window.enabledAnime = true;&lt;/script&gt;
     &lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;
 &lt;/head&gt;
 &lt;body class="bg-slate-950 text-white"&gt;
@@ -588,6 +592,8 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
     &lt;meta charset="UTF-8"&gt;
     &lt;title&gt;{{title}}&lt;/title&gt;
     &lt;script src="/js/tailwind.js"&gt;&lt;/script&gt;
+    &lt;!-- Enable or disable SPA transitions globally (default: true) --&gt;
+    &lt;script&gt;window.enabledAnime = true;&lt;/script&gt;
     &lt;script src="/js/blue-bird.js"&gt;&lt;/script&gt;
 &lt;/head&gt;
 &lt;body class="bg-slate-950 text-white"&gt;
