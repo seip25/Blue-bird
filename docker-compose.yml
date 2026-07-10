@@ -22,7 +22,7 @@ services:
     container_name: ${TITLE:-bluebird}-app
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     volumes:
       - .:/app
       - /app/node_modules
