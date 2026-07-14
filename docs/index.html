@@ -586,6 +586,11 @@ npx blue-bird docker ps
 # Tail Live Node.js Container Logs
 npx blue-bird docker logs
 
+# Run PM2 Commands Inside the Node.js Application Container
+npx blue-bird docker pm2 status
+npx blue-bird docker pm2 monit
+npx blue-bird docker pm2 reload all
+
 # Run Interactive MySQL Client Shell Inside the Database Container
 npx blue-bird docker db
 

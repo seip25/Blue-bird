@@ -257,6 +257,21 @@ async function pruneCommand(forceOpt, allOpt) {
 }
 
 /**
+ * Executes PM2 commands inside the Node.js application container.
+ * @param {string[]} pm2Args - Arguments to pass to PM2.
+ */
+async function pm2Command(pm2Args = []) {
+  checkComposeFile();
+  const subCommand = pm2Args[0] || "status";
+  const cmdArgs = ["compose", "exec", "app", "pm2", subCommand, ...pm2Args.slice(1)];
+  const code = await runCmd("docker", cmdArgs);
+  if (code !== 0) {
+    console.error(chalk.red("Error running PM2 command. Make sure the production stack is started."));
+    process.exit(1);
+  }
+}
+
+/**
  * Entry point for Blue Bird CLI Docker subcommands.
  */
 async function main() {
@@ -307,6 +322,9 @@ async function main() {
     case "logs":
       await logsCommand(args[1], args[2]);
       break;
+    case "pm2":
+      await pm2Command(args.slice(1));
+      break;
     case "mysql":
     case "db": {
       let user, password, db, root = false;
@@ -333,7 +351,7 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: start, stop, build, ps, logs, mysql/db, df/disk, prune/clean");
+      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/db, df/disk, prune/clean");
   }
 }
 

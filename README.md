@@ -238,6 +238,7 @@ npx blue-bird docker <command> [options]
 - **`npx blue-bird docker build [--no-cache]`**: Builds or updates the Node.js production image.
 - **`npx blue-bird docker ps`**: Lists running project containers and ports.
 - **`npx blue-bird docker logs [app|mysql]`**: Tails logs for the specified container.
+- **`npx blue-bird docker pm2 [args]`**: Runs PM2 commands inside the Node.js application container (e.g. `status`, `monit`, `reload all`).
 - **`npx blue-bird docker db`**: Connects into the container's interactive MySQL shell using credentials from `.env`.
 - **`npx blue-bird docker prune`**: Safely clears orphaned volumes, dangling build caches, and images.
 

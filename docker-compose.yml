@@ -18,6 +18,7 @@ services:
       - DATABASE_URL=mysql://root:${DB_PASSWORD:-root}@mysql:3306/${DB_NAME:-blue_bird}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - PORT=3000
     depends_on:
       mysql:
         condition: service_healthy

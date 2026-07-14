@@ -174,6 +174,7 @@ npx blue-bird docker stop           # Stops all running containers
 npx blue-bird docker build          # Builds/rebuilds application image
 npx blue-bird docker ps             # Shows status of active containers
 npx blue-bird docker logs           # Tails Node.js app container logs
+npx blue-bird docker pm2 [args]     # Runs PM2 commands inside the app container (e.g. status, monit)
 npx blue-bird docker mysql          # Runs interactive MySQL client terminal inside the container
 npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
 ```
