@@ -15,5 +15,10 @@ export function apiUrl(path = "", requestUrl) {
   if (!requestUrl) {
     throw new Error("apiUrl: requestUrl is required in production (pass Astro.url)");
   }
-  return new URL(`/${path}`, requestUrl).href;
+  const url = new URL(`/${path}`, requestUrl);
+  if (url.hostname === "localhost") {
+    url.hostname = "127.0.0.1";
+    url.port = port;
+  }
+  return url.href;
 }

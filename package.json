@@ -3,6 +3,9 @@
   "version": "0.7.1",
   "description": "Express opinionated framework with HTML rendering, API architecture, built-in JWT auth, validation, caching, and SEO",
   "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
   "bin": {
     "blue-bird": "core/cli/init.js"
   },
@@ -62,6 +65,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "redis": "^4.7.0",
     "xss": "^1.0.15"
   }
 }

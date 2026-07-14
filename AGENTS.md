@@ -131,7 +131,7 @@ router.post("/logout", async (req, res) => {
 
 ## 6. Performance Caching (Cache)
 
-If an Express route involves heavy processing or database queries, utilize the `Cache` middleware to cache the REST API JSON payload.
+If an Express route involves heavy processing or database queries, utilize the `Cache` middleware to cache the REST API JSON or HTML payload.
 
 ```javascript
 import Cache from "@seip/blue-bird/core/cache.js";
@@ -140,6 +140,8 @@ router.get("/stats", Cache.middleware(60), (req, res) => {
   res.json({ ok: true });
 });
 ```
+
+The Cache module integrates with Redis when `REDIS_HOST` is configured in the environment. If Redis is unavailable or fails, it transparently falls back to an in-memory cache system without interrupting requests.
 
 ## 7. Security (Helmet)
 
@@ -156,10 +158,18 @@ apiRouter.use(App.helmet());
 
 Blue Bird features a built-in Docker Compose CLI wrapper to deploy and manage containerized development databases and production stacks.
 
+Production deployments always use Docker for orchestration, running:
+- Nginx: Serves static files directly from `frontend/dist/client/` and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express.
+- Node.js App: Managed via PM2 in cluster mode using `PM2_INSTANCES` configuration (defaults to `1`, can be set to `max`).
+- MySQL: Database service.
+- Redis: Memory caching and session store.
+
 ```bash
 # Manage containers using blue-bird CLI
-npx blue-bird docker start          # Starts production app + mysql database
+npx blue-bird docker start          # Starts production app stack (mysql, redis, app, nginx)
 npx blue-bird docker start mysql    # Starts MySQL container only (useful for local development)
+npx blue-bird docker start redis    # Starts Redis container only
+npx blue-bird docker start dbs      # Starts both database containers (MySQL + Redis)
 npx blue-bird docker stop           # Stops all running containers
 npx blue-bird docker build          # Builds/rebuilds application image
 npx blue-bird docker ps             # Shows status of active containers
@@ -168,7 +178,7 @@ npx blue-bird docker mysql          # Runs interactive MySQL client terminal ins
 npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
 ```
 
-The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts.
+The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts. Alternatively, PM2 and other services can be run manually in standalone server environments.
 
 ## 9. AI Development Guidelines
 

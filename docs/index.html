@@ -140,7 +140,7 @@
                         <p class="text-sm text-slate-500">Astro (v7.0) runs as an Express middleware handler in SSR
                             mode.
                             Frontend pages live in <code>frontend/src/pages/</code> with full file-based routing.
-                            Express owns the API layer at <code>/api/*</code>.
+                            Express owns the API layer at <code>/api/ * </code>.
                         </p>
                     </div>
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
@@ -287,7 +287,8 @@
                                             <td class="px-4 py-3 font-mono text-brand-600">npm run build</td>
                                             <td class="px-4 py-3 font-mono text-xs">astro build --root frontend</td>
                                             <td class="px-4 py-3 text-slate-500">Compiles Astro to
-                                                <code>frontend/dist/</code></td>
+                                                <code>frontend/dist/</code>
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
@@ -398,7 +399,7 @@ export default router;</code></pre>
                                     Blue Bird integrates Astro (v7.0) with the <code>@astrojs/node</code> adapter in
                                     <code>middleware</code> mode. Astro handles frontend SSR, file-based routing, and
                                     static
-                                    assets. Express owns the <code>/api/*</code> layer. Both run in a single Node.js
+                                    assets. Express owns the <code>/api/ *</code> layer. Both run in a single Node.js
                                     process.
                                 </p>
 
@@ -561,11 +562,17 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                         built-in
                                         Docker CLI tool wrapper.
                                     </p>
-                                    <pre><code class="language-bash"># Start Production Application Stack (App + MySQL)
+                                    <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + MySQL + Redis)
 npx blue-bird docker start prod
 
-# Start MySQL Database Container Only (Ideal for Local Development)
+# Start MySQL Database Container Only
 npx blue-bird docker start mysql
+
+# Start Redis Container Only
+npx blue-bird docker start redis
+
+# Start Both Databases (MySQL + Redis)
+npx blue-bird docker start dbs
 
 # Stop All Running Project Containers
 npx blue-bird docker stop
@@ -594,9 +601,25 @@ npx blue-bird docker prune</code></pre>
                                         Production Setup (VPS / PM2)
                                     </h3>
                                     <p class="text-slate-600 mb-6 leading-relaxed">
-                                        Outside of Docker, you can run and manage production instances using PM2 process
-                                        manager
-                                        for maximum uptime and automated cluster scaling.
+                                        Using the built-in Docker stack is the recommended production deployment method.
+                                        It configures a secure, high-performance reverse proxy via Nginx, offloads
+                                        static assets directly from disk, prevents common scanner attacks, automatically
+                                        sets up Redis for caching, and launches Node.js in cluster mode under PM2.
+                                    </p>
+                                    <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
+                                        (Recommended)</h4>
+                                    <pre><code class="language-bash"># 1. Build the production image
+npx blue-bird docker build
+
+# 2. Run the production containers stack
+npx blue-bird docker start prod</code></pre>
+
+                                    <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
+                                        Deployment</h4>
+                                    <p class="text-slate-600 mb-4 leading-relaxed">
+                                        If running on a standalone server environment outside Docker, you can manage the
+                                        Node.js application process using PM2. Note that reverse proxies and databases
+                                        must be configured manually.
                                     </p>
                                     <pre><code class="language-bash"># 1. Build the Astro frontend
 npm run build
@@ -604,13 +627,11 @@ npm run build
 # 2. Install PM2 globally
 npm install pm2 -g
 
-# 3. Start the application in production mode
-pm2 start index.js --name "blue-bird-app" --node-args="--env-file=.env"
+# 3. Start the application in production cluster mode
+pm2 start index.js --name "blue-bird-app" --node-args="--env-file=.env" -i max
 
-# 4. Save the PM2 cluster layout to restore automatically on reboots
+# 4. Save PM2 layout and enable automatic startup on boot
 pm2 save
-
-# 5. Make PM2 restart automatically on system startup
 pm2 startup</code></pre>
                                 </article>
                     </div>

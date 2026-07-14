@@ -58,27 +58,43 @@ async function startCommand(service) {
   checkComposeFile();
 
   if (service === "mysql" || service === "--mysql" || service === "dev") {
-    console.log(chalk.cyan("Starting MySQL container (dev mode)..."));
+    console.log(chalk.cyan("Starting MySQL container..."));
     const code = await runCmd("docker", ["compose", "up", "-d", "mysql"]);
     if (code === 0) {
-      console.log(chalk.green("MySQL started. Run your app locally with: npm run dev"));
-      console.log(chalk.blue("To also run the app in Docker (production), use: npx blue-bird docker start prod"));
+      console.log(chalk.green("MySQL started."));
     } else {
       console.error(chalk.red("Error starting MySQL."));
       process.exit(1);
     }
+  } else if (service === "redis" || service === "--redis") {
+    console.log(chalk.cyan("Starting Redis container..."));
+    const code = await runCmd("docker", ["compose", "up", "-d", "redis"]);
+    if (code === 0) {
+      console.log(chalk.green("Redis started."));
+    } else {
+      console.error(chalk.red("Error starting Redis."));
+      process.exit(1);
+    }
+  } else if (service === "dbs" || service === "databases") {
+    console.log(chalk.cyan("Starting Database containers (MySQL + Redis)..."));
+    const code = await runCmd("docker", ["compose", "up", "-d", "mysql", "redis"]);
+    if (code === 0) {
+      console.log(chalk.green("Database containers started."));
+    } else {
+      console.error(chalk.red("Error starting databases."));
+      process.exit(1);
+    }
   } else if (service === "prod" || service === "app" || service === "--app" || !service) {
-    console.log(chalk.cyan("Starting production stack (MySQL + Node.js app)..."));
+    console.log(chalk.cyan("Starting production stack (MySQL + Redis + App + Nginx)..."));
     const code = await runCmd("docker", ["compose", "--profile", "prod", "up", "-d"]);
     if (code === 0) {
       console.log(chalk.green("Production stack started."));
-      console.log(chalk.blue("View logs with: npx blue-bird docker logs"));
     } else {
       console.error(chalk.red("Error starting production stack."));
       process.exit(1);
     }
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: mysql (or --mysql), prod (or --app), or no arguments for both.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: mysql, redis, dbs, prod.`));
     process.exit(1);
   }
 }
@@ -99,13 +115,18 @@ async function stopCommand(service) {
     await runCmd("docker", ["compose", "stop", "mysql"]);
     await runCmd("docker", ["compose", "rm", "-f", "mysql"]);
     console.log(chalk.green("MySQL stopped."));
+  } else if (service === "redis" || service === "--redis") {
+    console.log(chalk.cyan("Stopping Redis..."));
+    await runCmd("docker", ["compose", "stop", "redis"]);
+    await runCmd("docker", ["compose", "rm", "-f", "redis"]);
+    console.log(chalk.green("Redis stopped."));
   } else if (service === "app" || service === "--app") {
     console.log(chalk.cyan("Stopping Node.js app container..."));
     await runCmd("docker", ["compose", "--profile", "prod", "stop", "app"]);
     await runCmd("docker", ["compose", "--profile", "prod", "rm", "-f", "app"]);
     console.log(chalk.green("App container stopped."));
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: all (default), mysql, app.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: all, mysql, redis, app.`));
     process.exit(1);
   }
 }

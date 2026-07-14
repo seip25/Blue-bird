@@ -201,6 +201,8 @@ router.get("/stats", Cache.middleware(60), (req, res) => {
 });
 ```
 
+Integrates with Redis if `REDIS_HOST` is defined in the environment. Falls back to an in-memory cache automatically if Redis is not configured or not running.
+
 ---
 
 ### 6. Security Headers (`Helmet`)
@@ -228,8 +230,10 @@ npx blue-bird docker <command> [options]
 
 ### Supported Actions:
 
-- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + MySQL).
+- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + MySQL + Redis).
 - **`npx blue-bird docker start mysql`**: Boots the MySQL container only (great for local HTTP development).
+- **`npx blue-bird docker start redis`**: Boots the Redis container only.
+- **`npx blue-bird docker start dbs`**: Boots both database containers (MySQL + Redis).
 - **`npx blue-bird docker stop`**: Stops all active containers.
 - **`npx blue-bird docker build [--no-cache]`**: Builds or updates the Node.js production image.
 - **`npx blue-bird docker ps`**: Lists running project containers and ports.
@@ -243,9 +247,16 @@ npx blue-bird docker <command> [options]
 
 You can deploy Blue Bird applications to production using two main workflows:
 
-### A. Docker Container Stack (Recommended)
+### A. Docker Container Stack (Highly Recommended)
 
-1. Configure `.env` with production keys,DEBUG=false and your custom `TITLE`.
+Using the built-in Docker stack is the recommended deployment method because it sets up a complete, hardened production environment automatically:
+- **Nginx Reverse Proxy:** Captures traffic on port 3000 (or custom PORT), serves Astro client-side assets directly from the filesystem to offload the Node.js server, and proxies the rest to Express.
+- **PM2 Clustering:** Launches Node.js in cluster mode inside the container, utilizing all available CPU cores based on `PM2_INSTANCES` configuration (defaulting to 1).
+- **Security Mitigation:** Nginx blocks common malicious scanners (e.g. `/.env`, `/.git`, `/wp-admin`) instantly using a 444 status code and implements a `10r/s` request rate-limit.
+- **Services Stack:** MySQL and Redis are configured in the same bridge network automatically.
+
+To deploy via Docker:
+1. Configure `.env` with production keys, `DEBUG=false` and your custom `TITLE`.
 2. Build the production image:
    ```bash
    npx blue-bird docker build
@@ -255,9 +266,9 @@ You can deploy Blue Bird applications to production using two main workflows:
    npx blue-bird docker start prod
    ```
 
-### B. Standard PM2 / Node.js Runtime
+### B. Standard Standalone PM2 / Node.js Runtime
 
-To deploy in a standard Linux environment using PM2 process manager:
+If you choose to run outside of Docker, you must set up the reverse proxy and databases manually. To deploy in a standard Linux environment using PM2:
 
 1. Install PM2 globally:
    ```bash
@@ -265,7 +276,7 @@ To deploy in a standard Linux environment using PM2 process manager:
    ```
 2. Start the application under PM2:
    ```bash
-   pm2 start index.js --name "bluebird-app"
+   pm2 start index.js --name "bluebird-app" --node-args="--env-file=.env" -i max
    ```
 3. Monitor status:
    ```bash

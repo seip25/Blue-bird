@@ -4,11 +4,17 @@ import { apiUrl } from "../http/api";
 
 let apiData = null;
 try {
-  const response = await fetch(apiUrl("api/", Astro.url));
+  const targetUrl = apiUrl("api/", Astro.url);
+  console.log("[index.astro] request URL:", Astro.url.href);
+  console.log("[index.astro] target URL:", targetUrl);
+  const response = await fetch(targetUrl);
   apiData = await response.json();
   console.log("[index.astro] /api/ response:", apiData);
 } catch (err) {
   console.error("[index.astro] fetch error:", err.message);
+  if (err.cause) {
+    console.error("[index.astro] fetch error cause:", err.cause);
+  }
 }
 ---
 
