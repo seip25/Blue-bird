@@ -86,7 +86,15 @@ class Database {
    * @param {string} sql - SQL query string.
    * @param {Array} [params=[]] - Query parameter array.
    * @param {Object|string} [options={}] - Query options. Supports 'return_row', 'return_rows', and 'cache' (seconds).
-   * @returns {Promise<*>} Formatted query result or false on error.
+   * @returns {Promise<*>| int | boolean} Formatted query result or false on error, or insert id of insert query.
+   * @example select
+   *  const result = await connection.query("SELECT * FROM users", [], { return_row: true, cache: 60 });
+   * @example insert
+   *  const result = await connection.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", ["John Doe", "[EMAIL_ADDRESS]", "123456"]);
+   * @example update
+   *  const result = await connection.query("UPDATE users SET name = ? WHERE id = ?", ["John Doe", 1]);
+   * @example delete
+   *  const result = await connection.query("DELETE FROM users WHERE id = ?", [1]);
    */
   async query(sql, params = [], options = {}) {
     if (!mysqlPromise) return false;
@@ -103,6 +111,12 @@ class Database {
 
     const redisClient = getRedisClient();
     let cacheKey = null;
+    const isDebug = queryOptions.debug ?? false;
+    if (isDebug) {
+      console.log("[DATABASE DEBUG] SQL:", sql);
+      console.log("[DATABASE DEBUG] PARAMS:", params);
+      console.log("[DATABASE DEBUG] OPTIONS:", options);
+    }
 
     if (isSelect && queryOptions.cache && redisClient) {
       const hash = crypto
@@ -111,9 +125,19 @@ class Database {
         .digest("hex");
       cacheKey = `db:${hash}`;
       try {
+        if (isDebug) {
+          console.log("[DATABASE DEBUG ][Redis] CACHE KEY:", cacheKey);
+        }
         const cached = await redisClient.get(cacheKey);
         if (cached) {
+          if (isDebug) {
+            console.log("[DATABASE DEBUG ][Redis] CACHE HIT");
+          }
           return JSON.parse(cached);
+        } else {
+          if (isDebug) {
+            console.log("[DATABASE DEBUG ][Redis] CACHE MISS");
+          }
         }
       } catch (err) {
         console.error(

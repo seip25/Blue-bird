@@ -98,7 +98,7 @@
                 </h1>
                 <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
                     Express backend meets Astro (v7.0) frontend. AES-256-GCM encrypted sessions, SSR middleware mode,
-                    and a comprehensive Docker CLI workflow — all preconfigured.
+                    and a comprehensive Docker CLI workflow (Nginx, Redis, PM2) — all preconfigured.
                 </p>
                 <div class="flex flex-col sm:flex-row justify-center gap-4 items-center">
                     <a href="#docs"
@@ -132,7 +132,8 @@
                     flows.
                     Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing
                     clean business logic. Astro handles the frontend with SSR and file-based routing, Express handles
-                    the backend APIs.
+                    the backend APIs. Includes a preconfigured Docker stack with Nginx reverse proxy, Redis cache, and
+                    PM2 cluster scaling.
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
@@ -563,17 +564,38 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                     Database Module
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Blue Bird includes a wrapper module around the <code>mysql2</code> driver. It manages a connections pool with connection retries, custom charset settings (<code>utf8mb4</code>), response formatting based on SQL command style, and query-level Redis caching.
+                                    Blue Bird includes a wrapper module around the <code>mysql2</code> driver. It
+                                    manages a connections pool with connection retries, custom charset settings
+                                    (<code>utf8mb4</code>), response formatting based on SQL command style, and
+                                    query-level Redis caching.
                                 </p>
                                 <pre><code class="language-javascript">import connection from "@seip/blue-bird/core/database.js";
 
 // 1. Fetch a single row (SELECT query)
-const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_row");
+const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_row"); 
+//Or  
+const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], {return_row:true}); 
 
-// 2. Fetch rows with 60s Redis query caching enabled
-const products = await connection.query("SELECT * FROM products", [], { cache: 60 });
+//2 Fetch a rows (SELECT query)
+const users = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_rows"); 
+//Or 
+const users = await connection.query("SELECT * FROM users WHERE id = ?", [123], {return_rows:true}); 
 
-// 3. INSERT query (returns insertId directly)
+//3. Fetch rows with 60s Redis query caching enabled
+const products = await connection.query("SELECT * FROM products", [], { cache: 60,return_rows:true });
+
+//4 DEBUG info in querys 
+const debug = await connection.query("SELECT * FROM users", [], { debug: true });
+//output
+//[DATABASE DEBUG] SQL: SELECT * FROM users 
+//[DATABASE DEBUG] PARAMS: []
+//[DATABASE DEBUG] OPTIONS: { debug: true }
+//[DATABASE DEBUG] CACHE KEY: db:c0677a5f9075b40e1d6105f1f1d47d4b
+//[DATABASE DEBUG] CACHE MISS
+//[DATABASE DEBUG] CACHE HIT
+
+
+//5. INSERT query (returns insertId directly)
 const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);</code></pre>
                             </article>
 
@@ -635,28 +657,28 @@ npx blue-bird docker prune</code></pre>
                                         class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
                                     Production Setup (VPS / PM2)
                                 </h3>
-                                    <p class="text-slate-600 mb-6 leading-relaxed">
-                                        Using the built-in Docker stack is the recommended production deployment method.
-                                        It configures a secure, high-performance reverse proxy via Nginx, offloads
-                                        static assets directly from disk, prevents common scanner attacks, automatically
-                                        sets up Redis for caching, and launches Node.js in cluster mode under PM2.
-                                    </p>
-                                    <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
-                                        (Recommended)</h4>
-                                    <pre><code class="language-bash"># 1. Build the production image
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Using the built-in Docker stack is the recommended production deployment method.
+                                    It configures a secure, high-performance reverse proxy via Nginx, offloads
+                                    static assets directly from disk, prevents common scanner attacks, automatically
+                                    sets up Redis for caching, and launches Node.js in cluster mode under PM2.
+                                </p>
+                                <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
+                                    (Recommended)</h4>
+                                <pre><code class="language-bash"># 1. Build the production image
 npx blue-bird docker build
 
 # 2. Run the production containers stack
 npx blue-bird docker start prod</code></pre>
 
-                                    <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
-                                        Deployment</h4>
-                                    <p class="text-slate-600 mb-4 leading-relaxed">
-                                        If running on a standalone server environment outside Docker, you can manage the
-                                        Node.js application process using PM2. Note that reverse proxies and databases
-                                        must be configured manually.
-                                    </p>
-                                    <pre><code class="language-bash"># 1. Build the Astro frontend
+                                <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
+                                    Deployment</h4>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    If running on a standalone server environment outside Docker, you can manage the
+                                    Node.js application process using PM2. Note that reverse proxies and databases
+                                    must be configured manually.
+                                </p>
+                                <pre><code class="language-bash"># 1. Build the Astro frontend
 npm run build
 
 # 2. Install PM2 globally
@@ -668,7 +690,7 @@ pm2 start index.js --name "blue-bird-app" --node-args="--env-file=.env" -i max
 # 4. Save PM2 layout and enable automatic startup on boot
 pm2 save
 pm2 startup</code></pre>
-                                </article>
+                            </article>
                     </div>
                 </div>
             </div>
