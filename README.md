@@ -62,8 +62,8 @@ project/
 │   │       ├── index.astro
 │   │       └── about.astro
 │   ├── public/              # Static assets mapped to root of Astro build
-│   │   └── js/
-│   │       └── tailwind.js  # Local Tailwind compiler
+│   │   └── css/
+│   │       └── app.css      # Css files
 │   └── astro.config.mjs     # Astro configuration file
 ├── docker/
 │   └── Dockerfile           # Optimized production build file
@@ -122,8 +122,8 @@ const app = new App({
     serverEntry: "./frontend/dist/server/entry.mjs", // Path to compiled Astro server entrypoint
     client: false, // Set to true to serve static files from client build
     clientDir: "./frontend/dist/client", // Path to Astro client static assets
-    base: "/" // Mount base path
-  }
+    base: "/", // Mount base path
+  },
 });
 ```
 
