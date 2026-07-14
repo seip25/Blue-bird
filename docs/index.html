@@ -319,6 +319,7 @@
                                 configure ports, debugging levels, and Docker databases.
                             </p>
                             <pre><code class="language-ini"># Server and Application Configuration
+# Server and Application Configuration
 DEBUG=true
 PORT=3000
 HOST="localhost"
@@ -331,6 +332,14 @@ DESCRIPTION="Description project"
 
 # Security Configuration
 JWT_SECRET="JWT_SECRET"
+
+# Redis Configuration
+REDIS_HOST="localhost"
+REDIS_PORT=6379
+REDIS_PASSWORD=""
+
+# PM2 Clustering Instances (integer or 'max')
+PM2_INSTANCES='max'
 
 # Database Configuration (Used only for local development outside Docker)
 # SQLite (Default)
@@ -346,7 +355,7 @@ DATABASE_URL="file:./dev.db"
 DB_NAME="blue_bird"
 DB_USER="root"
 DB_PASSWORD="root"
-DB_PORT=3306</code></pre>
+DB_PORT=3307</code></pre>
                         </article>
 
                         <!-- App Section -->
@@ -710,8 +719,12 @@ npx blue-bird docker prune</code></pre>
                                 </p>
                                 <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
                                     (Recommended)</h4>
-                                <pre><code class="language-bash">#1. Edit .env 
+                                <pre><code class="language-bash">#1. Edit .env , debug=false and PM2_INSTANCES='max' or instances
 DEBUG=false
+PM2_INSTANCES='max'
+# PM2_INSTANCES=1
+# PM2_INSTANCES=2
+
 # 2. Build the production image
 npx blue-bird docker build
 
