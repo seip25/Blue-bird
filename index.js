@@ -1,13 +1,12 @@
-import App from "@seip/blue-bird/core/app.js";
-import routerApiExample from "./routes/api.js";
-import routerFrontendExample from "./routes/frontend.js";
+import App from "./core/app.js";
+import routerApi from "./backend/routes/api.js";
 
 /**
  * Main entry point for the Blue Bird application.
  * Initializes the App instance with routes, configuration, and starts the server.
  */
 const app = new App({
-  routes: [routerApiExample, routerFrontendExample],
+  routes: [routerApi],
 
   cors: [],
 
@@ -16,6 +15,14 @@ const app = new App({
   host: "http://localhost",
 
   port: process.env.PORT,
+
+  astro: {
+    server: true,
+    serverEntry: "./frontend/dist/server/entry.mjs",
+    client: true,
+    clientDir: "./frontend/dist/client",
+    base: "/",
+  },
 });
 
 app.run();

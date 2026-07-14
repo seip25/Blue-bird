@@ -9,23 +9,19 @@
 
 ---
 
-## 🌟 Introduction / Introducción
+## Introduction
 
-**Blue Bird** is a powerful, opinionated framework built on **Express**. It's designed to help developers build fast, scalable applications and APIs with everything pre-configured: data validation, security middlewares, GCM-encrypted JWT authentication, raw HTML template rendering with fast in-memory caching, automatic HTML minification, SEO management, hot-reload, and CLI/Docker developer workflows out of the box.
-
-**Blue Bird** es un framework potente basado en **Express**. Está diseñado para ayudar a los desarrolladores a construir aplicaciones rápidas, APIs escalables y todo pre-configurado: validación de datos, middlewares de seguridad, autenticación JWT encriptada con GCM, renderizado de plantillas HTML crudo con caché ultra rápida en memoria, minificación HTML automática, gestión de SEO, hot-reload y flujos de trabajo con Docker y CLI integrados.
+Blue Bird is a powerful, opinionated framework built on Express for backend routing and APIs, integrated with Astro (v7.0) for high-performance frontend rendering. It features pre-configured data validation, security middlewares, GCM-encrypted JWT authentication, and CLI/Docker developer workflows out of the box.
 
 ---
 
 ## 🚀 Key Features / Características Clave
 
-- ⚡ **All-In-One**: Pre-configured Express server with JSON, URL encoding, Cookies, and CORS.
-- 🚀 **Fast Rendering**: Raw HTML template rendering (`Template.render`) with in-memory caching (configurable TTL).
-- 🧹 **Automatic Minification**: Compresses whitespace and strips HTML comments automatically in production.
-- 🔐 **Premium Security**: AES-256-GCM encrypted JWT cookie auth, secure route filters, and built-in Helmet configurator.
-- 📁 **File Uploads**: Easy Multer-based single/multiple file storage handling.
-- 🔄 **SSE Hot Reload**: Automated browser hot-reloading in development (`DEBUG=true`) on file changes.
-- 🐳 **Docker & PM2 Devops**: Pre-built Docker Compose/Dockerfile templates and CLI tools for zero-config dev and VPS production.
+- All-In-One: Pre-configured Express server with JSON, URL encoding, Cookies, and CORS.
+- Astro Frontend: Native integration with Astro (v7.0) for server-side rendering (SSR), static site generation (SSG), and middleware mode.
+- Premium Security: AES-256-GCM encrypted JWT cookie auth, secure route filters, and built-in Helmet configurator.
+- File Uploads: Easy Multer-based single/multiple file storage handling.
+- Docker & PM2 Devops: Pre-built Docker Compose/Dockerfile templates and CLI tools for zero-config dev and VPS production.
 
 ---
 
@@ -58,20 +54,21 @@ npm run dev
 ```
 project/
 ├── backend/
-│   ├── routes/              # Express route files
-│   │   ├── api.js           # REST API routes
-│   │   └── frontend.js      # Frontend HTML template routes
-│   └── index.js             # App startup and initialization
+│   └── routes/              # Express route files
+│       └── api.js           # REST API routes
 ├── frontend/
-│   ├── templates/           # Raw HTML template pages (.html)
-│   │   ├── index.html
-│   │   └── about.html
-│   └── public/              # Static assets (css, js, img, fonts)
-│       └── js/
-│           └── tailwind.js  # Local Tailwind compiler
+│   ├── src/
+│   │   └── pages/           # Astro routes and pages (.astro)
+│   │       ├── index.astro
+│   │       └── about.astro
+│   ├── public/              # Static assets mapped to root of Astro build
+│   │   └── js/
+│   │       └── tailwind.js  # Local Tailwind compiler
+│   └── astro.config.mjs     # Astro configuration file
 ├── docker/
-│   └── Dockerfile           # Optimized production multi-stage build file
+│   └── Dockerfile           # Optimized production build file
 ├── docker-compose.yml       # Dev/Prod container configurations
+├── index.js                 # App startup and initialization entrypoint
 ├── AGENTS.md                # AI coding assistant guidebook
 └── .env                     # App configuration (git-ignored)
 ```
@@ -80,7 +77,7 @@ project/
 
 ## 📖 Core Modules Documentation / Documentación de Módulos
 
-### 1. Routing & SEO (`Router`)
+### 1. Routing (`Router`)
 
 Do not use Express' native router. Always use Blue Bird's wrapper class:
 
@@ -94,61 +91,41 @@ routerApi.get("/users", (req, res) => {
 export default routerApi;
 ```
 
-**For the Frontend (HTML Rendering / SEO):**
-Instantiate a router with `{ seo: true }`. All registered GET routes are automatically added to the dynamic sitemap at `/sitemap.xml` and `/robots.txt`.
-
-```javascript
-const router = new Router("/", { seo: true });
-router.get("/", (req, res) => {
-  return Template.render(res, "index", {
-    metaTags: {
-      titleMeta: "Home",
-      descriptionMeta: "Welcome to Blue Bird Framework",
-    },
-  });
-});
-```
-
 ---
 
-### 2. HTML Template Rendering (`Template`)
+### 2. Astro Node Middleware Integration
 
-Renders raw HTML files from `frontend/templates/`. Replaces double-curly placeholders `{{variable}}` with matching values from options, metaTags, or system env.
+Blue Bird supports Astro (v7.0) Node middleware mode. Astro handles frontend SSR, routing, static assets, and layouts, while Express handles API endpoints and server logic.
 
-#### Standard Placeholders
-
-- `{{lang}}`: Selected/active language code.
-- `{{title}}` or `{{titleMeta}}`: Page HTML title.
-- `{{canonicalUrl}}`: Canonical page URL for crawlers.
-- `{{description}}`: Meta description.
-- `{{keywords}}`: Meta keywords.
-- `{{author}}`: Meta author.
+To enable Astro integration:
 
 ```javascript
-import Template from "@seip/blue-bird/core/template.js";
+import App from "@seip/blue-bird/core/app.js";
+import routerApi from "./backend/routes/api.js";
 
-router.get("/about", (req, res) => {
-  return Template.render(res, "about", {
-    cache: 60, // Cache TTL in seconds (only when DEBUG=false)
-    minify: true, // Automatically minifies whitespace and strips comments
-    metaTags: {
-      titleMeta: "About Us",
-      descriptionMeta: "Learn more about us",
-    },
-  });
+const app = new App({
+  routes: [routerApi],
+  astro: true, // Enables Astro middleware mode
 });
+
+app.run();
 ```
 
-#### Cache Controls
+#### Advanced Config Options
 
-- `DEBUG=true` -> Cache is always bypassed.
-- `DEBUG=false` -> Cached in-memory for TTL duration.
-- Programmatic management:
-  ```javascript
-  Template.clearCache(); // Clear all cache
-  Template.clearCache("about"); // Clear specific cache key
-  Template.getCacheKeys(); // Returns active cache keys
-  ```
+You can pass a configuration object instead of a boolean value:
+
+```javascript
+const app = new App({
+  astro: {
+    server: true, // Mounts Astro SSR handler
+    serverEntry: "./frontend/dist/server/entry.mjs", // Path to compiled Astro server entrypoint
+    client: false, // Set to true to serve static files from client build
+    clientDir: "./frontend/dist/client", // Path to Astro client static assets
+    base: "/" // Mount base path
+  }
+});
+```
 
 ---
 
@@ -288,7 +265,7 @@ To deploy in a standard Linux environment using PM2 process manager:
    ```
 2. Start the application under PM2:
    ```bash
-   pm2 start backend/index.js --name "bluebird-app"
+   pm2 start index.js --name "bluebird-app"
    ```
 3. Monitor status:
    ```bash

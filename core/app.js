@@ -10,8 +10,6 @@ import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
 import Debug from "./debug.js";
-import Template from "./template.js";
-import SEO from "./seo.js";
 
 const __dirname = Config.dirname();
 const props = Config.props();
@@ -36,7 +34,8 @@ class App {
    * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
    * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
    * @param {boolean|Object} [options.swagger=false] - Enable swagger.
-   * @param {boolean} [options.compression=true] - Enable Gzip compression.
+   * @param {boolean} [options.compression=true] - Enable compression.
+   * @param {boolean} [options.astro=true] - Astro handler.
    * @example
    * const app = new App({
    *     routes: [],
@@ -55,7 +54,14 @@ class App {
    *         info: { title: "Blue Bird API", version: "1.0.0", description: "API Documentation" },
    *         url: "http://localhost:8000"
    *     },
-   *     compression: true
+   *     compression:true,
+   *     astro: {
+   *       server: true,
+   *       serverEntry: "./frontend/dist/server/entry.mjs",
+   *       client: false,
+   *       clientDir: "./frontend/dist/client",
+   *       base: "/"
+   *     }
    * });
    */
   constructor(options = {}) {
@@ -75,6 +81,7 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
+    this.astro = options.astro || false;
     this.loggerInstance = new Logger();
     /** @type {Set<import('http').ServerResponse>} */
     this._hotReloadClients = new Set();
@@ -121,13 +128,16 @@ class App {
 
     if (this.static.path)
       this.app.use(
-        express.static(
-          path.join(__dirname, this.static.path),
-          { ...this.static.options, setHeaders: (res) => {
-            res.setHeader("X-Powered-By", "Blue Bird"); 
-            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-          }},
-        ),
+        express.static(path.join(__dirname, this.static.path), {
+          ...this.static.options,
+          setHeaders: (res) => {
+            res.setHeader("X-Powered-By", "Blue Bird");
+            res.setHeader(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
+          },
+        }),
       );
 
     this.app.use(cors(this.cors));
@@ -165,13 +175,12 @@ class App {
     if (this.logger || props.debug) this._middlewareLogger(this.logger);
 
     this.app.use((req, res, next) => {
-      res.setHeader("X-Powered-By", "Blue Bird"); 
-       next();
+      res.setHeader("X-Powered-By", "Blue Bird");
+      next();
     });
 
     if (props.debug) {
       Debug.middlewareMetrics(this.app);
-      this._setupHotReload();
     }
 
     if (this.swagger) {
@@ -196,70 +205,65 @@ class App {
 
     this._dispatchRoutes();
 
-    SEO.registerEndpoints(this.app);
+    if (this.astro) {
+      const defaultAstro = {
+        server: true,
+        serverEntry: "./frontend/dist/server/entry.mjs",
+        client: false,
+        clientDir: "./frontend/dist/client",
+        base: "/",
+      };
+      const astroConfig =
+        typeof this.astro === "object"
+          ? { ...defaultAstro, ...this.astro }
+          : { ...defaultAstro };
+
+      if (astroConfig.client) {
+        const clientPath = path.resolve(astroConfig.clientDir);
+        if (fs.existsSync(clientPath)) {
+          this.app.use(astroConfig.base, express.static(clientPath));
+          console.log(
+            chalk.green(
+              `[OK] Astro Static Client Assets registered at ${astroConfig.base}`,
+            ),
+          );
+        } else {
+          console.warn(
+            chalk.yellow(
+              `[WARN] Astro client directory not found at: ${clientPath}`,
+            ),
+          );
+        }
+      }
+
+      if (astroConfig.server) {
+        const entryPath = path.resolve(astroConfig.serverEntry);
+        if (fs.existsSync(entryPath)) {
+          try {
+            const { handler: ssrHandler } = await import(entryPath);
+            this.app.use(ssrHandler);
+            console.log(
+              chalk.green("[OK] Astro SSR Handler registered successfully."),
+            );
+          } catch (error) {
+            console.error(
+              chalk.red("[ERROR] Failed to load Astro SSR Handler:"),
+              error.message,
+            );
+          }
+        } else {
+          console.warn(
+            chalk.yellow(
+              `[WARN] Astro build entrypoint not found at: ${entryPath}`,
+            ),
+          );
+        }
+      }
+    }
 
     if (this.notFound) this._notFoundDefault();
 
     this._errorHandler();
-  }
-
-  /**
-   * Sets up hot-reload using Server-Sent Events (SSE).
-   * Watches the frontend/ directory for .html, .css, .js file changes and notifies connected browsers.
-   * Also clears the Template cache on file changes so fresh content is served.
-   * Only active when DEBUG=true in .env.
-   * @private
-   */
-  _setupHotReload() {
-    this.app.get("/__hot-reload", (req, res) => {
-      res.setHeader("x-no-compression", "true");
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no",
-      });
-      res.write("data: connected\n\n");
-      if (typeof res.flush === "function") {
-        res.flush();
-      }
-      this._hotReloadClients.add(res);
-      req.on("close", () => {
-        this._hotReloadClients.delete(res);
-      });
-    });
-
-    const frontendPath = path.join(__dirname, "frontend");
-    let debounceTimer = null;
-
-    const notifyClients = () => {
-      this._hotReloadClients.forEach((client) => {
-        try {
-          client.write("data: reload\n\n");
-          if (typeof client.flush === "function") {
-            client.flush();
-          }
-        } catch (_) {
-          this._hotReloadClients.delete(client);
-        }
-      });
-    };
-
-    try {
-      fs.watch(frontendPath, { recursive: true }, (eventType, filename) => {
-        if (!filename) return;
-        if (/\.(html|css|js)$/i.test(filename)) {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            console.log(chalk.magenta(`[Hot Reload] ${filename} changed`));
-            Template.clearCache();
-            notifyClients();
-          }, 200);
-        }
-      });
-    } catch (_) {
-      console.log(chalk.yellow("[Hot Reload] Could not watch frontend/ directory"));
-    }
   }
 
   /**
@@ -279,6 +283,7 @@ class App {
         Object.keys(req.params).length > 0
           ? ` ${JSON.stringify(req.params)}`
           : "";
+
       const ip = req.ip;
       const now = new Date().toISOString();
       const time = `${now.split("T")[0]} ${now.split("T")[1].split(".")[0]}`;
@@ -357,14 +362,14 @@ class App {
         this.app.listen(this.port, () => {
           console.log(
             chalk.bold.blue("Blue Bird Server Online\n") +
-            chalk.bold.cyan("App URL: ") +
-            chalk.green(`${this.appUrl}`) +
-            "\n" +
-            chalk.bold.cyan("Internal: ") +
-            chalk.green(`${this.host}:${this.port}`) +
-            "\n" +
-            (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
-            chalk.gray("────────────────────────────────"),
+              chalk.bold.cyan("App URL: ") +
+              chalk.green(`${this.appUrl}`) +
+              "\n" +
+              chalk.bold.cyan("Internal: ") +
+              chalk.green(`${this.host}:${this.port}`) +
+              "\n" +
+              (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
+              chalk.gray("────────────────────────────────"),
           );
         });
       })

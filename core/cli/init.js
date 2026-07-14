@@ -78,7 +78,8 @@ class ProjectInit {
             "docker",
             "docker-compose.yml",
             ".env_example",
-            "AGENTS.md"
+            "AGENTS.md",
+            "index.js"
         ];
 
         try {
@@ -174,8 +175,11 @@ class ProjectInit {
             pkg.scripts = pkg.scripts || {};
 
             const scriptsToAdd = {
-                "dev": "node --watch --env-file=.env backend/index.js",
-                "start": "node --env-file=.env backend/index.js",
+                "dev": "node --watch --env-file=.env index.js",
+                "dev:astro": "astro dev --root frontend",
+                "dev:api": "node --watch --env-file=.env index.js",
+                "start": "node --env-file=.env index.js",
+                "build": "astro build --root frontend",
                 "init": "blue-bird",
                 "route": "blue-bird route",
                 "swagger-install": "blue-bird swagger-install",
@@ -190,9 +194,14 @@ class ProjectInit {
                 }
             }
 
+            if (pkg.type !== "module") {
+                pkg.type = "module";
+                updated = true;
+            }
+
             if (updated) {
                 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-                console.log(chalk.green("[OK] Updated package.json scripts."));
+                console.log(chalk.green("[OK] Updated package.json configuration."));
             }
         }
     }

@@ -1,11 +1,15 @@
 import Router from "@seip/blue-bird/core/router.js";
 import Validator from "@seip/blue-bird/core/validate.js";
 import Cache from "@seip/blue-bird/core/cache.js";
-import Auth from "@seip/blue-bird/core/auth.js"
+import Auth from "@seip/blue-bird/core/auth.js";
 
-const routerApiExample = new Router("/api");
+const routerApi = new Router("/api");
 
-routerApiExample.get("/users", (req, res) => {
+routerApi.get("//", (req, res) => {
+  res.json({ api: true, message: "Bluebird API", time: Date.now() });
+});
+
+routerApi.get("/users", (req, res) => {
   const users = [
     {
       name: "John Doe",
@@ -26,28 +30,28 @@ const loginSchema = {
 
 const loginValidator = new Validator(loginSchema);
 
-routerApiExample.post("/login", loginValidator.middleware(), (req, res) => {
+routerApi.post("/login", loginValidator.middleware(), (req, res) => {
   res.json({ message: "Login successful", body: req.body });
 });
 
-routerApiExample.get("/cache", Cache.middleware(), async (req, res) => {
-  await new Promise(resolve => setTimeout(resolve, 2000));
+routerApi.get("/cache", Cache.middleware(), async (req, res) => {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
   res.json({ message: "Cache successful" });
-})
+});
 
-routerApiExample.get("/auth_generate", async (req, res) => {
-  const token = await Auth.login(res, { id: 1, name: "John Doe" })
+routerApi.get("/auth_generate", async (req, res) => {
+  const token = await Auth.login(res, { id: 1, name: "John Doe" });
   res.json({ message: "Auth successful", token });
-})
+});
 
-routerApiExample.get("/auth_logout", async (req, res) => {
-  await Auth.logout(res)
+routerApi.get("/auth_logout", async (req, res) => {
+  await Auth.logout(res);
   res.json({ message: "Auth successful" });
-})
+});
 
-routerApiExample.get("/auth_verify", Auth.protect(), (req, res) => {
-  const userInfo = req.user
+routerApi.get("/auth_verify", Auth.protect(), (req, res) => {
+  const userInfo = req.user;
   res.json({ message: "Auth successful", user: userInfo });
-})
+});
 
-export default routerApiExample;
+export default routerApi;

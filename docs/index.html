@@ -4,38 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Blue Bird Framework | High-Performance Express Framework for Modern Web Apps">
-    <meta name="keywords" content="Blue Bird Framework, Express, Raw HTML, Node.js, JavaScript, Docker, Caching">
+    <meta name="description"
+        content="Blue Bird Framework | High-Performance Express + Astro Framework for Modern Web Apps">
+    <meta name="keywords" content="Blue Bird Framework, Express, Astro, Node.js, JavaScript, Docker, SSR, Middleware">
     <meta name="author" content="Seip">
     <link rel="icon" href="blue-bird.png">
     <title>Blue Bird Framework — Documentation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
-                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
-                            800: '#075985', 900: '#0c4a6e',
-                        }
-                    }
-                }
-            }
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --color-brand-50: #f0f9ff;
+            --color-brand-100: #e0f2fe;
+            --color-brand-200: #bae6fd;
+            --color-brand-300: #7dd3fc;
+            --color-brand-400: #38bdf8;
+            --color-brand-500: #0ea5e9;
+            --color-brand-600: #0284c7;
+            --color-brand-700: #0369a1;
+            --color-brand-800: #075985;
+            --color-brand-900: #0c4a6e;
         }
-    </script>
-    <style>
+
         .glass {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -99,8 +97,8 @@
                         Framework.</span>
                 </h1>
                 <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-                    Designed for maximum speed. Pure HTML template rendering with instant in-memory caching, AES-256-GCM
-                    encrypted sessions, and a comprehensive Docker CLI workflow.
+                    Express backend meets Astro (v7.0) frontend. AES-256-GCM encrypted sessions, SSR middleware mode,
+                    and a comprehensive Docker CLI workflow — all preconfigured.
                 </p>
                 <div class="flex flex-col sm:flex-row justify-center gap-4 items-center">
                     <a href="#docs"
@@ -130,19 +128,23 @@
                     class="text-3xl font-bold text-slate-900 mb-8 underline decoration-brand-500 decoration-4 underline-offset-8">
                     The Blue Bird Philosophy</h2>
                 <p class="text-lg text-slate-600 leading-relaxed mb-8">
-                    Stop wasting time configuring CORS, security headers, database configurations, and authentication
-                    layouts. Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on
-                    writing clean business logic, using pure static HTML views with instant render speeds.
+                    Stop wasting time configuring CORS, security headers, database connections, and authentication
+                    flows.
+                    Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing
+                    clean business logic. Astro handles the frontend with SSR and file-based routing, Express handles
+                    the backend APIs.
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h4 class="font-bold text-brand-600 mb-2">⚡ Hybrid Speed Architecture</h4>
-                        <p class="text-sm text-slate-500">Pure HTML views compiled directly from memory, combined with a
-                            robust Express JSON API backend. It keeps CPU, RAM, and Disk IO footprint at a bare minimum.
+                        <h4 class="font-bold text-brand-600 mb-2">Astro + Express Architecture</h4>
+                        <p class="text-sm text-slate-500">Astro (v7.0) runs as an Express middleware handler in SSR
+                            mode.
+                            Frontend pages live in <code>frontend/src/pages/</code> with full file-based routing.
+                            Express owns the API layer at <code>/api/*</code>.
                         </p>
                     </div>
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h4 class="font-bold text-brand-600 mb-2">🐳 Built-in Orchestration</h4>
+                        <h4 class="font-bold text-brand-600 mb-2">Built-in Orchestration</h4>
                         <p class="text-sm text-slate-500">Includes a comprehensive Docker Compose CLI wrapper to
                             bootstrap, build, stop, and clean dev and production environments with zero manual
                             scripting.</p>
@@ -170,11 +172,10 @@
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Application
                                 (App)</a>
                             <a href="#doc-router"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Routing
-                                & SEO</a>
-                            <a href="#doc-template"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Template
-                                Engine</a>
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Routing</a>
+                            <a href="#doc-astro"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Astro
+                                Integration</a>
                             <a href="#doc-validator"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Validation</a>
                             <a href="#doc-auth"
@@ -204,23 +205,20 @@
                         <!-- Stat Highlights -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                             <div class="p-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl text-white">
-                                <div class="text-2xl mb-4">⚡</div>
-                                <h4 class="font-bold text-lg mb-2">RAM Caching</h4>
-                                <p class="text-slate-400 text-sm">HTML compile results are stored in the server's RAM.
-                                    Delivers responses in microseconds.</p>
+                                <h4 class="font-bold text-lg mb-2">Astro SSR</h4>
+                                <p class="text-slate-400 text-sm">Astro (v7.0) renders pages server-side via its Node
+                                    adapter in middleware mode, mounted directly inside Express.</p>
                             </div>
                             <div
                                 class="p-8 bg-gradient-to-br from-indigo-600 to-brand-600 rounded-3xl text-white shadow-xl shadow-brand-100">
-                                <div class="text-2xl mb-4">🛡️</div>
                                 <h4 class="font-bold text-lg mb-2">Safe by Design</h4>
                                 <p class="text-indigo-100 text-sm">Strict AES-256-GCM session tokens and automatic XSS
                                     filtering on incoming requests.</p>
                             </div>
                             <div class="p-8 bg-slate-100 rounded-3xl border border-slate-200 text-slate-800">
-                                <div class="text-2xl mb-4">📦</div>
-                                <h4 class="font-bold text-lg mb-2">Clean Minify</h4>
-                                <p class="text-slate-500 text-sm">Automatic production code minification. Drops white
-                                    space and strips comments on compile.</p>
+                                <h4 class="font-bold text-lg mb-2">Unified Scripts</h4>
+                                <p class="text-slate-500 text-sm">Single <code>package.json</code> at the root manages
+                                    both Express and Astro builds, no sub-project complexity.</p>
                             </div>
                         </div>
 
@@ -247,18 +245,58 @@
                             </p>
                             <pre><code class="language-bash">npx blue-bird</code></pre>
                             <p class="text-slate-600 mb-4 leading-relaxed text-sm">
-                                This will generate files such as <code>.env</code>, <code>backend/</code>,
-                                <code>frontend/</code>, and other basic configurations.
+                                This generates <code>.env</code>, <code>backend/</code>, <code>frontend/</code>,
+                                <code>index.js</code>, and sets <code>type: "module"</code> automatically.
                             </p>
 
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Package Configuration</h4>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Build the Frontend</h4>
                             <p class="text-slate-600 mb-2 leading-relaxed text-sm">
-                                Ensure your <code>package.json</code> is set to use ES Modules by adding
-                                <code>"type": "module"</code>
+                                Compile the Astro project before starting the Express server for the first time.
                             </p>
-                            <pre><code class="language-json">{
-  "type": "module"
-}</code></pre>
+                            <pre><code class="language-bash">npm run build</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">4. Available Scripts</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                                    <thead class="bg-slate-100 text-slate-600 font-bold">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left">Script</th>
+                                            <th class="px-4 py-3 text-left">Command</th>
+                                            <th class="px-4 py-3 text-left">Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npm run dev</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --watch index.js</td>
+                                            <td class="px-4 py-3 text-slate-500">Express with file-watcher (uses
+                                                compiled Astro build)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npm run dev:astro</td>
+                                            <td class="px-4 py-3 font-mono text-xs">astro dev --root frontend</td>
+                                            <td class="px-4 py-3 text-slate-500">Astro dev server with HMR on its own
+                                                port</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npm run dev:api</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --watch index.js</td>
+                                            <td class="px-4 py-3 text-slate-500">Express API only (no Astro SSR)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npm run build</td>
+                                            <td class="px-4 py-3 font-mono text-xs">astro build --root frontend</td>
+                                            <td class="px-4 py-3 text-slate-500">Compiles Astro to
+                                                <code>frontend/dist/</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
+                                            <td class="px-4 py-3 text-slate-500">Production server startup</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </article>
 
                         <!-- Config Section -->
@@ -277,20 +315,11 @@ DEBUG=true
 PORT=3000
 HOST="localhost"
 APP_URL="http://localhost"
-STATIC_PATH="frontend/public"
 VERSION="1.0.0"
-BLUEBIRD_PROJECT_NAME="bluebird"
 
-#Docker /Swagger config
+# Docker / Swagger Config
 TITLE="Blue-Bird"
 DESCRIPTION="Description project"
-
-# HTML Meta / SEO Configuration
-TITLE_META="Blue Bird"
-DESCRIPTION_META="Example description meta"
-KEYWORDS_META="Example keywords meta"
-AUTHOR_META="Blue Bird"
-LANGMETA="en"
 
 # Security Configuration
 JWT_SECRET="JWT_SECRET"
@@ -324,14 +353,14 @@ DB_PORT=3306</code></pre>
                                 policies, cookies, and route handlers.
                             </p>
                             <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
-import routerFrontend from "./routes/frontend.js";
-import routerApi from "./routes/api.js";
+import routerApi from "./backend/routes/api.js";
 
 const app = new App({
   port: 3000,
-  routes: [routerFrontend, routerApi],
+  routes: [routerApi],
   cors: { origin: "http://localhost:3000" },
-  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 }
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 },
+  astro: true
 });
 
 app.run();</code></pre>
@@ -342,91 +371,97 @@ app.run();</code></pre>
                             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                 <span
                                     class="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center text-sm font-bold">4</span>
-                                Routing &amp; SEO
+                                Routing
                             </h3>
                             <p class="text-slate-600 mb-6 leading-relaxed">
                                 Do not use native Express routers. Always use Blue Bird's custom <code>Router</code>
-                                class wrapper. Set `{ seo: true }` to automatically populate the site maps.
+                                class wrapper.
                             </p>
                             <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
-import Template from "@seip/blue-bird/core/template.js";
 
-// Instantiates a router with sitemap/robots automation enabled
-const router = new Router("/", { seo: true });
+const router = new Router("/api");
 
-router.get("/", (req, res) => {
-  return Template.render(res, "index", {
-    metaTags: {
-      titleMeta: "Home Page",
-      descriptionMeta: "Welcome to our application"
-    }
-  });
+router.get("/users", (req, res) => {
+  res.json({ users: [] });
 });
 
 export default router;</code></pre>
-                            <div
-                                class="p-5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 leading-relaxed">
-                                <strong>💡 SEO Automation:</strong> A router initialized with <code>{ seo: true }</code>
-                                registers sitemap mappings automatically. The system will expose live dynamically
-                                updated endpoints at <code>/sitemap.xml</code> and <code>/robots.txt</code>.
-                            </div>
-                        </article>
 
-                        <!-- Template Engine Section -->
-                        <article id="doc-template" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">5</span>
-                                Template Engine (Template)
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Renders physical static <code>.html</code> files located in
-                                <code>frontend/templates/</code>. Replaces standard tags dynamically at speed:
-                            </p>
-                            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-                                <div class="bg-slate-100 p-3 rounded-lg"><code
-                                        class="text-brand-600 font-bold">{{title}}</code>: Meta title tag</div>
-                                <div class="bg-slate-100 p-3 rounded-lg"><code
-                                        class="text-brand-600 font-bold">{{description}}</code>: Meta description text
-                                </div>
-                                <div class="bg-slate-100 p-3 rounded-lg"><code
-                                        class="text-brand-600 font-bold">{{keywords}}</code>: Meta keywords string</div>
-                                <div class="bg-slate-100 p-3 rounded-lg"><code
-                                        class="text-brand-600 font-bold">{{lang}}</code>: Active page language</div>
-                            </div>
-                            <pre><code class="language-javascript">import Template from "@seip/blue-bird/core/template.js";
+                            <!-- Astro Section -->
+                            <article id="doc-astro" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">5</span>
+                                    Astro Integration
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Blue Bird integrates Astro (v7.0) with the <code>@astrojs/node</code> adapter in
+                                    <code>middleware</code> mode. Astro handles frontend SSR, file-based routing, and
+                                    static
+                                    assets. Express owns the <code>/api/*</code> layer. Both run in a single Node.js
+                                    process.
+                                </p>
 
-router.get("/about", (req, res) => {
-  return Template.render(res, "about", {
-    cache: 60, // TTL in seconds (skipped when DEBUG=true)
-    minify: true, // Compress code & strip comments in production
-    metaTags: {
-      titleMeta: "About Us",
-      descriptionMeta: "Read more about our operations"
-    }
-  });
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Astro Config (frontend/astro.config.mjs)
+                                </h4>
+                                <pre><code class="language-javascript">import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
+
+export default defineConfig({
+  output: 'server',
+  adapter: node({
+    mode: 'middleware',
+  }),
 });</code></pre>
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">Programmatic Cache Invalidation</h4>
-                            <pre><code class="language-javascript">// Clear all cached pages in memory
-Template.clearCache();
 
-// Clear specific page cache
-Template.clearCache("about");</code></pre>
-                        </article>
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">App Constructor Options</h4>
+                                <p class="text-slate-600 mb-4 text-sm leading-relaxed">
+                                    Pass <code>astro: true</code> for defaults, or a config object for full control:
+                                </p>
+                                <pre><code class="language-javascript">const app = new App({
+  routes: [routerApi],
+  astro: {
+    server: true,                                       // Mount Astro SSR handler
+    serverEntry: "./frontend/dist/server/entry.mjs",    // Path to compiled entrypoint
+    client: false,                                      // Set true to serve static assets
+    clientDir: "./frontend/dist/client",                // Path to Astro client assets
+    base: "/"                                           // Base URL mount path
+  }
+});</code></pre>
 
-                        <!-- Validation Section -->
-                        <article id="doc-validator" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">6</span>
-                                Validation (Validator)
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Checks request payload schemas automatically. It cleanses strings to prevent cross-site
-                                scripting (XSS) by default, and responds with a standard <code>400 Bad Request</code>
-                                validation array on failures.
-                            </p>
-                            <pre><code class="language-javascript">import Validator from "@seip/blue-bird/core/validate.js";
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Development Workflow</h4>
+                                <pre><code class="language-bash"># Build Astro first (required before npm run dev)
+npm run build
+
+# Start Express server (uses compiled Astro build for SSR)
+npm run dev
+
+# OR: run Astro dev server separately for HMR on http://localhost:4321
+npm run dev:astro</code></pre>
+                                <div
+                                    class="p-5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 leading-relaxed">
+                                    <strong>Note:</strong> Pages go in <code>frontend/src/pages/</code> using Astro's
+                                    file-based routing. Static assets go in <code>frontend/public/</code>.
+                                    Run <code>npm run build</code> after each frontend change when using
+                                    <code>npm run dev</code>.
+                                </div>
+                            </article>
+
+                            <!-- Validation Section -->
+                            <article id="doc-validator" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                    Validation (Validator)
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Checks request payload schemas automatically. It cleanses strings to prevent
+                                    cross-site
+                                    scripting (XSS) by default, and responds with a standard
+                                    <code>400 Bad Request</code>
+                                    validation array on failures.
+                                </p>
+                                <pre><code class="language-javascript">import Validator from "@seip/blue-bird/core/validate.js";
 
 const userSchema = {
   email: { required: true, email: true },
@@ -439,25 +474,26 @@ const validateUser = new Validator(userSchema, "en");
 routerApi.post("/users", validateUser.middleware(), (req, res) => {
   res.json({ success: true });
 });</code></pre>
-                        </article>
+                            </article>
 
-                        <!-- Auth Section -->
-                        <article id="doc-auth" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">7</span>
-                                Authentication (Auth)
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Implements stateless JWT authentication. Payload structures are encrypted with
-                                military-grade AES-256-GCM algorithms and set inside secure, signed cookies or read from
-                                header strings.
-                            </p>
-                            <pre><code class="language-javascript">import Auth from "@seip/blue-bird/core/auth.js";
+                            <!-- Auth Section -->
+                            <article id="doc-auth" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">7</span>
+                                    Authentication (Auth)
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Implements stateless JWT authentication. Payload structures are encrypted with
+                                    military-grade AES-256-GCM algorithms and set inside secure, signed cookies or read
+                                    from
+                                    header strings.
+                                </p>
+                                <pre><code class="language-javascript">import Auth from "@seip/blue-bird/core/auth.js";
 
-// 1. Protecting routes (API returns 401, Web pages redirect to target path)
-router.get("/dashboard", Auth.protect({ redirect: "/login" }), (req, res) => {
-  Template.render(res, "dashboard");
+// 1. Protecting API routes (returns 401 on failure)
+router.get("/api/profile", Auth.protect(), (req, res) => {
+  res.json({ user: req.user });
 });
 
 // 2. Logging in and setting session cookies
@@ -472,58 +508,60 @@ router.post("/api/logout", async (req, res) => {
   await Auth.logout(res);
   res.json({ success: true });
 });</code></pre>
-                        </article>
+                            </article>
 
-                        <!-- Cache Section -->
-                        <article id="doc-cache" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">8</span>
-                                Cache Middleware
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                For database or heavy operations, cache the resulting JSON/HTML stream automatically
-                                using our routing middleware cache wrapper.
-                            </p>
-                            <pre><code class="language-javascript">import Cache from "@seip/blue-bird/core/cache.js";
+                            <!-- Cache Section -->
+                            <article id="doc-cache" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">8</span>
+                                    Cache Middleware
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    For database or heavy operations, cache the resulting JSON/HTML stream automatically
+                                    using our routing middleware cache wrapper.
+                                </p>
+                                <pre><code class="language-javascript">import Cache from "@seip/blue-bird/core/cache.js";
 
 // Cache this API result for 60 seconds
 router.get("/api/statistics", Cache.middleware(60), (req, res) => {
   res.json({ computedData: [10, 20, 30] });
 });</code></pre>
-                        </article>
+                            </article>
 
-                        <!-- Helmet Section -->
-                        <article id="doc-helmet" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">9</span>
-                                Helmet Security
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Protect HTTP response headers by applying Helmet rules. You can declare Helmet policies
-                                per-router. Custom configuration keeps <code>X-Powered-By: Blue Bird</code> headers
-                                active by default.
-                            </p>
-                            <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
+                            <!-- Helmet Section -->
+                            <article id="doc-helmet" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">9</span>
+                                    Helmet Security
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Protect HTTP response headers by applying Helmet rules. You can declare Helmet
+                                    policies
+                                    per-router. Custom configuration keeps <code>X-Powered-By: Blue Bird</code> headers
+                                    active by default.
+                                </p>
+                                <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
 
 const apiRouter = new Router("/api");
 apiRouter.use(App.helmet()); // Uses default policies
 
 const secureWebRouter = new Router("/web");
 secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables CSP restrictions</code></pre>
-                                        <!-- Docker Section -->
-                        <article id="doc-docker" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
-                                Docker CLI Command Wrapper
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Manage development containers and full-stack deployments directly using the built-in
-                                Docker CLI tool wrapper.
-                            </p>
-                            <pre><code class="language-bash"># Start Production Application Stack (App + MySQL)
+                                <!-- Docker Section -->
+                                <article id="doc-docker" class="mb-24 scroll-mt-24">
+                                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                        <span
+                                            class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                        Docker CLI Command Wrapper
+                                    </h3>
+                                    <p class="text-slate-600 mb-6 leading-relaxed">
+                                        Manage development containers and full-stack deployments directly using the
+                                        built-in
+                                        Docker CLI tool wrapper.
+                                    </p>
+                                    <pre><code class="language-bash"># Start Production Application Stack (App + MySQL)
 npx blue-bird docker start prod
 
 # Start MySQL Database Container Only (Ideal for Local Development)
@@ -546,31 +584,35 @@ npx blue-bird docker db
 
 # Remove Unused Volumes, Dangling Images, and Buildkit Cache
 npx blue-bird docker prune</code></pre>
-                        </article>
+                                </article>
 
-                        <!-- Production Section -->
-                        <article id="doc-production" class="mb-24 scroll-mt-24">
-                            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                <span
-                                    class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">11</span>
-                                Production Setup (VPS / PM2)
-                            </h3>
-                            <p class="text-slate-600 mb-6 leading-relaxed">
-                                Outside of Docker, you can run and manage production instances using PM2 process manager
-                                for maximum uptime and automated cluster scaling.
-                            </p>
-                            <pre><code class="language-bash"># Install PM2 globally
+                                <!-- Production Section -->
+                                <article id="doc-production" class="mb-24 scroll-mt-24">
+                                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                        <span
+                                            class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">11</span>
+                                        Production Setup (VPS / PM2)
+                                    </h3>
+                                    <p class="text-slate-600 mb-6 leading-relaxed">
+                                        Outside of Docker, you can run and manage production instances using PM2 process
+                                        manager
+                                        for maximum uptime and automated cluster scaling.
+                                    </p>
+                                    <pre><code class="language-bash"># 1. Build the Astro frontend
+npm run build
+
+# 2. Install PM2 globally
 npm install pm2 -g
 
-# Start the application in production mode
-pm2 start backend/index.js --name "blue-bird-app" --node-args="--env-file=.env"
+# 3. Start the application in production mode
+pm2 start index.js --name "blue-bird-app" --node-args="--env-file=.env"
 
-# Save the PM2 cluster layout to restore automatically on reboots
+# 4. Save the PM2 cluster layout to restore automatically on reboots
 pm2 save
 
-# Make PM2 restart automatically on system startup
+# 5. Make PM2 restart automatically on system startup
 pm2 startup</code></pre>
-                        </article>
+                                </article>
                     </div>
                 </div>
             </div>

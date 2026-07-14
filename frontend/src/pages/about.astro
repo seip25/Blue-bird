@@ -1,0 +1,54 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="About - Blue Bird">
+  <header class="site-header">
+    <div class="nav-bar">
+      <a href="/" class="nav-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+        </div>
+        Blue Bird
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container py-3xl">
+    <a href="/" class="btn btn-outline text-sm mb-2xl" style="width:fit-content;">
+      &larr; Back to Home
+    </a>
+
+    <div class="card-glass py-3xl px-lg" style="max-width:52rem;">
+      <span class="badge mb-lg" style="display:inline-flex;">Framework</span>
+      <h1 class="gradient-text mt-md">About Blue Bird</h1>
+      <p class="mt-lg">
+        Blue Bird is an Express-based framework with native support for Astro frontend rendering.
+        It provides raw performance, developer efficiency, and a clean project layout — batteries
+        included for auth, validation, caching, Docker orchestration, and more.
+      </p>
+
+      <div class="grid-2 mt-2xl">
+        <div class="card">
+          <h4 class="mb-md">Express Backend</h4>
+          <p class="text-sm">REST APIs, JWT auth, rate limiting, CORS, and Helmet security — all preconfigured via a clean constructor API.</p>
+        </div>
+        <div class="card">
+          <h4 class="mb-md">Astro Frontend</h4>
+          <p class="text-sm">File-based routing, SSR, View Transitions, and island architecture. Use Tailwind or any CSS framework you prefer.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Powered by Blue Bird Framework &amp; Astro. All rights reserved.</p>
+  </footer>
+</Layout>

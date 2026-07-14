@@ -1,6 +1,6 @@
 import express from "express";
 import Config from "./config.js";
-import SEO from "./seo.js";
+
 
 const props = Config.props();
 
@@ -57,11 +57,7 @@ class Router {
     if (path === "/*" || path === "*") {
       path = /.*/;
     }
-    if (this._seo && typeof path === "string") {
-      const fullPath = this.path === "/" ? path : `${this.path}${path}`;
-      const normalizedPath = fullPath === "//" ? "/" : fullPath.replace(/\/+/g, "/");
-      SEO.addRoute(normalizedPath, this._languages);
-    }
+
     this.router.get(path, callback);
   }
 

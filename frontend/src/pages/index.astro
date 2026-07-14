@@ -1,0 +1,104 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { apiUrl } from "../http/api";
+
+let apiData = null;
+try {
+  const response = await fetch(apiUrl("api/", Astro.url));
+  apiData = await response.json();
+  console.log("[index.astro] /api/ response:", apiData);
+} catch (err) {
+  console.error("[index.astro] fetch error:", err.message);
+}
+---
+
+<Layout title="Home - Blue Bird">
+  <header class="site-header">
+    <div class="nav-bar">
+      <a href="/" class="nav-brand">
+        <div class="brand-icon">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="white"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
+        </div>
+        Blue Bird
+      </a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container py-3xl">
+    <div class="hero">
+      <div class="hero-glow hero-glow-1"></div>
+      <div class="hero-glow hero-glow-2"></div>
+
+      <div class="hero-inner">
+        <span class="badge mb-xl" style="display:inline-flex;"
+          >Welcome to Blue Bird with Astro</span
+        >
+
+        <h1 class="gradient-text mt-lg">
+          Hello, Astro Developer!<br />Welcome to the next level.
+        </h1>
+
+        <p class="mt-lg" style="max-width:40rem;margin-inline:auto;">
+          Blue Bird is a fast, structured, and opinionated Express.js framework
+          for developers who want visual elegance and performance, now powered
+          by Astro on the frontend.
+        </p>
+
+        <div class="flex justify-center gap-md mt-2xl flex-wrap">
+          <a href="/about" class="btn btn-primary">About Us &rarr;</a>
+          <a
+            href="https://www.npmjs.com/package/@seip/blue-bird"
+            target="_blank"
+            class="btn btn-outline"
+          >
+            npm package
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <section class="grid-3 mt-2xl">
+      <div class="card">
+        <h4 class="gradient-text-blue mb-md">Astro SSR</h4>
+        <p>
+          Astro (v7.0) renders pages server-side via the Node adapter in
+          middleware mode, mounted inside Express.
+        </p>
+      </div>
+      <div class="card">
+        <h4 class="gradient-text-blue mb-md">AES-256-GCM Auth</h4>
+        <p>
+          JWT tokens encrypted with military-grade AES-256-GCM and served
+          through secure signed cookies.
+        </p>
+      </div>
+      <div class="card">
+        <h4 class="gradient-text-blue mb-md">Docker CLI</h4>
+        <p>
+          One-command orchestration for local MySQL, production stacks, and
+          container lifecycle management.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Powered by Blue Bird Framework &amp; Astro. All rights reserved.</p>
+  </footer>
+</Layout>
