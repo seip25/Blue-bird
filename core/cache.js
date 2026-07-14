@@ -31,6 +31,12 @@ async function initRedis() {
     redisClient.on("error", () => {
       isRedisConnected = false;
     });
+    redisClient.on("ready", () => {
+      isRedisConnected = true;
+    });
+    redisClient.on("connect", () => {
+      isRedisConnected = true;
+    });
     await redisClient.connect();
     isRedisConnected = true;
   } catch (err) {

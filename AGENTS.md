@@ -206,4 +206,36 @@ const stats = await connection.query("SELECT COUNT(*) as cnt FROM logs", [], { c
 const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
 ```
 
+## 11. Nginx Proxy Caching
+
+In production, Nginx caches Astro page responses for 10 seconds. Requests with an active session cookie (`auth`) or `Authorization` header bypass the cache to ensure dynamic page personalized output.
+
+### Disabling Cache
+
+To disable Nginx proxy caching, comment out the `proxy_cache` directives in `docker/nginx.conf`:
+
+```nginx
+# proxy_cache astro_cache;
+# proxy_cache_valid 200 302 10s;
+```
+
+### Caching API routes
+
+To cache specific GET API routes at the proxy layer (which is faster and consumes less resources than Node/Redis query caching), define a specific location block in `docker/nginx.conf` before the generic `/api/` routing rule:
+
+```nginx
+location /api/cached-endpoint {
+    limit_req zone=bluebird_limit burst=20 nodelay;
+    set $upstream_target http://app:3000;
+    proxy_pass $upstream_target;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+
+    proxy_cache astro_cache;
+    proxy_cache_valid 200 10s;
+    add_header X-Cache-Status $upstream_cache_status;
+}
+```
+
 _This file can be retrieved by intelligent agents reading its absolute physical path during reasoning._

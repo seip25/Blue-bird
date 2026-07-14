@@ -237,6 +237,29 @@ const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Jo
 
 ---
 
+### 8. Nginx Proxy Caching
+
+Nginx reverse proxy is preconfigured with a page cache zone (`astro_cache`) that stores public page outputs (Astro SSR/SSG) for 10 seconds.
+- **Cache Bypass:** Requests with an `auth` cookie or `Authorization` header automatically bypass the cache to ensure dynamic page outputs.
+- **Disabling:** Caching can be turned off in `docker/nginx.conf` by commenting out the `proxy_cache` directives.
+- **Caching API routes:** If you want Nginx to cache GET endpoints from `/api/` directly (which is much faster than Node query/redis caching), add a matching location block inside `docker/nginx.conf` before the generic `/api/` block:
+  ```nginx
+  location /api/cached-stats {
+      limit_req zone=bluebird_limit burst=20 nodelay;
+      set $upstream_target http://app:3000;
+      proxy_pass $upstream_target;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_set_header Host $host;
+
+      proxy_cache astro_cache;
+      proxy_cache_valid 200 10s;
+      add_header X-Cache-Status $upstream_cache_status;
+  }
+  ```
+
+---
+
 ## 🐳 Docker CLI Workflow
 
 Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments.

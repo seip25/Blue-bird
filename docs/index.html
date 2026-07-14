@@ -198,6 +198,9 @@
                             <a href="#doc-docker"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Docker
                                 CLI Wrapper</a>
+                            <a href="#doc-nginx-cache"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Nginx
+                                Caching</a>
                             <a href="#doc-production"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Production
                                 Setup</a>
@@ -650,11 +653,46 @@ npx blue-bird docker redis
 npx blue-bird docker prune</code></pre>
                             </article>
 
+                            <!-- Nginx Caching Section -->
+                            <article id="doc-nginx-cache" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                    Nginx Proxy Caching
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    In production, the Nginx reverse proxy is configured with a 10-second page cache zone (<code>astro_cache</code>) for Astro page requests. Sessions containing an <code>auth</code> cookie or an <code>Authorization</code> header bypass this cache automatically.
+                                </p>
+                                <h4 class="text-lg font-bold text-slate-900 mb-4">Disabling Caching</h4>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    To disable page caching completely, comment out the <code>proxy_cache</code> lines in <code>docker/nginx.conf</code>:
+                                </p>
+                                <pre><code class="language-nginx"># proxy_cache astro_cache;
+# proxy_cache_valid 200 302 10s;</code></pre>
+
+                                <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Caching Specific API Endpoints</h4>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    Nginx can cache static API responses faster than Node/Redis. To cache specific GET endpoints from <code>/api/</code>, define a dedicated location rule inside <code>docker/nginx.conf</code> before the generic <code>/api/</code> rule:
+                                </p>
+                                <pre><code class="language-nginx">location /api/cached-stats {
+    limit_req zone=bluebird_limit burst=20 nodelay;
+    set $upstream_target http://app:3000;
+    proxy_pass $upstream_target;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+
+    proxy_cache astro_cache;
+    proxy_cache_valid 200 10s;
+    add_header X-Cache-Status $upstream_cache_status;
+}</code></pre>
+                            </article>
+
                             <!-- Production Section -->
                             <article id="doc-production" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                        class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">13</span>
                                     Production Setup (VPS / PM2)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
