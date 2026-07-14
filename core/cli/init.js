@@ -3,6 +3,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
+import readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+import crypto from "node:crypto";
+import { execSync } from "node:child_process";
 
 /**
  * Initializes a new Blue Bird project by copying the base structure.
@@ -18,6 +22,55 @@ class ProjectInit {
      */
     async run() {
         console.log(chalk.cyan("Starting Blue Bird project initialization..."));
+
+        const rl = readline.createInterface({ input, output });
+
+        let title = "Blue-Bird";
+        let port = 3000;
+        let appUrl = "http://localhost:3000";
+        let useMysql = false;
+        let dbName = "blue_bird";
+        let dbUser = "root";
+        let dbPassword = "root";
+        let dbPort = 3306;
+
+        try {
+            const ask = async (query, defaultValue) => {
+                const formattedQuery = defaultValue !== undefined ? `${query} [${defaultValue}]: ` : `${query}: `;
+                const answer = await rl.question(formattedQuery);
+                return answer.trim() || defaultValue;
+            };
+
+            title = await ask("Project Title", title);
+            const portInput = await ask("Server Port", port);
+            port = parseInt(portInput, 10);
+            if (Number.isNaN(port)) {
+                port = 3000;
+            }
+
+            const defaultAppUrl = `http://localhost:${port}`;
+            appUrl = await ask("Application URL", defaultAppUrl);
+
+            const mysqlAns = await ask("Do you want to configure MySQL? (y/n)", "n");
+            useMysql = mysqlAns.toLowerCase() === "y" || mysqlAns.toLowerCase() === "yes";
+
+            if (useMysql) {
+                dbName = await ask("Database Name", dbName);
+                dbUser = await ask("Database User", dbUser);
+                dbPassword = await ask("Database Password", dbPassword);
+                const dbPortInput = await ask("Database Port", dbPort);
+                dbPort = parseInt(dbPortInput, 10);
+                if (Number.isNaN(dbPort)) {
+                    dbPort = 3306;
+                }
+            }
+        } catch (error) {
+            console.error(chalk.red("[ERROR] Error reading configuration input:"), error.message);
+            rl.close();
+            return;
+        } finally {
+            rl.close();
+        }
 
         const itemsToCopy = [
             "backend",
@@ -36,23 +89,70 @@ class ProjectInit {
                 if (fs.existsSync(src)) {
                     if (!fs.existsSync(dest)) {
                         this.copyRecursive(src, dest);
-                        console.log(chalk.green(`✓ Copied ${item} to root.`));
+                        console.log(chalk.green(`[OK] Copied ${item} to root.`));
                     } else {
-                        console.log(chalk.yellow(`! ${item} already exists, skipping.`));
+                        console.log(chalk.yellow(`[SKIP] ${item} already exists, skipping.`));
                     }
                 } else {
-                    console.warn(chalk.red(`✗ Source ${item} not found in ${this.sourceDir}`));
+                    console.warn(chalk.red(`[ERROR] Source ${item} not found in ${this.sourceDir}`));
                 }
             });
 
             const envPath = path.join(this.appDir, ".env");
             const envExamplePath = path.join(this.appDir, ".env_example");
-            if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
-                fs.copyFileSync(envExamplePath, envPath);
-                console.log(chalk.green("✓ Created .env from .env_example."));
+
+            if (fs.existsSync(envExamplePath)) {
+                let envContent = fs.readFileSync(envExamplePath, "utf-8");
+
+                const jwtSecret = crypto.randomBytes(32).toString("hex");
+
+                const updates = {
+                    TITLE: title,
+                    PORT: port,
+                    APP_URL: appUrl,
+                    JWT_SECRET: jwtSecret,
+                };
+
+                if (useMysql) {
+                    updates.DB_NAME = dbName;
+                    updates.DB_USER = dbUser;
+                    updates.DB_PASSWORD = dbPassword;
+                    updates.DB_PORT = dbPort;
+                    updates.DATABASE_URL = `mysql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}`;
+                }
+
+                const lines = envContent.split(/\r?\n/);
+                const updatedLines = lines.map(line => {
+                    const match = line.match(/^([A-Z_]+)=(.+)/);
+                    if (match) {
+                        const key = match[1];
+                        if (updates[key] !== undefined) {
+                            const value = updates[key];
+                            if (typeof value === "string" && !value.startsWith('"')) {
+                                return `${key}="${value}"`;
+                            }
+                            return `${key}=${value}`;
+                        }
+                    }
+                    return line;
+                });
+                envContent = updatedLines.join("\n");
+
+                fs.writeFileSync(envPath, envContent, "utf-8");
+                console.log(chalk.green("[OK] Created and configured .env file."));
             }
 
             this.updatePackageJson();
+
+            if (useMysql) {
+                console.log(chalk.cyan("[INFO] Installing mysql2 and redis packages..."));
+                try {
+                    execSync("npm install mysql2 redis", { stdio: "inherit", cwd: this.appDir });
+                    console.log(chalk.green("[OK] Successfully installed mysql2 and redis."));
+                } catch (error) {
+                    console.warn(chalk.yellow("[ERROR] Automatic package installation failed. Please run 'npm install mysql2 redis' manually."));
+                }
+            }
 
             console.log(chalk.blue("\nBlue Bird initialization completed!"));
             console.log(chalk.white("Next steps:"));
@@ -60,7 +160,7 @@ class ProjectInit {
             console.log(chalk.bold("  npm run dev"));
 
         } catch (error) {
-            console.error(chalk.red("Error during initialization:"), error.message);
+            console.error(chalk.red("[ERROR] Error during initialization:"), error.message);
         }
     }
 
@@ -92,7 +192,7 @@ class ProjectInit {
 
             if (updated) {
                 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
-                console.log(chalk.green("✓ Updated package.json scripts."));
+                console.log(chalk.green("[OK] Updated package.json scripts."));
             }
         }
     }
