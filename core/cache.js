@@ -157,4 +157,12 @@ class Cache {
   }
 }
 
+/**
+ * Returns the active Redis client if connected.
+ * @returns {Object|null} The Redis client instance or null.
+ */
+export function getRedisClient() {
+  return isRedisConnected ? redisClient : null;
+}
+
 export default Cache;

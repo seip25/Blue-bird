@@ -188,6 +188,9 @@
                             <a href="#doc-helmet"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Helmet
                                 Security</a>
+                            <a href="#doc-database"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Database
+                                Module</a>
 
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Devops
                                 & Deployment</p>
@@ -550,19 +553,43 @@ apiRouter.use(App.helmet()); // Uses default policies
 
 const secureWebRouter = new Router("/web");
 secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables CSP restrictions</code></pre>
-                                <!-- Docker Section -->
-                                <article id="doc-docker" class="mb-24 scroll-mt-24">
-                                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                        <span
-                                            class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
-                                        Docker CLI Command Wrapper
-                                    </h3>
-                                    <p class="text-slate-600 mb-6 leading-relaxed">
-                                        Manage development containers and full-stack deployments directly using the
-                                        built-in
-                                        Docker CLI tool wrapper.
-                                    </p>
-                                    <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + MySQL + Redis)
+                            </article>
+
+                            <!-- Database Section -->
+                            <article id="doc-database" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                    Database Module
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Blue Bird includes a wrapper module around the <code>mysql2</code> driver. It manages a connections pool with connection retries, custom charset settings (<code>utf8mb4</code>), response formatting based on SQL command style, and query-level Redis caching.
+                                </p>
+                                <pre><code class="language-javascript">import connection from "@seip/blue-bird/core/database.js";
+
+// 1. Fetch a single row (SELECT query)
+const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_row");
+
+// 2. Fetch rows with 60s Redis query caching enabled
+const products = await connection.query("SELECT * FROM products", [], { cache: 60 });
+
+// 3. INSERT query (returns insertId directly)
+const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);</code></pre>
+                            </article>
+
+                            <!-- Docker Section -->
+                            <article id="doc-docker" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">11</span>
+                                    Docker CLI Command Wrapper
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Manage development containers and full-stack deployments directly using the
+                                    built-in
+                                    Docker CLI tool wrapper.
+                                </p>
+                                <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + MySQL + Redis)
 npx blue-bird docker start prod
 
 # Start MySQL Database Container Only
@@ -594,17 +621,20 @@ npx blue-bird docker pm2 reload all
 # Run Interactive MySQL Client Shell Inside the Database Container
 npx blue-bird docker db
 
+# Run Interactive Redis CLI Connection Inside the Container
+npx blue-bird docker redis
+
 # Remove Unused Volumes, Dangling Images, and Buildkit Cache
 npx blue-bird docker prune</code></pre>
-                                </article>
+                            </article>
 
-                                <!-- Production Section -->
-                                <article id="doc-production" class="mb-24 scroll-mt-24">
-                                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-                                        <span
-                                            class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">11</span>
-                                        Production Setup (VPS / PM2)
-                                    </h3>
+                            <!-- Production Section -->
+                            <article id="doc-production" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                    Production Setup (VPS / PM2)
+                                </h3>
                                     <p class="text-slate-600 mb-6 leading-relaxed">
                                         Using the built-in Docker stack is the recommended production deployment method.
                                         It configures a secure, high-performance reverse proxy via Nginx, offloads

@@ -40,12 +40,12 @@ routerApi.get("/cache", Cache.middleware(), async (req, res) => {
 });
 
 routerApi.get("/auth_generate", async (req, res) => {
-  const token = await Auth.login(res, { id: 1, name: "John Doe" });
+  const token = await Auth.login(res, { id: 1, name: "John Doe" }, "auth");
   res.json({ message: "Auth successful", token });
 });
 
 routerApi.get("/auth_logout", async (req, res) => {
-  await Auth.logout(res);
+  await Auth.logout(res, "auth", {}, req);
   res.json({ message: "Auth successful" });
 });
 

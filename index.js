@@ -16,6 +16,8 @@ const app = new App({
 
   port: process.env.PORT,
 
+  logger: true, //In production, set this to false to disable logging and stop writing to Redis
+
   astro: {
     server: true,
     serverEntry: "./frontend/dist/server/entry.mjs",

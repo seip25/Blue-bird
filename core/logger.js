@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Config from "./config.js";
+import { getRedisClient } from "./cache.js";
 
 const __dirname = Config.dirname();
 
@@ -52,47 +53,62 @@ class Logger {
   }
 
   /**
-   * Appends an informational message to the info.log file (non-blocking).
+   * Logs a message to the specified log file or Redis list.
+   * @private
+   * @param {string} file - The file name to log to.
+   * @param {string} level - The log level (e.g. info, error, warn, debug).
+   * @param {string} message - The log message.
+   */
+  async _log(file, level, message) {
+    const redisClient = getRedisClient();
+    if (redisClient) {
+      try {
+        await redisClient.lPush(`bluebird:logs:${level}`, message);
+        return;
+      } catch (err) {
+        console.error(
+          `[LOGGER ERROR] Failed to write to Redis logs (${level}):`,
+          err.message,
+        );
+      }
+    }
+
+    const logFile = path.join(this.nowFolder(), file);
+    fs.appendFile(logFile, `${message}\n`, (err) => {
+      if (err) console.error("Logger write error:", err.message);
+    });
+  }
+
+  /**
+   * Appends an informational message.
    * @param {string} message - The message to log.
    */
   info(message) {
-    const logFile = path.join(this.nowFolder(), "info.log");
-    fs.appendFile(logFile, `${message}\n`, (err) => {
-      if (err) console.error("Logger write error:", err.message);
-    });
+    this._log("info.log", "info", message);
   }
 
   /**
-   * Appends an error message to the error.log file (non-blocking).
+   * Appends an error message.
    * @param {string} message - The error message to log.
    */
   error(message) {
-    const logFile = path.join(this.nowFolder(), "error.log");
-    fs.appendFile(logFile, `${message}\n`, (err) => {
-      if (err) console.error("Logger write error:", err.message);
-    });
+    this._log("error.log", "error", message);
   }
 
   /**
-   * Appends a warning message to the warn.log file (non-blocking).
+   * Appends a warning message.
    * @param {string} message - The warning message to log.
    */
   warning(message) {
-    const logFile = path.join(this.nowFolder(), "warn.log");
-    fs.appendFile(logFile, `${message}\n`, (err) => {
-      if (err) console.error("Logger write error:", err.message);
-    });
+    this._log("warn.log", "warn", message);
   }
 
   /**
-   * Appends a debug message to the debug.log file (non-blocking).
+   * Appends a debug message.
    * @param {string} message - The debug message to log.
    */
   debug(message) {
-    const logFile = path.join(this.nowFolder(), "debug.log");
-    fs.appendFile(logFile, `${message}\n`, (err) => {
-      if (err) console.error("Logger write error:", err.message);
-    });
+    this._log("debug.log", "debug", message);
   }
 }
 

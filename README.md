@@ -218,6 +218,25 @@ webRouter.use(App.helmet());
 
 ---
 
+### 7. Database wrapper (`Database`)
+
+MySQL database client connection pool configuration featuring automated retry loops, query formatting utilities, and Redis query caching.
+
+```javascript
+import connection from "@seip/blue-bird/core/database.js";
+
+// Fetch single row from a SELECT query
+const user = await connection.query("SELECT * FROM users WHERE email = ?", ["test@example.com"], "return_row");
+
+// Fetch rows with 60 seconds Redis caching enabled
+const stats = await connection.query("SELECT COUNT(*) as count FROM access_logs", [], { cache: 60 });
+
+// INSERT queries return the last insert ID directly
+const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["John"]);
+```
+
+---
+
 ## 🐳 Docker CLI Workflow
 
 Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments.
@@ -240,6 +259,7 @@ npx blue-bird docker <command> [options]
 - **`npx blue-bird docker logs [app|mysql]`**: Tails logs for the specified container.
 - **`npx blue-bird docker pm2 [args]`**: Runs PM2 commands inside the Node.js application container (e.g. `status`, `monit`, `reload all`).
 - **`npx blue-bird docker db`**: Connects into the container's interactive MySQL shell using credentials from `.env`.
+- **`npx blue-bird docker redis`**: Connects into the container's interactive Redis CLI terminal.
 - **`npx blue-bird docker prune`**: Safely clears orphaned volumes, dangling build caches, and images.
 
 ---

@@ -176,6 +176,7 @@ npx blue-bird docker ps             # Shows status of active containers
 npx blue-bird docker logs           # Tails Node.js app container logs
 npx blue-bird docker pm2 [args]     # Runs PM2 commands inside the app container (e.g. status, monit)
 npx blue-bird docker mysql          # Runs interactive MySQL client terminal inside the container
+npx blue-bird docker redis          # Runs interactive Redis client terminal inside the container
 npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
 ```
 
@@ -187,5 +188,22 @@ The container names and virtual networks are namespaced by the `TITLE` environme
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
 4. **No inline comments**: Only use JSDoc for documentation.
+
+## 10. Database Module (database.js)
+
+Blue Bird provides a unified wrapper class for MySQL databases via `mysql2` connections pool with automatic retries and built-in query caching:
+
+```javascript
+import connection from "@seip/blue-bird/core/database.js";
+
+// Basic SELECT query returning single row
+const user = await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
+
+// Query caching in Redis (stores results in Redis for 60 seconds)
+const stats = await connection.query("SELECT COUNT(*) as cnt FROM logs", [], { cache: 60 });
+
+// INSERT query returns insertId directly
+const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
+```
 
 _This file can be retrieved by intelligent agents reading its absolute physical path during reasoning._

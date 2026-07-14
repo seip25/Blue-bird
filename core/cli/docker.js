@@ -272,6 +272,15 @@ async function pm2Command(pm2Args = []) {
 }
 
 /**
+ * Handles interactive shell connections into the Redis container.
+ */
+async function redisCommand() {
+  checkComposeFile();
+  const cmdArgs = ["compose", "exec", "redis", "redis-cli"];
+  await runCmd("docker", cmdArgs);
+}
+
+/**
  * Entry point for Blue Bird CLI Docker subcommands.
  */
 async function main() {
@@ -325,6 +334,9 @@ async function main() {
     case "pm2":
       await pm2Command(args.slice(1));
       break;
+    case "redis":
+      await redisCommand();
+      break;
     case "mysql":
     case "db": {
       let user, password, db, root = false;
@@ -351,7 +363,7 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/db, df/disk, prune/clean");
+      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/db, redis, df/disk, prune/clean");
   }
 }
 
