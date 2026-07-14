@@ -661,20 +661,27 @@ npx blue-bird docker prune</code></pre>
                                     Nginx Proxy Caching
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    In production, the Nginx reverse proxy is configured with a 10-second page cache zone (<code>astro_cache</code>) for Astro page requests. Sessions containing an <code>auth</code> cookie or an <code>Authorization</code> header bypass this cache automatically.
+                                    In production, the Nginx reverse proxy is configured with a 10-second page cache
+                                    zone (<code>astro_cache</code>) for Astro page requests. Sessions containing an
+                                    <code>auth</code> cookie or an <code>Authorization</code> header bypass this cache
+                                    automatically.
                                 </p>
                                 <h4 class="text-lg font-bold text-slate-900 mb-4">Disabling Caching</h4>
                                 <p class="text-slate-600 mb-4 leading-relaxed">
-                                    To disable page caching completely, comment out the <code>proxy_cache</code> lines in <code>docker/nginx.conf</code>:
+                                    To disable page caching completely, comment out the <code>proxy_cache</code> lines
+                                    in <code>docker/nginx.conf</code>:
                                 </p>
-                                <pre><code class="language-nginx"># proxy_cache astro_cache;
+                                <pre class=""><code class="language-bash"># proxy_cache astro_cache;
 # proxy_cache_valid 200 302 10s;</code></pre>
 
-                                <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Caching Specific API Endpoints</h4>
+                                <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Caching Specific API Endpoints
+                                </h4>
                                 <p class="text-slate-600 mb-4 leading-relaxed">
-                                    Nginx can cache static API responses faster than Node/Redis. To cache specific GET endpoints from <code>/api/</code>, define a dedicated location rule inside <code>docker/nginx.conf</code> before the generic <code>/api/</code> rule:
+                                    Nginx can cache static API responses faster than Node/Redis. To cache specific GET
+                                    endpoints from <code>/api/</code>, define a dedicated location rule inside
+                                    <code>docker/nginx.conf</code> before the generic <code>/api/</code> rule:
                                 </p>
-                                <pre><code class="language-nginx">location /api/cached-stats {
+                                <pre><code class="language-bash">location /api/cached-stats {
     limit_req zone=bluebird_limit burst=20 nodelay;
     set $upstream_target http://app:3000;
     proxy_pass $upstream_target;
@@ -703,10 +710,11 @@ npx blue-bird docker prune</code></pre>
                                 </p>
                                 <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
                                     (Recommended)</h4>
-                                <pre><code class="language-bash"># 1. Build the production image
+                                <pre><code class="language-bash">#1. Edit .env ,DEBUG=false
+# 2. Build the production image
 npx blue-bird docker build
 
-# 2. Run the production containers stack
+# 3. Run the production containers stack
 npx blue-bird docker start prod</code></pre>
 
                                 <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
