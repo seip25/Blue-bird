@@ -26,14 +26,4 @@ routerFrontendExample.get("/about", (req, res) => {
   });
 });
 
-routerFrontendExample.get("/preact_example", (req, res) => {
-  return Template.render(res, "preact_example", {
-    metaTags: {
-      titleMeta: "Preact Example - Blue Bird",
-      descriptionMeta: "Preact Example Blue Bird Framework",
-      keywordsMeta: "preact, example, blue bird, framework",
-    },
-  });
-});
-
 export default routerFrontendExample;

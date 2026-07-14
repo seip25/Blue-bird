@@ -75,16 +75,10 @@ class Template {
         metaTags = {},
       } = options;
 
-      const isSpaRequest =
-        res.req &&
-        (res.req.headers["x-bluebird-spa"] === "true" ||
-          res.req.query?.source === "frontend");
-
       const extraKey = res.req ? res.req.originalUrl : "";
-      const cachePrefix = isSpaRequest ? "spa:" : "html:";
       const finalCacheKey =
         cacheKey ||
-        buildCacheKey(`${cachePrefix}${templateOrContent}`, metaTags, extraKey);
+        buildCacheKey(`html:${templateOrContent}`, metaTags, extraKey);
 
       const cacheDuration = typeof cache === "number" ? cache : cache ? 60 : 0;
       const isCacheEnabled = !props.debug && cacheDuration > 0;
@@ -92,16 +86,8 @@ class Template {
       if (isCacheEnabled && CACHE_TEMPLATE[finalCacheKey]) {
         const cached = CACHE_TEMPLATE[finalCacheKey];
         if (cached.expiry === 0 || cached.expiry > Date.now()) {
-          if (isSpaRequest) {
-            res.removeHeader("Content-Security-Policy");
-            res.removeHeader("X-Frame-Options");
-            res.removeHeader("X-Content-Type-Options");
-            res.type("application/json");
-            return res.json(cached.json);
-          } else {
-            res.type("text/html");
-            return res.send(cached.html);
-          }
+          res.type("text/html");
+          return res.send(cached.html);
         }
         delete CACHE_TEMPLATE[finalCacheKey];
       }
@@ -203,43 +189,6 @@ class Template {
 
       if (minify) {
         finalHtml = this.minifyHtml(finalHtml);
-      }
-
-      if (isSpaRequest) {
-        let bodyContent = "";
-        const match = finalHtml.match(
-          /<([a-zA-Z0-9\-]+)[^>]*id="blueBird-spa-content"[^>]*>([\s\S]*?)<\/\1>/i,
-        );
-        if (match) {
-          bodyContent = match[2];
-        } else {
-          bodyContent = finalHtml;
-        }
-
-        res.removeHeader("Content-Security-Policy");
-        res.removeHeader("X-Frame-Options");
-        res.removeHeader("X-Content-Type-Options");
-        res.type("application/json");
-
-        const spaData = {
-          meta: {
-            title: title,
-            description: description,
-            keywords: keywords,
-            author: author,
-          },
-          body: bodyContent,
-          css: options.linkStyles ? options.linkStyles.map((s) => s.href) : [],
-        };
-
-        if (isCacheEnabled) {
-          CACHE_TEMPLATE[finalCacheKey] = {
-            json: spaData,
-            expiry: cacheDuration > 0 ? Date.now() + cacheDuration * 1000 : 0,
-          };
-        }
-
-        return res.json(spaData);
       }
 
       if (isCacheEnabled) {
