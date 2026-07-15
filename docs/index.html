@@ -593,7 +593,10 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                     query writing across engines. You can also connect without Docker directly by setting
                                     <code>DATABASE_URL</code> inside your <code>.env</code> file.
                                 </p>
-                                <pre><code class="language-javascript">import connection, { DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+                                <pre><code class="language-javascript">import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+
+// Instantiate the database connection pool with a custom limit (e.g., 20 connections)
+const connection = new Database(20);
 
 // 1. Fetch a single row (SELECT query with ? placeholders works on both MySQL and PostgreSQL)
 const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_row"); 

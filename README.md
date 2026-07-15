@@ -247,7 +247,10 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=pub
 #### Usage Examples
 
 ```javascript
-import connection, { DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+
+// Instantiate the database connection pool with a connection limit (e.g., 20)
+const connection = new Database(20);
 
 // 1. Basic SELECT query returning single row (Works for both MySQL and PostgreSQL using ? placeholders)
 const user = await connection.query("SELECT * FROM users WHERE email = ?", ["test@example.com"], "return_row");

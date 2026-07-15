@@ -201,7 +201,9 @@ Blue Bird provides a unified wrapper class (`core/database.js`) supporting **MyS
 - **Prisma Integration:** When `DB_ORM="prisma"`, the wrapper initializes `PrismaClient` (using `@prisma/adapter-pg` for Postgres) and exposes `connection.prisma`. Calling `connection.query()` in Prisma mode delegates to `$queryRawUnsafe()`.
 
 ```javascript
-import connection, { DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+
+const connection = new Database(20);
 
 // Basic SELECT query returning single row (Supports both MySQL and PostgreSQL)
 const user = await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");

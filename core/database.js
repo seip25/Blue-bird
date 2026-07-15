@@ -75,7 +75,7 @@ class Database {
   /**
    * Initializes config from DATABASE_URL or DB_* environment variables.
    */
-  constructor(connectionLimit = 20, queueLimit = 0) {
+  constructor(connectionLimit = 10, queueLimit = 0) {
     this.pool = null;
     this.prisma = prismaClientInstance || null;
     this.type = DB_TYPE;
@@ -152,7 +152,8 @@ class Database {
           this.pool = new pg.Pool(this.config);
           await this.pool.query("SELECT 1");
         } else if (mysqlPromise) {
-          this.pool = mysqlPromise.createPool(this.config);
+          const { max, connectionString, ...mysqlConfig } = this.config;
+          this.pool = mysqlPromise.createPool(mysqlConfig);
           await this.pool.query("SELECT 1");
         }
         return true;
@@ -180,6 +181,10 @@ class Database {
    * @param {Array} [params=[]] - Query parameter array.
    * @param {Object|string} [options={}] - Query options. Supports 'return_row', 'return_rows', and 'cache' (seconds).
    * @returns {Promise<*>| int | boolean} Formatted query result or false on error, or insert id of insert query.
+   * @example const result await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
+   * @example const result = await connection.query("SELECT * FROM users WHERE id = ?", [1], { cache: 60 });
+   * @example const result = await connection.query("SELECT * FROM users WHERE id = ?", [1], { debug: true });
+   * @example const insert_id = await connection.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", ["John Doe", "[EMAIL_ADDRESS]", "password"]);
    */
   async query(sql, params = [], options = {}) {
     if (this.orm === "prisma" && this.prisma) {
@@ -324,6 +329,4 @@ class Database {
   }
 }
 
-const connection = new Database();
-export default connection;
 export { Database, DB_TYPE, DB_ORM };
