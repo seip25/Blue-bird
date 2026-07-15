@@ -37,6 +37,9 @@ function getDbType(env = getEnvVars()) {
   if (env.DB_TYPE && env.DB_TYPE.toLowerCase() === "mysql") {
     return "mysql";
   }
+  if (env.DB_TYPE && env.DB_TYPE.toLowerCase() === "none") {
+    return "none";
+  }
   if (env.DATABASE_URL && !env.DATABASE_URL.startsWith("#")) {
     if (env.DATABASE_URL.startsWith("postgres://") || env.DATABASE_URL.startsWith("postgresql://")) {
       return "postgres";
@@ -83,6 +86,10 @@ async function startCommand(service) {
 
   if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db" || service === "dev") {
     const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
+    if (targetContainer === "none") {
+      console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', skipping database container startup."));
+      return;
+    }
     console.log(chalk.cyan(`Starting ${targetContainer.toUpperCase()} container...`));
     const code = await runCmd("docker", ["compose", "up", "-d", targetContainer]);
     if (code === 0) {
@@ -101,6 +108,17 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else if (service === "dbs" || service === "databases") {
+    if (dbType === "none") {
+      console.log(chalk.cyan("DB_TYPE is 'none', starting Redis container only..."));
+      const code = await runCmd("docker", ["compose", "up", "-d", "redis"]);
+      if (code === 0) {
+        console.log(chalk.green("Redis started."));
+      } else {
+        console.error(chalk.red("Error starting Redis."));
+        process.exit(1);
+      }
+      return;
+    }
     console.log(chalk.cyan(`Starting Database containers (${dbType.toUpperCase()} + Redis)...`));
     const code = await runCmd("docker", ["compose", "up", "-d", dbType, "redis"]);
     if (code === 0) {
@@ -138,6 +156,10 @@ async function stopCommand(service) {
     console.log(chalk.green("All containers stopped."));
   } else if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db") {
     const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
+    if (targetContainer === "none") {
+      console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', no database container to stop."));
+      return;
+    }
     console.log(chalk.cyan(`Stopping ${targetContainer.toUpperCase()}...`));
     await runCmd("docker", ["compose", "stop", targetContainer]);
     await runCmd("docker", ["compose", "rm", "-f", targetContainer]);
@@ -202,6 +224,10 @@ async function logsCommand(service, followOpt) {
   if (service === "mysql" || service === "postgres" || service === "db") {
     targetService = service === "db" ? dbType : service;
   }
+  if (targetService === "none") {
+    console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', no database container logs to display."));
+    return;
+  }
 
   const cmdArgs = ["compose"];
   if (targetService === "app") {
@@ -228,6 +254,10 @@ async function dbClientCommand(userOpt, passOpt, dbOpt, rootOpt, explicitService
   checkComposeFile();
   const env = getEnvVars();
   const dbType = explicitService === "postgres" || explicitService === "psql" ? "postgres" : (explicitService === "mysql" ? "mysql" : getDbType(env));
+  if (dbType === "none") {
+    console.error(chalk.yellow("[INFO] DB_TYPE is set to 'none'. No database container available to connect to."));
+    return;
+  }
 
   let dbUser = userOpt;
   let dbPass = passOpt;

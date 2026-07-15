@@ -307,6 +307,14 @@ class ProjectInit {
         fs.mkdirSync(dest, { recursive: true });
       }
       fs.readdirSync(src).forEach((childItemName) => {
+        if (
+          childItemName === "node_modules" ||
+          childItemName === ".astro" ||
+          childItemName === "dist" ||
+          childItemName === ".git"
+        ) {
+          return;
+        }
         this.copyRecursive(
           path.join(src, childItemName),
           path.join(dest, childItemName),
