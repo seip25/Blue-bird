@@ -74,14 +74,20 @@ if (DB_ORM === "prisma") {
 class Database {
   /**
    * Initializes config from DATABASE_URL or DB_* environment variables.
+   * For default Database use .env DB_HOST,DB_USER,DB_PASSWORD...
+   * @param {number} [connectionLimit=10] - Maximum number of connections in the pool.
+   * @param {number} [queueLimit=0] - Maximum number of queued connections.
+   * @param {Object} [config={}] - Additional configuration options, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_TYPE, DB_ORM.
+   * @example const connection=new Database(10,0,{DB_HOST:"localhost",DB_USER:"root",DB_PASSWORD:"root",DB_NAME:"blue_bird",DB_PORT:3306,DB_TYPE:"mysql",DB_ORM:"prisma"});
    */
-  constructor(connectionLimit = 10, queueLimit = 0) {
+  constructor(connectionLimit = 10, queueLimit = 0, config = {}) {
     this.pool = null;
     this.prisma = prismaClientInstance || null;
     this.type = DB_TYPE;
     this.orm = DB_ORM;
 
     this.config = {
+      ...config,
       host: process.env.DB_HOST || "localhost",
       user:
         process.env.DB_USER || (this.type === "postgres" ? "postgres" : "root"),
