@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import { getRedisClient } from "./cache.js";
 
-const DB_ORM = (process.env.DB_ORM || "native").toLowerCase();
 let DB_TYPE = (process.env.DB_TYPE || "").toLowerCase();
 
 if (
@@ -24,33 +23,8 @@ if (!DB_TYPE) {
 
 let mysqlPromise = null;
 let pgPromise = null;
-let prismaClientInstance = null;
 
-if (DB_ORM === "prisma") {
-  try {
-    const { PrismaClient } = await import("@prisma/client");
-    if (DB_TYPE === "postgres") {
-      try {
-        const { PrismaPg } = await import("@prisma/adapter-pg");
-        const { default: pg } = await import("pg");
-        const pool = new pg.Pool({
-          connectionString: process.env.DATABASE_URL,
-        });
-        const adapter = new PrismaPg(pool);
-        prismaClientInstance = new PrismaClient({ adapter });
-      } catch (adapterErr) {
-        prismaClientInstance = new PrismaClient();
-      }
-    } else {
-      prismaClientInstance = new PrismaClient();
-    }
-  } catch (err) {
-    console.error(
-      "[DATABASE ERROR] Prisma package is not installed or configured correctly:",
-      err.message,
-    );
-  }
-} else if (DB_TYPE === "postgres") {
+if (DB_TYPE === "postgres") {
   try {
     pgPromise = await import("pg");
   } catch (err) {
@@ -58,7 +32,7 @@ if (DB_ORM === "prisma") {
       "[DATABASE ERROR] pg package is not installed. Database wrapper is disabled.",
     );
   }
-} else {
+} else if (DB_TYPE === "mysql") {
   try {
     mysqlPromise = await import("mysql2/promise");
   } catch (err) {
@@ -69,22 +43,20 @@ if (DB_ORM === "prisma") {
 }
 
 /**
- * Database class wrapping mysql2, pg, and Prisma ORM with reconnection retries, connection pool, and query caching.
+ * Database class wrapping mysql2 and pg with reconnection retries, connection pooling, and query caching.
  */
 class Database {
   /**
    * Initializes config from DATABASE_URL or DB_* environment variables.
-   * For default Database use .env DB_HOST,DB_USER,DB_PASSWORD...
+   * For default Database use .env DB_HOST, DB_USER, DB_PASSWORD...
    * @param {number} [connectionLimit=10] - Maximum number of connections in the pool.
    * @param {number} [queueLimit=0] - Maximum number of queued connections.
-   * @param {Object} [config={}] - Additional configuration options, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_TYPE, DB_ORM.
-   * @example const connection=new Database(10,0,{DB_HOST:"localhost",DB_USER:"root",DB_PASSWORD:"root",DB_NAME:"blue_bird",DB_PORT:3306,DB_TYPE:"mysql",DB_ORM:"prisma"});
+   * @param {Object} [config={}] - Additional configuration options: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_TYPE.
+   * @example const connection = new Database(10, 0, { DB_HOST: "localhost", DB_USER: "root", DB_PASSWORD: "password", DB_NAME: "blue_bird", DB_PORT: 3306, DB_TYPE: "mysql" });
    */
   constructor(connectionLimit = 10, queueLimit = 0, config = {}) {
     this.pool = null;
-    this.prisma = prismaClientInstance || null;
     this.type = DB_TYPE;
-    this.orm = DB_ORM;
 
     this.config = {
       ...config,
@@ -134,20 +106,6 @@ class Database {
    * @returns {Promise<boolean>} True if connection pool was created.
    */
   async init(retries = 3) {
-    if (this.orm === "prisma") {
-      if (!this.prisma) return false;
-      try {
-        await this.prisma.$connect();
-        return true;
-      } catch (err) {
-        console.error(
-          "[DATABASE ERROR] Prisma connection failed:",
-          err.message,
-        );
-        return false;
-      }
-    }
-
     if (!mysqlPromise && !pgPromise) return false;
     if (this.pool) return true;
 
@@ -181,50 +139,17 @@ class Database {
   /**
    * Runs a SQL query with parameters and formatting options.
    * Supports both MySQL and PostgreSQL (converting ? to $1, $2 for Postgres automatically).
-   * If Prisma ORM is enabled, runs $queryRawUnsafe or delegates to native pool.
    *
    * @param {string} sql - SQL query string.
    * @param {Array} [params=[]] - Query parameter array.
    * @param {Object|string} [options={}] - Query options. Supports 'return_row', 'return_rows', and 'cache' (seconds).
    * @returns {Promise<*>| int | boolean} Formatted query result or false on error, or insert id of insert query.
-   * @example const result await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
+   * @example const result = await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
    * @example const result = await connection.query("SELECT * FROM users WHERE id = ?", [1], { cache: 60 });
    * @example const result = await connection.query("SELECT * FROM users WHERE id = ?", [1], { debug: true });
-   * @example const insert_id = await connection.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", ["John Doe", "[EMAIL_ADDRESS]", "password"]);
+   * @example const insert_id = await connection.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", ["John Doe", "john@example.com", "password"]);
    */
   async query(sql, params = [], options = {}) {
-    if (this.orm === "prisma" && this.prisma) {
-      const queryOptions =
-        typeof options === "string" ? { [options]: true } : options;
-      const cleanSql = sql.trim();
-      const isSelect = cleanSql.toLowerCase().startsWith("select");
-      try {
-        let formattedSql = cleanSql;
-        if (this.type === "postgres") {
-          let paramIndex = 1;
-          formattedSql = cleanSql.replace(/\?/g, () => `$${paramIndex++}`);
-        }
-        const results = await this.prisma.$queryRawUnsafe(
-          formattedSql,
-          ...params,
-        );
-        if (isSelect) {
-          const rows = Array.isArray(results) ? results : [];
-          if (queryOptions.return_row) {
-            return rows.length > 0 ? rows[0] : null;
-          }
-          return rows;
-        }
-        return results;
-      } catch (err) {
-        console.error(
-          "[DATABASE ERROR] Prisma raw query execution failed:",
-          err.message,
-        );
-        throw err;
-      }
-    }
-
     if (!mysqlPromise && !pgPromise) return false;
     if (!this.pool) {
       const initialized = await this.init();
@@ -254,17 +179,17 @@ class Database {
       cacheKey = `db:${hash}`;
       try {
         if (isDebug) {
-          console.log("[DATABASE DEBUG ][Redis] CACHE KEY:", cacheKey);
+          console.log("[DATABASE DEBUG][Redis] CACHE KEY:", cacheKey);
         }
         const cached = await redisClient.get(cacheKey);
         if (cached) {
           if (isDebug) {
-            console.log("[DATABASE DEBUG ][Redis] CACHE HIT");
+            console.log("[DATABASE DEBUG][Redis] CACHE HIT");
           }
           return JSON.parse(cached);
         } else {
           if (isDebug) {
-            console.log("[DATABASE DEBUG ][Redis] CACHE MISS");
+            console.log("[DATABASE DEBUG][Redis] CACHE MISS");
           }
         }
       } catch (err) {
@@ -335,4 +260,4 @@ class Database {
   }
 }
 
-export { Database, DB_TYPE, DB_ORM };
+export { Database, DB_TYPE };

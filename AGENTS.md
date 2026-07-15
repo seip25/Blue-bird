@@ -194,14 +194,13 @@ The container names and virtual networks are namespaced by the `TITLE` environme
 
 ## 10. Database Module (database.js)
 
-Blue Bird provides a unified wrapper class (`core/database.js`) supporting **MySQL (`mysql2/promise`)**, **PostgreSQL (`pg`)**, and **Prisma ORM (`@prisma/client`)**. It features connection pooling, automatic retries on startup, query formatting, and built-in Redis query caching:
+Blue Bird provides a unified wrapper class (`core/database.js`) supporting **MySQL (`mysql2/promise`)** and **PostgreSQL (`pg`)**. It features connection pooling, automatic retries on startup, query formatting, and built-in Redis query caching:
 
-- **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for DB type (`none`, `mysql`, `postgres`) and ORM choice (`native`, `prisma`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE`, `DB_ORM`, and `DATABASE_URL`.
+- **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for the database type (`none`, `mysql`, `postgres`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE` and `DATABASE_URL`.
 - **Parameter Placeholders:** When using `pg` for PostgreSQL with `connection.query()`, `?` placeholders are automatically translated to `$1, $2, ...` under the hood.
-- **Prisma Integration:** When `DB_ORM="prisma"`, the wrapper initializes `PrismaClient` (using `@prisma/adapter-pg` for Postgres) and exposes `connection.prisma`. Calling `connection.query()` in Prisma mode delegates to `$queryRawUnsafe()`.
 
 ```javascript
-import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
 const connection = new Database(20);
 
@@ -213,11 +212,6 @@ const stats = await connection.query("SELECT COUNT(*) as cnt FROM logs", [], { c
 
 // INSERT query returns insertId directly (or row ID/rowCount in Postgres)
 const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
-
-// Access raw Prisma client instance directly when DB_ORM="prisma"
-if (DB_ORM === "prisma" && connection.prisma) {
-  const allUsers = await connection.prisma.user.findMany();
-}
 ```
 
 ## 11. Nginx Proxy Caching

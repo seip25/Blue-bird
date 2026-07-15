@@ -41,10 +41,9 @@ npx blue-bird
 
 When run, the interactive CLI prompts for your preferred infrastructure configuration:
 - Database Selection: Choose between `none`, `mysql`, or `postgres`.
-- ORM Mode: Choose between `native` driver (`mysql2` or `pg`) or `prisma` ORM.
 - Credentials: Set your database name, user, password, and port (`3306` or `5432`).
 
-The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DB_ORM`, `DATABASE_URL`) to `.env` and installs the required packages automatically (`mysql2`, `pg`, `prisma`, `@prisma/client`, and `@prisma/adapter-pg`). If Prisma is selected, it automatically initializes the Prisma schema for your chosen database provider.
+The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DATABASE_URL`) to `.env` and installs the required database packages (`mysql2` or `pg`) automatically.
 
 ### 3. Run Development Server / Modo Desarrollo
 
@@ -225,20 +224,18 @@ webRouter.use(App.helmet());
 
 ### 7. Database wrapper (`Database`)
 
-Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **MySQL**, **PostgreSQL**, and **Prisma ORM** with automated connection retry loops, query formatting utilities, and Redis query caching.
+Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **MySQL** and **PostgreSQL** with automated connection retry loops, query formatting utilities, and Redis query caching.
 
-#### Driver & ORM Support
+#### Driver Support
 - **Native MySQL (`mysql2/promise`)**: High-performance connection pool for MySQL 8.0+.
 - **Native PostgreSQL (`pg`)**: Connection pool for PostgreSQL 18+. When running standard queries with `connection.query(sql, params)`, the wrapper automatically converts `?` parameter placeholders into PostgreSQL `$1, $2, ...` syntax, allowing unified SQL query writing across both database engines.
-- **Prisma ORM (`@prisma/client`)**: When configured (`DB_ORM="prisma"`), the `Database` class initializes `PrismaClient` using `@prisma/adapter-pg` (for Postgres) or standard native drivers. You can access the raw Prisma instance via `connection.prisma` or run raw SQL queries through `connection.query()`, which delegates to `$queryRawUnsafe()`.
-- **No Database (`none`)**: If no database is configured, the wrapper disabled gracefully without crashing the server.
+- **No Database (`none`)**: If no database is configured, the wrapper is disabled gracefully without crashing the server.
 
 #### Standalone & Remote Database Configuration
 You can connect to any local or remote database instance (outside Docker, such as Supabase, Neon, AWS RDS, or local services) simply by defining the `DATABASE_URL` in your `.env` file:
 
 ```env
 DB_TYPE="postgres"
-DB_ORM="native"
 DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=public"
 # OR for MySQL:
 # DATABASE_URL="mysql://root:password@localhost:3306/blue_bird"
@@ -247,7 +244,7 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=pub
 #### Usage Examples
 
 ```javascript
-import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
 // Instantiate the database connection pool with a connection limit (e.g., 20)
 const connection = new Database(20);
@@ -260,11 +257,6 @@ const stats = await connection.query("SELECT COUNT(*) as count FROM access_logs"
 
 // 3. INSERT query (returns insertId for MySQL, or inserted row ID / rowCount for PostgreSQL)
 const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["John"]);
-
-// 4. Using Prisma ORM directly when DB_ORM="prisma"
-if (DB_ORM === "prisma" && connection.prisma) {
-  const users = await connection.prisma.user.findMany({ where: { active: true } });
-}
 ```
 
 ---

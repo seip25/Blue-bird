@@ -29,7 +29,6 @@ class ProjectInit {
     let port = 3000;
     let appUrl = "http://localhost:3000";
     let dbType = "none";
-    let dbOrm = "native";
     let dbName = "blue_bird";
     let dbUser = "root";
     let dbPassword = "root";
@@ -74,12 +73,6 @@ class ProjectInit {
       }
 
       if (dbType !== "none") {
-        const ormAns = await ask(
-          "Do you want to use Prisma ORM or native driver? (native / prisma)",
-          "native",
-        );
-        dbOrm = ormAns.toLowerCase().includes("prisma") ? "prisma" : "native";
-
         dbName = await ask("Database Name", dbName);
         dbUser = await ask(
           "Database User",
@@ -179,7 +172,6 @@ class ProjectInit {
           APP_URL: appUrl,
           JWT_SECRET: jwtSecret,
           DB_TYPE: dbType,
-          DB_ORM: dbOrm,
         };
 
         if (dbType === "mysql") {
@@ -221,66 +213,24 @@ class ProjectInit {
 
       if (dbType !== "none") {
         console.log(
-          chalk.cyan(
-            `[INFO] Installing ${dbType} and redis packages (${dbOrm} mode)...`,
-          ),
+          chalk.cyan(`[INFO] Installing ${dbType} and redis packages...`),
         );
         try {
           let packagesToInstall = ["redis"];
-          if (dbOrm === "prisma") {
-            if (dbType === "postgres") {
-              packagesToInstall.push(
-                "@prisma/client",
-                "@prisma/adapter-pg",
-                "pg",
-              );
-            } else {
-              packagesToInstall.push("@prisma/client", "mysql2");
-            }
-            execSync("npm install --save-dev prisma", {
-              stdio: "inherit",
-              cwd: this.appDir,
-            });
-            execSync(`npm install ${packagesToInstall.join(" ")}`, {
-              stdio: "inherit",
-              cwd: this.appDir,
-            });
-            console.log(
-              chalk.green(
-                "[OK] Successfully installed Prisma and database packages.",
-              ),
-            );
-
-            const prismaDir = path.join(this.appDir, "prisma");
-            if (!fs.existsSync(prismaDir)) {
-              console.log(chalk.cyan("[INFO] Initializing Prisma schema..."));
-              const provider = dbType === "postgres" ? "postgresql" : "mysql";
-              execSync(`npx prisma init --datasource-provider ${provider}`, {
-                stdio: "inherit",
-                cwd: this.appDir,
-              });
-              console.log(
-                chalk.green(
-                  `[OK] Prisma initialized with ${provider} provider.`,
-                ),
-              );
-            }
+          if (dbType === "postgres") {
+            packagesToInstall.push("pg");
           } else {
-            if (dbType === "postgres") {
-              packagesToInstall.push("pg");
-            } else {
-              packagesToInstall.push("mysql2");
-            }
-            execSync(`npm install ${packagesToInstall.join(" ")}`, {
-              stdio: "inherit",
-              cwd: this.appDir,
-            });
-            console.log(
-              chalk.green(
-                `[OK] Successfully installed ${packagesToInstall.join(" ")}.`,
-              ),
-            );
+            packagesToInstall.push("mysql2");
           }
+          execSync(`npm install ${packagesToInstall.join(" ")}`, {
+            stdio: "inherit",
+            cwd: this.appDir,
+          });
+          console.log(
+            chalk.green(
+              `[OK] Successfully installed ${packagesToInstall.join(" ")}.`,
+            ),
+          );
         } catch (error) {
           console.warn(
             chalk.yellow(
@@ -303,7 +253,7 @@ class ProjectInit {
   }
 
   /**
-   * Updates the user's package.json with Blue Bird scripts.
+   * Updates package.json with needed scripts and module type if not set.
    */
   updatePackageJson() {
     const pkgPath = path.join(this.appDir, "package.json");

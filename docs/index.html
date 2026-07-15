@@ -342,18 +342,14 @@ REDIS_PASSWORD=""
 PM2_INSTANCES='max'
 
 # Database Configuration (Used for both Docker and standalone connection outside Docker)
-# SQLite (Local file)
-# DATABASE_URL="file:./dev.db"
-
-# MySQL (Uncomment to connect via native or Prisma driver)
+# MySQL (Uncomment to connect via native mysql2 driver)
 # DATABASE_URL="mysql://root:root@localhost:3306/blue_bird"
 
-# PostgreSQL (Uncomment to connect via native pg or Prisma driver)
+# PostgreSQL (Uncomment to connect via native pg driver)
 DATABASE_URL="postgresql://postgres:root@localhost:5432/blue_bird?schema=public"
 
 # Database & Docker Configuration
 DB_TYPE="postgres"
-DB_ORM="native"
 DB_NAME="blue_bird"
 DB_USER="postgres"
 DB_PASSWORD="root"
