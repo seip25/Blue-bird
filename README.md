@@ -39,7 +39,12 @@ npm install @seip/blue-bird
 npx blue-bird
 ```
 
-_This copies the base structure: `backend`, `frontend`, `docker`, `docker-compose.yml`, `AGENTS.md`, and `.env`._
+When run, the interactive CLI prompts for your preferred infrastructure configuration:
+- Database Selection: Choose between `none`, `mysql`, or `postgres`.
+- ORM Mode: Choose between `native` driver (`mysql2` or `pg`) or `prisma` ORM.
+- Credentials: Set your database name, user, password, and port (`3306` or `5432`).
+
+The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DB_ORM`, `DATABASE_URL`) to `.env` and installs the required packages automatically (`mysql2`, `pg`, `prisma`, `@prisma/client`, and `@prisma/adapter-pg`). If Prisma is selected, it automatically initializes the Prisma schema for your chosen database provider.
 
 ### 3. Run Development Server / Modo Desarrollo
 
@@ -220,19 +225,43 @@ webRouter.use(App.helmet());
 
 ### 7. Database wrapper (`Database`)
 
-MySQL database client connection pool configuration featuring automated retry loops, query formatting utilities, and Redis query caching.
+Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **MySQL**, **PostgreSQL**, and **Prisma ORM** with automated connection retry loops, query formatting utilities, and Redis query caching.
+
+#### Driver & ORM Support
+- **Native MySQL (`mysql2/promise`)**: High-performance connection pool for MySQL 8.0+.
+- **Native PostgreSQL (`pg`)**: Connection pool for PostgreSQL 18+. When running standard queries with `connection.query(sql, params)`, the wrapper automatically converts `?` parameter placeholders into PostgreSQL `$1, $2, ...` syntax, allowing unified SQL query writing across both database engines.
+- **Prisma ORM (`@prisma/client`)**: When configured (`DB_ORM="prisma"`), the `Database` class initializes `PrismaClient` using `@prisma/adapter-pg` (for Postgres) or standard native drivers. You can access the raw Prisma instance via `connection.prisma` or run raw SQL queries through `connection.query()`, which delegates to `$queryRawUnsafe()`.
+- **No Database (`none`)**: If no database is configured, the wrapper disabled gracefully without crashing the server.
+
+#### Standalone & Remote Database Configuration
+You can connect to any local or remote database instance (outside Docker, such as Supabase, Neon, AWS RDS, or local services) simply by defining the `DATABASE_URL` in your `.env` file:
+
+```env
+DB_TYPE="postgres"
+DB_ORM="native"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=public"
+# OR for MySQL:
+# DATABASE_URL="mysql://root:password@localhost:3306/blue_bird"
+```
+
+#### Usage Examples
 
 ```javascript
-import connection from "@seip/blue-bird/core/database.js";
+import connection, { DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
 
-// Fetch single row from a SELECT query
+// 1. Basic SELECT query returning single row (Works for both MySQL and PostgreSQL using ? placeholders)
 const user = await connection.query("SELECT * FROM users WHERE email = ?", ["test@example.com"], "return_row");
 
-// Fetch rows with 60 seconds Redis caching enabled
+// 2. Fetch rows with 60 seconds Redis caching enabled
 const stats = await connection.query("SELECT COUNT(*) as count FROM access_logs", [], { cache: 60 });
 
-// INSERT queries return the last insert ID directly
+// 3. INSERT query (returns insertId for MySQL, or inserted row ID / rowCount for PostgreSQL)
 const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["John"]);
+
+// 4. Using Prisma ORM directly when DB_ORM="prisma"
+if (DB_ORM === "prisma" && connection.prisma) {
+  const users = await connection.prisma.user.findMany({ where: { active: true } });
+}
 ```
 
 ---
@@ -260,9 +289,9 @@ Nginx reverse proxy is preconfigured with a page cache zone (`astro_cache`) that
 
 ---
 
-## 🐳 Docker CLI Workflow
+## Docker CLI Workflow
 
-Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments.
+Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments across MySQL, PostgreSQL, or no-database architectures.
 
 ### Commands Syntax:
 
@@ -272,16 +301,16 @@ npx blue-bird docker <command> [options]
 
 ### Supported Actions:
 
-- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + MySQL + Redis).
-- **`npx blue-bird docker start mysql`**: Boots the MySQL container only (great for local HTTP development).
+- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + Database + Redis).
+- **`npx blue-bird docker start db`** (or `postgres` / `mysql`): Boots the configured database container only (great for local development outside Docker).
 - **`npx blue-bird docker start redis`**: Boots the Redis container only.
-- **`npx blue-bird docker start dbs`**: Boots both database containers (MySQL + Redis).
-- **`npx blue-bird docker stop`**: Stops all active containers.
+- **`npx blue-bird docker start dbs`**: Boots both database containers (configured DB + Redis).
+- **`npx blue-bird docker stop`**: Stops all active project containers.
 - **`npx blue-bird docker build [--no-cache]`**: Builds or updates the Node.js production image.
 - **`npx blue-bird docker ps`**: Lists running project containers and ports.
-- **`npx blue-bird docker logs [app|mysql]`**: Tails logs for the specified container.
+- **`npx blue-bird docker logs [app|db|postgres|mysql]`**: Tails logs for the specified container.
 - **`npx blue-bird docker pm2 [args]`**: Runs PM2 commands inside the Node.js application container (e.g. `status`, `monit`, `reload all`).
-- **`npx blue-bird docker db`**: Connects into the container's interactive MySQL shell using credentials from `.env`.
+- **`npx blue-bird docker db`** (or `psql` / `mysql`): Connects into the container's interactive database shell (`psql` for PostgreSQL, `mysql` for MySQL) using credentials from `.env`.
 - **`npx blue-bird docker redis`**: Connects into the container's interactive Redis CLI terminal.
 - **`npx blue-bird docker prune`**: Safely clears orphaned volumes, dangling build caches, and images.
 

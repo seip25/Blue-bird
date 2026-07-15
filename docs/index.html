@@ -341,21 +341,23 @@ REDIS_PASSWORD=""
 # PM2 Clustering Instances (integer or 'max')
 PM2_INSTANCES='max'
 
-# Database Configuration (Used only for local development outside Docker)
-# SQLite (Default)
-DATABASE_URL="file:./dev.db"
+# Database Configuration (Used for both Docker and standalone connection outside Docker)
+# SQLite (Local file)
+# DATABASE_URL="file:./dev.db"
 
-# MySQL (Uncomment to use MySQL locally or DEV)
+# MySQL (Uncomment to connect via native or Prisma driver)
 # DATABASE_URL="mysql://root:root@localhost:3306/blue_bird"
 
-# PostgreSQL (Uncomment to use PostgreSQL locally or DEV)
-# DATABASE_URL="postgresql://root:root@localhost:5432/blue_bird?schema=public"
+# PostgreSQL (Uncomment to connect via native pg or Prisma driver)
+DATABASE_URL="postgresql://postgres:root@localhost:5432/blue_bird?schema=public"
 
-# Database / Docker Configuration
+# Database & Docker Configuration
+DB_TYPE="postgres"
+DB_ORM="native"
 DB_NAME="blue_bird"
-DB_USER="root"
+DB_USER="postgres"
 DB_PASSWORD="root"
-DB_PORT=3307</code></pre>
+DB_PORT=5432</code></pre>
                         </article>
 
                         <!-- App Section -->
@@ -576,39 +578,47 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                     Database Module
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Blue Bird includes a wrapper module around the <code>mysql2</code> driver. It
-                                    manages a connections pool with connection retries, custom charset settings
-                                    (<code>utf8mb4</code>), response formatting based on SQL command style, and
-                                    query-level Redis caching.
+                                    Blue Bird includes a unified database wrapper (`core/database.js`) supporting
+                                    <strong>MySQL</strong> (<code>mysql2/promise</code>), <strong>PostgreSQL</strong> (<code>pg</code>),
+                                    and <strong>Prisma ORM</strong> (<code>@prisma/client</code>). During project setup with
+                                    <code>npx blue-bird</code>, the CLI interactive wizard asks for your preferred database
+                                    (<code>none</code>, <code>mysql</code>, or <code>postgres</code>) and ORM mode (<code>native</code> or <code>prisma</code>),
+                                    automatically copying the corresponding Docker Compose template (<code>docker/docker-compose.mysql.yml</code>,
+                                    <code>docker/docker-compose.postgres.yml</code>, or <code>docker/docker-compose.none.yml</code>) as the root
+                                    <code>docker-compose.yml</code>.
                                 </p>
-                                <pre><code class="language-javascript">import connection from "@seip/blue-bird/core/database.js";
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    If connecting to PostgreSQL using native SQL queries, parameter placeholders (`?`) are
+                                    automatically converted to PostgreSQL `$1, $2, ...` placeholders under the hood, allowing unified
+                                    query writing across engines. You can also connect without Docker directly by setting
+                                    <code>DATABASE_URL</code> inside your <code>.env</code> file.
+                                </p>
+                                <pre><code class="language-javascript">import connection, { DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
 
-// 1. Fetch a single row (SELECT query)
+// 1. Fetch a single row (SELECT query with ? placeholders works on both MySQL and PostgreSQL)
 const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_row"); 
-//Or  
-const user = await connection.query("SELECT * FROM users WHERE id = ?", [123], {return_row:true}); 
 
-//2 Fetch a rows (SELECT query)
+// 2. Fetch rows (SELECT query)
 const users = await connection.query("SELECT * FROM users WHERE id = ?", [123], "return_rows"); 
-//Or 
-const users = await connection.query("SELECT * FROM users WHERE id = ?", [123], {return_rows:true}); 
 
-//3. Fetch rows with 60s Redis query caching enabled
-const products = await connection.query("SELECT * FROM products", [], { cache: 60,return_rows:true });
+// 3. Fetch rows with 60s Redis query caching enabled
+const products = await connection.query("SELECT * FROM products", [], { cache: 60, return_rows: true });
 
-//4 DEBUG info in querys 
+// 4. Debug query execution output
 const debug = await connection.query("SELECT * FROM users", [], { debug: true });
-//output
-//[DATABASE DEBUG] SQL: SELECT * FROM users 
-//[DATABASE DEBUG] PARAMS: []
-//[DATABASE DEBUG] OPTIONS: { debug: true }
-//[DATABASE DEBUG] CACHE KEY: db:c0677a5f9075b40e1d6105f1f1d47d4b
-//[DATABASE DEBUG] CACHE MISS
-//[DATABASE DEBUG] CACHE HIT
+// Output:
+// [DATABASE DEBUG] SQL: SELECT * FROM users 
+// [DATABASE DEBUG] PARAMS: []
+// [DATABASE DEBUG] OPTIONS: { debug: true }
+// [DATABASE DEBUG] CACHE HIT / MISS
 
+// 5. INSERT query (returns insertId for MySQL, or row ID / rowCount for PostgreSQL)
+const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);
 
-//5. INSERT query (returns insertId directly)
-const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);</code></pre>
+// 6. Access Prisma Client directly when DB_ORM="prisma"
+if (DB_ORM === "prisma" && connection.prisma) {
+  const activeUsers = await connection.prisma.user.findMany({ where: { active: true } });
+}</code></pre>
                             </article>
 
                             <!-- Docker Section -->
@@ -620,19 +630,21 @@ const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)",
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Manage development containers and full-stack deployments directly using the
-                                    built-in
-                                    Docker CLI tool wrapper.
+                                    built-in Docker CLI tool wrapper. The wrapper dynamically detects whether your project
+                                    uses MySQL or PostgreSQL based on `getDbType()` reading your <code>.env</code> configuration.
                                 </p>
-                                <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + MySQL + Redis)
+                                <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + Database + Redis)
 npx blue-bird docker start prod
 
-# Start MySQL Database Container Only
+# Start Configured Database Container Only (Postgres or MySQL)
+npx blue-bird docker start db
+npx blue-bird docker start postgres
 npx blue-bird docker start mysql
 
 # Start Redis Container Only
 npx blue-bird docker start redis
 
-# Start Both Databases (MySQL + Redis)
+# Start Both Databases (Configured DB + Redis)
 npx blue-bird docker start dbs
 
 # Stop All Running Project Containers
@@ -644,16 +656,19 @@ npx blue-bird docker build
 # Check Active Containers Status
 npx blue-bird docker ps
 
-# Tail Live Node.js Container Logs
+# Tail Live Container Logs
 npx blue-bird docker logs
+npx blue-bird docker logs db
 
 # Run PM2 Commands Inside the Node.js Application Container
 npx blue-bird docker pm2 status
 npx blue-bird docker pm2 monit
 npx blue-bird docker pm2 reload all
 
-# Run Interactive MySQL Client Shell Inside the Database Container
+# Run Interactive Shell Inside the Database Container (psql or mysql)
 npx blue-bird docker db
+npx blue-bird docker psql
+npx blue-bird docker mysql
 
 # Run Interactive Redis CLI Connection Inside the Container
 npx blue-bird docker redis
