@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Express opinionated framework with HTML rendering, API architecture, built-in JWT auth, validation, caching, and SEO",
   "type": "module",
   "exports": {
@@ -64,9 +64,8 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
-    "mysql2": "^3.22.6",
-    "redis": "^4.7.0",
+    "multer": "^2.0.2", 
+    "redis": "^6.1.0",
     "xss": "^1.0.15"
   }
 }
