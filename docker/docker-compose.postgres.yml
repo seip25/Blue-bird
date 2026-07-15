@@ -1,0 +1,93 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ${TITLE:-bluebird}-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-root}@postgres:${DB_PORT:-5432}/${DB_NAME:-blue_bird}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bluebird_net
+    profiles:
+      - prod
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: ${TITLE:-bluebird}-nginx
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:80"
+    volumes:
+      - .:/app:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_started
+    networks:
+      - bluebird_net
+    profiles:
+      - prod
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: ${TITLE:-bluebird}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-blue_bird}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-blue_bird}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bluebird_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${TITLE:-bluebird}-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bluebird_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bluebird_net:
+    name: ${TITLE:-bluebird}_network
+    driver: bridge

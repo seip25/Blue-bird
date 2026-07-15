@@ -26,6 +26,29 @@ function getEnvVars() {
 }
 
 /**
+ * Determines the target database type (mysql or postgres) from environment variables.
+ * @param {Object} [env] - Environment dictionary.
+ * @returns {string} 'postgres' or 'mysql'.
+ */
+function getDbType(env = getEnvVars()) {
+  if (env.DB_TYPE && (env.DB_TYPE.toLowerCase() === "postgres" || env.DB_TYPE.toLowerCase() === "postgresql" || env.DB_TYPE.toLowerCase() === "pg")) {
+    return "postgres";
+  }
+  if (env.DB_TYPE && env.DB_TYPE.toLowerCase() === "mysql") {
+    return "mysql";
+  }
+  if (env.DATABASE_URL && !env.DATABASE_URL.startsWith("#")) {
+    if (env.DATABASE_URL.startsWith("postgres://") || env.DATABASE_URL.startsWith("postgresql://")) {
+      return "postgres";
+    }
+    if (env.DATABASE_URL.startsWith("mysql://")) {
+      return "mysql";
+    }
+  }
+  return "mysql";
+}
+
+/**
  * Spawns a child process and inherits standard IO for interactive terminal sessions.
  * @param {string} command - The binary to execute.
  * @param {string[]} args - Argument list.
@@ -56,14 +79,16 @@ function checkComposeFile() {
  */
 async function startCommand(service) {
   checkComposeFile();
+  const dbType = getDbType();
 
-  if (service === "mysql" || service === "--mysql" || service === "dev") {
-    console.log(chalk.cyan("Starting MySQL container..."));
-    const code = await runCmd("docker", ["compose", "up", "-d", "mysql"]);
+  if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db" || service === "dev") {
+    const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
+    console.log(chalk.cyan(`Starting ${targetContainer.toUpperCase()} container...`));
+    const code = await runCmd("docker", ["compose", "up", "-d", targetContainer]);
     if (code === 0) {
-      console.log(chalk.green("MySQL started."));
+      console.log(chalk.green(`${targetContainer.toUpperCase()} started.`));
     } else {
-      console.error(chalk.red("Error starting MySQL."));
+      console.error(chalk.red(`Error starting ${targetContainer}. Make sure '${targetContainer}' service is defined in docker-compose.yml.`));
       process.exit(1);
     }
   } else if (service === "redis" || service === "--redis") {
@@ -76,8 +101,8 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else if (service === "dbs" || service === "databases") {
-    console.log(chalk.cyan("Starting Database containers (MySQL + Redis)..."));
-    const code = await runCmd("docker", ["compose", "up", "-d", "mysql", "redis"]);
+    console.log(chalk.cyan(`Starting Database containers (${dbType.toUpperCase()} + Redis)...`));
+    const code = await runCmd("docker", ["compose", "up", "-d", dbType, "redis"]);
     if (code === 0) {
       console.log(chalk.green("Database containers started."));
     } else {
@@ -85,7 +110,7 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else if (service === "prod" || service === "app" || service === "--app" || !service) {
-    console.log(chalk.cyan("Starting production stack (MySQL + Redis + App + Nginx)..."));
+    console.log(chalk.cyan("Starting production stack (DB + Redis + App + Nginx)..."));
     const code = await runCmd("docker", ["compose", "--profile", "prod", "up", "-d"]);
     if (code === 0) {
       console.log(chalk.green("Production stack started."));
@@ -94,7 +119,7 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: mysql, redis, dbs, prod.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: mysql, postgres, db, redis, dbs, prod.`));
     process.exit(1);
   }
 }
@@ -105,16 +130,18 @@ async function startCommand(service) {
  */
 async function stopCommand(service) {
   checkComposeFile();
+  const dbType = getDbType();
 
   if (!service || service === "all") {
     console.log(chalk.cyan("Stopping all Blue Bird containers..."));
     await runCmd("docker", ["compose", "--profile", "prod", "down"]);
     console.log(chalk.green("All containers stopped."));
-  } else if (service === "mysql" || service === "--mysql") {
-    console.log(chalk.cyan("Stopping MySQL..."));
-    await runCmd("docker", ["compose", "stop", "mysql"]);
-    await runCmd("docker", ["compose", "rm", "-f", "mysql"]);
-    console.log(chalk.green("MySQL stopped."));
+  } else if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db") {
+    const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
+    console.log(chalk.cyan(`Stopping ${targetContainer.toUpperCase()}...`));
+    await runCmd("docker", ["compose", "stop", targetContainer]);
+    await runCmd("docker", ["compose", "rm", "-f", targetContainer]);
+    console.log(chalk.green(`${targetContainer.toUpperCase()} stopped.`));
   } else if (service === "redis" || service === "--redis") {
     console.log(chalk.cyan("Stopping Redis..."));
     await runCmd("docker", ["compose", "stop", "redis"]);
@@ -126,7 +153,7 @@ async function stopCommand(service) {
     await runCmd("docker", ["compose", "--profile", "prod", "rm", "-f", "app"]);
     console.log(chalk.green("App container stopped."));
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: all, mysql, redis, app.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: all, mysql, postgres, db, redis, app.`));
     process.exit(1);
   }
 }
@@ -170,7 +197,11 @@ async function psCommand() {
 async function logsCommand(service, followOpt) {
   checkComposeFile();
   const follow = followOpt !== "--no-follow";
-  const targetService = service === "mysql" ? "mysql" : "app";
+  const dbType = getDbType();
+  let targetService = "app";
+  if (service === "mysql" || service === "postgres" || service === "db") {
+    targetService = service === "db" ? dbType : service;
+  }
 
   const cmdArgs = ["compose"];
   if (targetService === "app") {
@@ -186,44 +217,68 @@ async function logsCommand(service, followOpt) {
 }
 
 /**
- * Handles interactive shell connections into the MySQL container.
+ * Handles interactive shell connections into the MySQL or PostgreSQL container.
  * @param {string} userOpt - DB username.
  * @param {string} passOpt - DB password.
  * @param {string} dbOpt - DB database name.
- * @param {boolean} rootOpt - Flag for overriding database credentials to connect as root.
+ * @param {boolean} rootOpt - Flag for overriding database credentials to connect as root/postgres.
+ * @param {string} explicitService - Explicit target service if specified ('mysql' or 'postgres').
  */
-async function mysqlCommand(userOpt, passOpt, dbOpt, rootOpt) {
+async function dbClientCommand(userOpt, passOpt, dbOpt, rootOpt, explicitService) {
   checkComposeFile();
   const env = getEnvVars();
+  const dbType = explicitService === "postgres" || explicitService === "psql" ? "postgres" : (explicitService === "mysql" ? "mysql" : getDbType(env));
 
   let dbUser = userOpt;
   let dbPass = passOpt;
   let dbName = dbOpt;
 
-  if (rootOpt) {
-    dbUser = "root";
-    dbPass = env.DB_PASSWORD || "root";
+  if (dbType === "postgres") {
+    if (rootOpt) {
+      dbUser = "postgres";
+    } else {
+      dbUser = dbUser || env.DB_USER || "postgres";
+    }
+    dbName = dbName || env.DB_NAME || "blue_bird";
+
+    const targetDb = dbName ? ` (database: ${dbName})` : "";
+    console.log(chalk.cyan(`Connecting to PostgreSQL shell (psql) in container as '${dbUser}'${targetDb}...`));
+
+    const cmdArgs = ["compose", "exec", "postgres", "psql", `-U${dbUser}`];
+    if (dbName) {
+      cmdArgs.push("-d", dbName);
+    }
+    const code = await runCmd("docker", cmdArgs);
+    if (code !== 0) {
+      console.error(chalk.yellow("Make sure the PostgreSQL container is running: npx blue-bird docker start postgres"));
+      process.exit(1);
+    }
   } else {
-    dbUser = dbUser || env.DB_USER || "root";
-    dbPass = dbPass || env.DB_PASSWORD || "root";
-  }
-  dbName = dbName || env.DB_NAME || "blue_bird";
+    if (rootOpt) {
+      dbUser = "root";
+      dbPass = env.DB_PASSWORD || "root";
+    } else {
+      dbUser = dbUser || env.DB_USER || "root";
+      dbPass = dbPass || env.DB_PASSWORD || "root";
+    }
+    dbName = dbName || env.DB_NAME || "blue_bird";
 
-  const cmdArgs = ["compose", "exec", "mysql", "mysql", `-u${dbUser}`];
-  if (dbPass) {
-    cmdArgs.push(`-p${dbPass}`);
-  }
-  if (dbName) {
-    cmdArgs.push(dbName);
-  }
+    const cmdArgs = ["compose", "exec", "mysql", "mysql", `-u${dbUser}`];
+    if (dbPass) {
+      cmdArgs.push(`-p${dbPass}`);
+    }
+    if (dbName) {
+      cmdArgs.push(dbName);
+    }
 
-  const targetDb = dbName ? ` (database: {dbName})` : "";
-  console.log(chalk.cyan(`Connecting to MySQL shell in container as '${dbUser}'${targetDb}...`));
+    const targetDb = dbName ? ` (database: ${dbName})` : "";
+    console.log(chalk.cyan(`Connecting to MySQL shell in container as '${dbUser}'${targetDb}...`));
 
-  const code = await runCmd("docker", cmdArgs);
-  if (code !== 0) {
-    console.error(chalk.yellow("Make sure the MySQL container is running: npx blue-bird docker start mysql"));
-    process.exit(1);
+    const code = await runCmd("docker", cmdArgs);
+    if (code !== 0) {
+      console.error(chalk.yellow("Make sure the MySQL container is running: npx blue-bird docker start mysql"));
+      process.exit(1);
+    }
   }
 }
 
@@ -338,6 +393,8 @@ async function main() {
       await redisCommand();
       break;
     case "mysql":
+    case "postgres":
+    case "psql":
     case "db": {
       let user, password, db, root = false;
       for (let i = 1; i < args.length; i++) {
@@ -346,7 +403,7 @@ async function main() {
         else if (args[i] === "-d" || args[i] === "--db") db = args[++i];
         else if (args[i] === "--root") root = true;
       }
-      await mysqlCommand(user, password, db, root);
+      await dbClientCommand(user, password, db, root, command);
       break;
     }
     case "df":
@@ -363,7 +420,7 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/db, redis, df/disk, prune/clean");
+      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/postgres/db, redis, df/disk, prune/clean");
   }
 }
 
