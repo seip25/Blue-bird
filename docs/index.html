@@ -575,10 +575,9 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Blue Bird includes a unified database wrapper (`core/database.js`) supporting
-                                    <strong>MySQL</strong> (<code>mysql2/promise</code>), <strong>PostgreSQL</strong> (<code>pg</code>),
-                                    and <strong>Prisma ORM</strong> (<code>@prisma/client</code>). During project setup with
+                                    <strong>MySQL</strong> (<code>mysql2/promise</code>) and <strong>PostgreSQL</strong> (<code>pg</code>). During project setup with
                                     <code>npx blue-bird</code>, the CLI interactive wizard asks for your preferred database
-                                    (<code>none</code>, <code>mysql</code>, or <code>postgres</code>) and ORM mode (<code>native</code> or <code>prisma</code>),
+                                    (<code>none</code>, <code>mysql</code>, or <code>postgres</code>),
                                     automatically copying the corresponding Docker Compose template (<code>docker/docker-compose.mysql.yml</code>,
                                     <code>docker/docker-compose.postgres.yml</code>, or <code>docker/docker-compose.none.yml</code>) as the root
                                     <code>docker-compose.yml</code>.
@@ -589,7 +588,7 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                     query writing across engines. You can also connect without Docker directly by setting
                                     <code>DATABASE_URL</code> inside your <code>.env</code> file.
                                 </p>
-                                <pre><code class="language-javascript">import { Database, DB_TYPE, DB_ORM } from "@seip/blue-bird/core/database.js";
+                                <pre><code class="language-javascript">import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
 // Instantiate the database connection pool with a custom limit (e.g., 20 connections)
 const connection = new Database(20);
@@ -612,12 +611,7 @@ const debug = await connection.query("SELECT * FROM users", [], { debug: true })
 // [DATABASE DEBUG] CACHE HIT / MISS
 
 // 5. INSERT query (returns insertId for MySQL, or row ID / rowCount for PostgreSQL)
-const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);
-
-// 6. Access Prisma Client directly when DB_ORM="prisma"
-if (DB_ORM === "prisma" && connection.prisma) {
-  const activeUsers = await connection.prisma.user.findMany({ where: { active: true } });
-}</code></pre>
+const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);</code></pre>
                             </article>
 
                             <!-- Docker Section -->
