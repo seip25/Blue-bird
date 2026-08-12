@@ -6,6 +6,9 @@ import { getRedisClient } from "./cache.js";
 const propsConfig = Config.props();
 const jwtSecret = propsConfig.jwtSecret;
 const production = !propsConfig.debug;
+
+const aesKey = crypto.createHash("sha256").update(jwtSecret || "default").digest();
+
 /**
  * Auth class to handle JWT generation, verification and protection with AES-256-GCM encryption.
  */
@@ -18,7 +21,7 @@ class Auth {
    */
   static encrypt(payload, secret) {
     const iv = crypto.randomBytes(12);
-    const key = crypto.createHash("sha256").update(secret).digest();
+    const key = secret === jwtSecret ? aesKey : crypto.createHash("sha256").update(secret).digest();
     const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
     let encrypted = cipher.update(JSON.stringify(payload), "utf8", "hex");
     encrypted += cipher.final("hex");
@@ -39,7 +42,7 @@ class Auth {
 
       const iv = Buffer.from(ivHex, "hex");
       const tag = Buffer.from(tagHex, "hex");
-      const key = crypto.createHash("sha256").update(secret).digest();
+      const key = secret === jwtSecret ? aesKey : crypto.createHash("sha256").update(secret).digest();
       const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(tag);
 
@@ -102,20 +105,22 @@ class Auth {
       const token =
         req.cookies?.[cookieKey] || req.headers.authorization?.split(" ")[1];
 
-      const isContentTypeJson =
-        req.headers["content-type"] === "application/json";
+      const expectsJson =
+        req.xhr ||
+        req.headers.accept?.includes("application/json") ||
+        req.path.startsWith("/api");
 
       if (!token) {
-        if (redirect && !isContentTypeJson) return res.redirect(redirect);
-        return isContentTypeJson
+        if (redirect && !expectsJson) return res.redirect(redirect);
+        return expectsJson
           ? res.status(401).json({ message: "Unauthorized" })
           : res.status(401).send();
       }
 
       const decoded = this.verifyToken(token);
       if (!decoded) {
-        if (redirect && !isContentTypeJson) return res.redirect(redirect);
-        return isContentTypeJson
+        if (redirect && !expectsJson) return res.redirect(redirect);
+        return expectsJson
           ? res.status(401).json({ message: "Unauthorized" })
           : res.status(401).send();
       }
@@ -127,8 +132,8 @@ class Auth {
             `session:${decoded._sessionId}`,
           );
           if (!sessionData) {
-            if (redirect && !isContentTypeJson) return res.redirect(redirect);
-            return isContentTypeJson
+            if (redirect && !expectsJson) return res.redirect(redirect);
+            return expectsJson
               ? res.status(401).json({ message: "Unauthorized" })
               : res.status(401).send();
           }
@@ -139,8 +144,8 @@ class Auth {
             "[AUTH ERROR] Failed to get session data from Redis:",
             err.message,
           );
-          if (redirect && !isContentTypeJson) return res.redirect(redirect);
-          return isContentTypeJson
+          if (redirect && !expectsJson) return res.redirect(redirect);
+          return expectsJson
             ? res.status(401).json({ message: "Unauthorized" })
             : res.status(401).send();
         }
@@ -170,8 +175,23 @@ class Auth {
 
     const token = this.generateToken(tokenPayload, jwtSecret, expiresIn);
 
+    let ttl = 86400; // default 24h
+    if (typeof expiresIn === "string") {
+      const match = expiresIn.match(/^(\d+)([smhd])$/);
+      if (match) {
+        const val = parseInt(match[1]);
+        const unit = match[2];
+        if (unit === "s") ttl = val;
+        else if (unit === "m") ttl = val * 60;
+        else if (unit === "h") ttl = val * 3600;
+        else if (unit === "d") ttl = val * 86400;
+      }
+    } else if (typeof expiresIn === "number") {
+      ttl = expiresIn;
+    }
+
     const defaultCookieOptions = {
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: ttl * 1000,
       httpOnly: true,
       secure: production,
       sameSite: "strict",
@@ -183,20 +203,6 @@ class Auth {
     const redisClient = getRedisClient();
     if (redisClient) {
       try {
-        let ttl = 86400;
-        if (typeof expiresIn === "string") {
-          const match = expiresIn.match(/^(\d+)([smhd])$/);
-          if (match) {
-            const val = parseInt(match[1]);
-            const unit = match[2];
-            if (unit === "s") ttl = val;
-            else if (unit === "m") ttl = val * 60;
-            else if (unit === "h") ttl = val * 3600;
-            else if (unit === "d") ttl = val * 86400;
-          }
-        } else if (typeof expiresIn === "number") {
-          ttl = expiresIn;
-        }
         await redisClient.set(`session:${sessionId}`, JSON.stringify(data), {
           EX: ttl,
         });
