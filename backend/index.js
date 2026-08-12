@@ -1,5 +1,5 @@
 import App from "@seip/blue-bird/core/app.js";
-import routerApi from "./backend/routes/api.js";
+import routerApi from "./routes/api.js";
 
 /**
  * Main entry point for the Blue Bird application.
