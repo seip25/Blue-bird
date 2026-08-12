@@ -1,7 +1,7 @@
 {
   "name": "@seip/blue-bird",
   "version": "0.7.6",
-  "description": "Express opinionated framework with HTML rendering, API architecture, built-in JWT auth, validation, caching, and SEO",
+  "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
   "type": "module",
   "exports": {
     "./*": "./*"
@@ -28,11 +28,8 @@
   },
   "homepage": "https://seip25.github.io/Blue-bird/",
   "scripts": {
-    "dev": "node --watch --env-file=.env index.js",
-    "dev:astro": "astro dev --root frontend",
-    "dev:api": "node --watch --env-file=.env index.js",
-    "start": "node --env-file=.env index.js",
-    "build": "astro build --root frontend",
+    "dev": "node --watch --env-file=.env backend/index.js",
+    "start": "node --env-file=.env backend/index.js",
     "init": "node core/cli/init.js",
     "route": "node core/cli/route.js",
     "swagger-install": "node core/cli/swagger.js",
@@ -44,9 +41,7 @@
   "files": [
     "core",
     "backend",
-    "frontend/src",
-    "frontend/public",
-    "frontend/astro.config.mjs",
+    "frontend",
     "docker",
     "docker-compose.yml",
     "AGENTS.md",
@@ -54,8 +49,6 @@
     ".env_example"
   ],
   "dependencies": {
-    "@astrojs/node": "^11.0.0",
-    "astro": "^7.0.0",
     "chalk": "^5.6.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -64,7 +57,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2", 
+    "multer": "^2.0.2",
     "redis": "^6.1.0",
     "xss": "^1.0.15"
   }

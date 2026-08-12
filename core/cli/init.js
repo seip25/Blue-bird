@@ -263,10 +263,7 @@ class ProjectInit {
 
       const scriptsToAdd = {
         dev: "node --watch --env-file=.env index.js",
-        "dev:astro": "astro dev --root frontend",
-        "dev:api": "node --watch --env-file=.env index.js",
         start: "node --env-file=.env index.js",
-        build: "astro build --root frontend",
         init: "blue-bird",
         route: "blue-bird route",
         "swagger-install": "blue-bird swagger-install",
@@ -309,7 +306,6 @@ class ProjectInit {
       fs.readdirSync(src).forEach((childItemName) => {
         if (
           childItemName === "node_modules" ||
-          childItemName === ".astro" ||
           childItemName === "dist" ||
           childItemName === ".git"
         ) {

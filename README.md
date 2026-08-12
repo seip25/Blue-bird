@@ -11,14 +11,14 @@
 
 ## Introduction
 
-Blue Bird is a powerful, opinionated framework built on Express for backend routing and APIs, integrated with Astro (v7.0) for high-performance frontend rendering. It features pre-configured data validation, security middlewares, GCM-encrypted JWT authentication, and CLI/Docker developer workflows out of the box.
+Blue Bird is a powerful, performance-first API framework built on Express. It features pre-configured data validation, security middlewares, GCM-encrypted JWT authentication, and CLI/Docker developer workflows out of the box, with static frontend assets handled directly by Nginx.
 
 ---
 
 ## 🚀 Key Features / Características Clave
 
-- All-In-One: Pre-configured Express server with JSON, URL encoding, Cookies, and CORS.
-- Astro Frontend: Native integration with Astro (v7.0) for server-side rendering (SSR), static site generation (SSG), and middleware mode.
+- All-In-One: Pre-configured Express API server with JSON, URL encoding, Cookies, and CORS.
+- Nginx Static Frontend: Lightning-fast static asset and extensionless HTML serving via Nginx, decoupled from Node.js.
 - Premium Security: AES-256-GCM encrypted JWT cookie auth, secure route filters, and built-in Helmet configurator.
 - File Uploads: Easy Multer-based single/multiple file storage handling.
 - Docker & PM2 Devops: Pre-built Docker Compose/Dockerfile templates and CLI tools for zero-config dev and VPS production.
@@ -61,14 +61,9 @@ project/
 │   └── routes/              # Express route files
 │       └── api.js           # REST API routes
 ├── frontend/
-│   ├── src/
-│   │   └── pages/           # Astro routes and pages (.astro)
-│   │       ├── index.astro
-│   │       └── about.astro
-│   ├── public/              # Static assets mapped to root of Astro build
-│   │   └── css/
-│   │       └── app.css      # Css files
-│   └── astro.config.mjs     # Astro configuration file
+│   ├── css/                 # CSS files
+│   ├── js/                  # JavaScript files
+│   └── index.html           # Static HTML files
 ├── docker/
 │   └── Dockerfile           # Optimized production build file
 ├── docker-compose.yml       # Dev/Prod container configurations
@@ -97,41 +92,7 @@ export default routerApi;
 
 ---
 
-### 2. Astro Node Middleware Integration
 
-Blue Bird supports Astro (v7.0) Node middleware mode. Astro handles frontend SSR, routing, static assets, and layouts, while Express handles API endpoints and server logic.
-
-To enable Astro integration:
-
-```javascript
-import App from "@seip/blue-bird/core/app.js";
-import routerApi from "./backend/routes/api.js";
-
-const app = new App({
-  routes: [routerApi],
-  astro: true, // Enables Astro middleware mode
-});
-
-app.run();
-```
-
-#### Advanced Config Options
-
-You can pass a configuration object instead of a boolean value:
-
-```javascript
-const app = new App({
-  astro: {
-    server: true, // Mounts Astro SSR handler
-    serverEntry: "./frontend/dist/server/entry.mjs", // Path to compiled Astro server entrypoint
-    client: false, // Set to true to serve static files from client build
-    clientDir: "./frontend/dist/client", // Path to Astro client static assets
-    base: "/", // Mount base path
-  },
-});
-```
-
----
 
 ### 3. Data Validation (`Validator`)
 
@@ -263,7 +224,7 @@ const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Jo
 
 ### 8. Nginx Proxy Caching
 
-Nginx reverse proxy is preconfigured with a page cache zone (`astro_cache`) that stores public page outputs (Astro SSR/SSG) for 10 seconds.
+Nginx reverse proxy is preconfigured with a page cache zone (`api_cache`) that stores public page outputs for 10 seconds.
 - **Cache Bypass:** Requests with an `auth` cookie or `Authorization` header automatically bypass the cache to ensure dynamic page outputs.
 - **Disabling:** Caching can be turned off in `docker/nginx.conf` by commenting out the `proxy_cache` directives.
 - **Caching API routes:** If you want Nginx to cache GET endpoints from `/api/` directly (which is much faster than Node query/redis caching), add a matching location block inside `docker/nginx.conf` before the generic `/api/` block:
@@ -276,7 +237,7 @@ Nginx reverse proxy is preconfigured with a page cache zone (`astro_cache`) that
       proxy_set_header Connection "";
       proxy_set_header Host $host;
 
-      proxy_cache astro_cache;
+      proxy_cache api_cache;
       proxy_cache_valid 200 10s;
       add_header X-Cache-Status $upstream_cache_status;
   }
@@ -318,7 +279,7 @@ You can deploy Blue Bird applications to production using two main workflows:
 ### A. Docker Container Stack (Highly Recommended)
 
 Using the built-in Docker stack is the recommended deployment method because it sets up a complete, hardened production environment automatically:
-- **Nginx Reverse Proxy:** Captures traffic on port 3000 (or custom PORT), serves Astro client-side assets directly from the filesystem to offload the Node.js server, and proxies the rest to Express.
+- **Nginx Reverse Proxy:** Captures traffic on port 3000 (or custom PORT), serves static assets and extensionless HTML directly from the filesystem to offload the Node.js server, and proxies API traffic to Express.
 - **PM2 Clustering:** Launches Node.js in cluster mode inside the container, utilizing all available CPU cores based on `PM2_INSTANCES` configuration (defaulting to 1).
 - **Security Mitigation:** Nginx blocks common malicious scanners (e.g. `/.env`, `/.git`, `/wp-admin`) instantly using a 444 status code and implements a `10r/s` request rate-limit.
 - **Services Stack:** MySQL and Redis are configured in the same bridge network automatically.

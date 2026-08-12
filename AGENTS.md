@@ -4,11 +4,11 @@ This document serves as the primary manual for any AI Agent interacting with the
 
 ## 1. Core Architecture
 
-Blue Bird is a framework built on **Express** for backend and **Astro** (v7.0) for frontend rendering. It saves developers from repetitive configuration, validation, security, JWT authentication, and database environment configuration out of the box.
+Blue Bird is a performance-first API framework built on **Express**. It saves developers from repetitive configuration, validation, security, JWT authentication, and database environment configuration out of the box, delegating all static frontend rendering to Nginx.
 
 - **Entrypoint (`index.js`)**: Initializes the server using `App` from `core/app.js` and registers the routes.
 - **Backend (`backend/`)**: Application routes and logic (e.g. `backend/routes/`).
-- **Frontend (`frontend/`)**: Astro project files. Source pages go in `frontend/src/pages/` and static/public assets go in `frontend/public/`.
+- **Frontend (`frontend/`)**: Static assets (HTML, CSS, JS). Handled directly by Nginx in production, bypassing Express.
 - **Core (`core/`)**: The framework core. Contains wrapper classes such as `Router`, `Validator`, `Auth`, `Cache`, etc. **DO NOT MODIFY** the core unless explicitly requested, as it could break other apps.
 
 ## 2. Routing (Router)
@@ -27,56 +27,7 @@ routerApi.get("/users", (req, res) => {
 export default routerApi;
 ```
 
-Astro routes (pages) are handled automatically by Astro's file-based routing inside the `frontend/src/pages/` directory.
 
-## 3. Astro Node Middleware Integration
-
-Blue Bird integrates Astro as a middleware handler. This is configured in the main `App` constructor:
-
-```javascript
-import App from "@seip/blue-bird/core/app.js";
-import routerApi from "./backend/routes/api.js";
-
-const app = new App({
-  routes: [routerApi],
-  astro: true, // Enables Astro SSR/SSG middleware mode
-});
-
-app.run();
-```
-
-### Config Options
-
-Astro middleware options can be customized by passing a configuration object:
-
-```javascript
-const app = new App({
-  astro: {
-    server: true, // Enables Astro SSR handler middleware
-    serverEntry: "./frontend/dist/server/entry.mjs", // Path to server build entrypoint
-    client: false, // Set to true to serve Astro client static assets
-    clientDir: "./frontend/dist/client", // Path to client static build folder
-    base: "/" // Base route mount path
-  }
-});
-```
-
-To use Astro as Express middleware, ensure your Astro configuration uses the node adapter in middleware mode:
-
-```javascript
-// frontend/astro.config.mjs
-import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
-
-export default defineConfig({
-  output: 'server',
-  adapter: node({
-    mode: 'middleware',
-  }),
-});
-```
-
-## 4. Data Validation (Validator)
 
 Incoming request data must be validated using `core/validate.js`, which automatically returns HTTP 400 JSON responses on error.
 
@@ -159,7 +110,7 @@ apiRouter.use(App.helmet());
 Blue Bird features a built-in Docker Compose CLI wrapper (`core/cli/docker.js`) to deploy and manage containerized development databases and production stacks across MySQL, PostgreSQL, or no-database (`none`) architectures.
 
 Production deployments always use Docker for orchestration, running:
-- Nginx: Serves static files directly from `frontend/dist/client/` and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express.
+- Nginx: Serves static files directly from `frontend/` (stripping `.html` extensions) and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express for APIs.
 - Node.js App: Managed via PM2 in cluster mode using `PM2_INSTANCES` configuration (defaults to `1`, can be set to `max`).
 - Database: MySQL (`mysql:8.0`) or PostgreSQL (`postgres:18-alpine`), dynamically detected via `getDbType()` reading `DB_TYPE` / `DATABASE_URL` from `.env`.
 - Redis: Memory caching and session store.
@@ -187,7 +138,7 @@ The container names and virtual networks are namespaced by the `TITLE` environme
 
 ## 9. AI Development Guidelines
 
-1. **Frontend**: Use Astro pages inside `frontend/src/pages/` (e.g. `.astro` files). Static/public assets belong in `frontend/public/`.
+1. **Frontend**: Static files are stored in `frontend/` (e.g. `frontend/css`, `frontend/js`). HTML files will be served without the `.html` extension (e.g. `login.html` is accessible as `/login`).
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
 4. **No inline comments**: Only use JSDoc for documentation.
@@ -216,14 +167,14 @@ const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", 
 
 ## 11. Nginx Proxy Caching
 
-In production, Nginx caches Astro page responses for 10 seconds. Requests with an active session cookie (`auth`) or `Authorization` header bypass the cache to ensure dynamic page personalized output.
+In production, Nginx caches static responses and specific API endpoints. Requests with an active session cookie (`auth`) or `Authorization` header bypass the cache to ensure dynamic personalized output.
 
 ### Disabling Cache
 
 To disable Nginx proxy caching, comment out the `proxy_cache` directives in `docker/nginx.conf`:
 
 ```nginx
-# proxy_cache astro_cache;
+# proxy_cache api_cache;
 # proxy_cache_valid 200 302 10s;
 ```
 
@@ -240,7 +191,7 @@ location /api/cached-endpoint {
     proxy_set_header Connection "";
     proxy_set_header Host $host;
 
-    proxy_cache astro_cache;
+    proxy_cache api_cache;
     proxy_cache_valid 200 10s;
     add_header X-Cache-Status $upstream_cache_status;
 }

@@ -35,7 +35,6 @@ class App {
    * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
    * @param {boolean|Object} [options.swagger=false] - Enable swagger.
    * @param {boolean} [options.compression=true] - Enable compression.
-   * @param {boolean} [options.astro=true] - Astro handler.
    * @example
    * const app = new App({
    *     routes: [],
@@ -54,14 +53,7 @@ class App {
    *         info: { title: "Blue Bird API", version: "1.0.0", description: "API Documentation" },
    *         url: "http://localhost:8000"
    *     },
-   *     compression:true,
-   *     astro: {
-   *       server: true,
-   *       serverEntry: "./frontend/dist/server/entry.mjs",
-   *       client: false,
-   *       clientDir: "./frontend/dist/client",
-   *       base: "/"
-   *     }
+   *     compression:true
    * });
    */
   constructor(options = {}) {
@@ -81,7 +73,6 @@ class App {
     this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
-    this.astro = options.astro || false;
     this.loggerInstance = new Logger();
     /** @type {Set<import('http').ServerResponse>} */
     this._hotReloadClients = new Set();
@@ -205,61 +196,6 @@ class App {
 
     this._dispatchRoutes();
 
-    if (this.astro) {
-      const defaultAstro = {
-        server: true,
-        serverEntry: "./frontend/dist/server/entry.mjs",
-        client: false,
-        clientDir: "./frontend/dist/client",
-        base: "/",
-      };
-      const astroConfig =
-        typeof this.astro === "object"
-          ? { ...defaultAstro, ...this.astro }
-          : { ...defaultAstro };
-
-      if (astroConfig.client) {
-        const clientPath = path.resolve(astroConfig.clientDir);
-        if (fs.existsSync(clientPath)) {
-          this.app.use(astroConfig.base, express.static(clientPath));
-          console.log(
-            chalk.green(
-              `[OK] Astro Static Client Assets registered at ${astroConfig.base}`,
-            ),
-          );
-        } else {
-          console.warn(
-            chalk.yellow(
-              `[WARN] Astro client directory not found at: ${clientPath}`,
-            ),
-          );
-        }
-      }
-
-      if (astroConfig.server) {
-        const entryPath = path.resolve(astroConfig.serverEntry);
-        if (fs.existsSync(entryPath)) {
-          try {
-            const { handler: ssrHandler } = await import(entryPath);
-            this.app.use(ssrHandler);
-            console.log(
-              chalk.green("[OK] Astro SSR Handler registered successfully."),
-            );
-          } catch (error) {
-            console.error(
-              chalk.red("[ERROR] Failed to load Astro SSR Handler:"),
-              error.message,
-            );
-          }
-        } else {
-          console.warn(
-            chalk.yellow(
-              `[WARN] Astro build entrypoint not found at: ${entryPath}`,
-            ),
-          );
-        }
-      }
-    }
 
     if (this.notFound) this._notFoundDefault();
 

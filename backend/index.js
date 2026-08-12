@@ -1,4 +1,4 @@
-import App from "@seip/blue-bird/core/app.js";
+import App from "../core/app.js";
 import routerApi from "./routes/api.js";
 
 /**
@@ -16,15 +16,7 @@ const app = new App({
 
   port: process.env.PORT,
 
-  logger: true, //In production, set this to false to disable logging and stop writing to Redis
-
-  astro: {
-    server: true,
-    serverEntry: "./frontend/dist/server/entry.mjs",
-    client: true,
-    clientDir: "./frontend/dist/client",
-    base: "/",
-  },
+  logger: false,
 });
 
 app.run();
