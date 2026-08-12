@@ -1,0 +1,6 @@
+services:
+  app:
+    command: ["npm", "run", "dev"]
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true

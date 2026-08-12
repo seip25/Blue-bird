@@ -117,6 +117,7 @@ Production deployments always use Docker for orchestration, running:
 
 ```bash
 # Manage containers using blue-bird CLI
+npx blue-bird docker dev            # Starts development app stack (DB, redis, app, nginx) with npm run dev
 npx blue-bird docker start          # Starts production app stack (DB, redis, app, nginx)
 npx blue-bird docker start db       # Starts configured database container only (postgres or mysql)
 npx blue-bird docker start redis    # Starts Redis container only
@@ -165,36 +166,9 @@ const stats = await connection.query("SELECT COUNT(*) as cnt FROM logs", [], { c
 const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
 ```
 
-## 11. Nginx Proxy Caching
+## 11. Nginx Static Asset Caching
 
-In production, Nginx caches static responses and specific API endpoints. Requests with an active session cookie (`auth`) or `Authorization` header bypass the cache to ensure dynamic personalized output.
-
-### Disabling Cache
-
-To disable Nginx proxy caching, comment out the `proxy_cache` directives in `docker/nginx.conf`:
-
-```nginx
-# proxy_cache api_cache;
-# proxy_cache_valid 200 302 10s;
-```
-
-### Caching API routes
-
-To cache specific GET API routes at the proxy layer (which is faster and consumes less resources than Node/Redis query caching), define a specific location block in `docker/nginx.conf` before the generic `/api/` routing rule:
-
-```nginx
-location /api/cached-endpoint {
-    limit_req zone=bluebird_limit burst=20 nodelay;
-    set $upstream_target http://app:3000;
-    proxy_pass $upstream_target;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $host;
-
-    proxy_cache api_cache;
-    proxy_cache_valid 200 10s;
-    add_header X-Cache-Status $upstream_cache_status;
-}
-```
+In production, Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.png`, etc.) in the user's browser with the `Cache-Control` header (valid for 1 month). 
+HTML and API endpoints (`/api/*`) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
 
 _This file can be retrieved by intelligent agents reading its absolute physical path during reasoning._

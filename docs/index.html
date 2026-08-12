@@ -541,7 +541,10 @@ const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)",
                                     built-in Docker CLI tool wrapper. The wrapper dynamically detects whether your project
                                     uses MySQL or PostgreSQL based on `getDbType()` reading your <code>.env</code> configuration.
                                 </p>
-                                <pre><code class="language-bash"># Start Production Application Stack (App + Nginx + Database + Redis)
+                                <pre><code class="language-bash"># Start Development Application Stack (App with live reload + Nginx + Database + Redis)
+npx blue-bird docker dev
+
+# Start Production Application Stack (App + Nginx + Database + Redis)
 npx blue-bird docker start prod
 
 # Start Configured Database Container Only (Postgres or MySQL)

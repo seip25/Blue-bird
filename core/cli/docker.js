@@ -143,6 +143,34 @@ async function startCommand(service) {
 }
 
 /**
+ * Handles the 'dev' CLI command.
+ */
+async function devCommand() {
+  checkComposeFile();
+  console.log(chalk.cyan("Starting development stack (DB + Redis + App (npm run dev) + Nginx)..."));
+  
+  const devComposeFile = path.join(process.cwd(), "docker", "docker-compose.dev.yml");
+  const cmdArgs = ["compose", "-f", "docker-compose.yml"];
+  
+  if (fs.existsSync(devComposeFile)) {
+    cmdArgs.push("-f", "docker/docker-compose.dev.yml");
+  } else {
+    console.log(chalk.yellow("[WARN] docker/docker-compose.dev.yml not found, running standard stack."));
+  }
+  
+  cmdArgs.push("--profile", "prod", "up", "-d");
+  
+  const code = await runCmd("docker", cmdArgs);
+  if (code === 0) {
+    console.log(chalk.green("Development stack started."));
+    console.log(chalk.cyan("View live logs with: npx blue-bird docker logs"));
+  } else {
+    console.error(chalk.red("Error starting development stack."));
+    process.exit(1);
+  }
+}
+
+/**
  * Handles the 'stop' CLI command.
  * @param {string} service - Service to stop.
  */
@@ -403,6 +431,9 @@ async function main() {
     case "start":
       await startCommand(args[1]);
       break;
+    case "dev":
+      await devCommand();
+      break;
     case "stop":
       await stopCommand(args[1]);
       break;
@@ -450,7 +481,7 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: start, stop, build, ps, logs, pm2, mysql/postgres/db, redis, df/disk, prune/clean");
+      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, mysql/postgres/db, redis, df/disk, prune/clean");
   }
 }
 
