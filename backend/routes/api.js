@@ -1,7 +1,7 @@
-import Router from "../../core/router.js";
-import Validator from "../../core/validate.js";
-import Cache from "../../core/cache.js";
-import Auth from "../../core/auth.js";
+import Router from "@seip/blue-bird/core/router.js";
+import Validator from "@seip/blue-bird/core/validate.js";
+import Cache from "@seip/blue-bird/core/cache.js";
+import Auth from "@seip/blue-bird/core/auth.js";
 
 const routerApi = new Router("/api");
 
