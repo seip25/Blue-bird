@@ -262,8 +262,8 @@ class ProjectInit {
       pkg.scripts = pkg.scripts || {};
 
       const scriptsToAdd = {
-        dev: "node --watch --env-file=.env index.js",
-        start: "node --env-file=.env index.js",
+        dev: "node --watch --env-file=.env backend/index.js",
+        start: "node --env-file=.env backend/index.js",
         init: "blue-bird",
         route: "blue-bird route",
         "swagger-install": "blue-bird swagger-install",

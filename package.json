@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
   "type": "module",
   "types": "core/index.d.ts",
