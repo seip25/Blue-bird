@@ -4,11 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Blue Bird Framework | High-Performance Express API Framework for Modern Web Apps">
+    <meta name="description" content="Blue Bird Framework | High-Performance Express API Framework for Modern Web Apps">
     <meta name="keywords" content="Blue Bird Framework, Express, API, Node.js, JavaScript, Docker, Nginx">
     <meta name="author" content="Seip">
-    <link rel="icon" href="blue-bird.png">
+    <link rel="icon" href="favicon.ico">
     <title>Blue Bird Framework — Documentation</title>
     <script src="tailwind.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -131,14 +130,16 @@
                     Stop wasting time configuring CORS, security headers, database connections, and authentication
                     flows.
                     Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing
-                    clean business logic. Nginx handles the static frontend directly from the filesystem, Express handles
+                    clean business logic. Nginx handles the static frontend directly from the filesystem, Express
+                    handles
                     the backend APIs. Includes a preconfigured Docker stack with Nginx reverse proxy, Redis cache, and
                     PM2 cluster scaling.
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <h4 class="font-bold text-brand-600 mb-2">Decoupled Architecture</h4>
-                        <p class="text-sm text-slate-500">Nginx natively serves static frontend assets and extensionless HTML pages from <code>frontend/</code>. 
+                        <p class="text-sm text-slate-500">Nginx natively serves static frontend assets and extensionless
+                            HTML pages from <code>frontend/</code>.
                             Express owns the API layer, keeping your backend entirely focused on performance and logic.
                         </p>
                     </div>
@@ -209,7 +210,8 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                             <div class="p-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl text-white">
                                 <h4 class="font-bold text-lg mb-2">Nginx Static Delivery</h4>
-                                <p class="text-slate-400 text-sm">Static assets and HTML files are served at lightning speed directly by Nginx, completely bypassing the Node.js event loop.</p>
+                                <p class="text-slate-400 text-sm">Static assets and HTML files are served at lightning
+                                    speed directly by Nginx, completely bypassing the Node.js event loop.</p>
                             </div>
                             <div
                                 class="p-8 bg-gradient-to-br from-indigo-600 to-brand-600 rounded-3xl text-white shadow-xl shadow-brand-100">
@@ -220,7 +222,8 @@
                             <div class="p-8 bg-slate-100 rounded-3xl border border-slate-200 text-slate-800">
                                 <h4 class="font-bold text-lg mb-2">Unified Tooling</h4>
                                 <p class="text-slate-500 text-sm">Single <code>package.json</code> at the root manages
-                                    the Express API backend effortlessly with pre-configured dev and production scripts.</p>
+                                    the Express API backend effortlessly with pre-configured dev and production scripts.
+                                </p>
                             </div>
                         </div>
 
@@ -264,7 +267,8 @@
                                     <tbody class="divide-y divide-slate-100">
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm run dev</td>
-                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env index.js</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env
+                                                index.js</td>
                                             <td class="px-4 py-3 text-slate-500">Express API with file-watcher</td>
                                         </tr>
                                         <tr>
@@ -272,9 +276,9 @@
                                             <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
                                             <td class="px-4 py-3 text-slate-500">Production server startup</td>
                                         </tr>
-                                            <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
-                                            <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
-                                            <td class="px-4 py-3 text-slate-500">Production server startup</td>
+                                        <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
+                                        <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
+                                        <td class="px-4 py-3 text-slate-500">Production server startup</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -490,17 +494,24 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Blue Bird includes a unified database wrapper (`core/database.js`) supporting
-                                    <strong>MySQL</strong> (<code>mysql2/promise</code>) and <strong>PostgreSQL</strong> (<code>pg</code>). During project setup with
-                                    <code>npx blue-bird</code>, the CLI interactive wizard asks for your preferred database
+                                    <strong>MySQL</strong> (<code>mysql2/promise</code>) and <strong>PostgreSQL</strong>
+                                    (<code>pg</code>). During project setup with
+                                    <code>npx blue-bird</code>, the CLI interactive wizard asks for your preferred
+                                    database
                                     (<code>none</code>, <code>mysql</code>, or <code>postgres</code>),
-                                    automatically copying the corresponding Docker Compose template (<code>docker/docker-compose.mysql.yml</code>,
-                                    <code>docker/docker-compose.postgres.yml</code>, or <code>docker/docker-compose.none.yml</code>) as the root
+                                    automatically copying the corresponding Docker Compose template
+                                    (<code>docker/docker-compose.mysql.yml</code>,
+                                    <code>docker/docker-compose.postgres.yml</code>, or
+                                    <code>docker/docker-compose.none.yml</code>) as the root
                                     <code>docker-compose.yml</code>.
                                 </p>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    If connecting to PostgreSQL using native SQL queries, parameter placeholders (`?`) are
-                                    automatically converted to PostgreSQL `$1, $2, ...` placeholders under the hood, allowing unified
-                                    query writing across engines. You can also connect without Docker directly by setting
+                                    If connecting to PostgreSQL using native SQL queries, parameter placeholders (`?`)
+                                    are
+                                    automatically converted to PostgreSQL `$1, $2, ...` placeholders under the hood,
+                                    allowing unified
+                                    query writing across engines. You can also connect without Docker directly by
+                                    setting
                                     <code>DATABASE_URL</code> inside your <code>.env</code> file.
                                 </p>
                                 <pre><code class="language-javascript">import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
@@ -538,8 +549,10 @@ const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)",
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Manage development containers and full-stack deployments directly using the
-                                    built-in Docker CLI tool wrapper. The wrapper dynamically detects whether your project
-                                    uses MySQL or PostgreSQL based on `getDbType()` reading your <code>.env</code> configuration.
+                                    built-in Docker CLI tool wrapper. The wrapper dynamically detects whether your
+                                    project
+                                    uses MySQL or PostgreSQL based on `getDbType()` reading your <code>.env</code>
+                                    configuration.
                                 </p>
                                 <pre><code class="language-bash"># Start Development Application Stack (App with live reload + Nginx + Database + Redis)
 npx blue-bird docker dev
@@ -596,10 +609,14 @@ npx blue-bird docker prune</code></pre>
                                     Nginx Static Asset Caching
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    In production, Nginx is configured to explicitly cache static assets (<code>.js</code>, <code>.css</code>, <code>.jpg</code>, <code>.png</code>, etc.) in the user's browser with the <code>Cache-Control</code> header (valid for 1 month). 
+                                    In production, Nginx is configured to explicitly cache static assets
+                                    (<code>.js</code>, <code>.css</code>, <code>.jpg</code>, <code>.png</code>, etc.) in
+                                    the user's browser with the <code>Cache-Control</code> header (valid for 1 month).
                                 </p>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    HTML and API endpoints (<code>/api/*</code>) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
+                                    HTML and API endpoints (<code>/api/*</code>) are not cached by Nginx to ensure they
+                                    serve dynamic and up-to-date content, relying instead on the Node.js application and
+                                    Redis for data-layer caching.
                                 </p>
                             </article>
 
