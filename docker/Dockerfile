@@ -12,5 +12,5 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pm2-runtime start index.js -i ${PM2_INSTANCES:-1}"]
+CMD ["sh", "-c", "pm2-runtime start backend/index.js -i ${PM2_INSTANCES:-1}"]
 
