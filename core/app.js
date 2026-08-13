@@ -1,3 +1,4 @@
+import http from "node:http";
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -10,6 +11,7 @@ import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
 import Debug from "./debug.js";
+import WebSocketManager from "./ws.js";
 
 const __dirname = Config.dirname();
 const props = Config.props();
@@ -58,6 +60,8 @@ class App {
    */
   constructor(options = {}) {
     this.app = express();
+    this.server = http.createServer(this.app);
+    this.wsManager = null;
     this.routes = options.routes || [];
     this.cors = options.cors || {};
     this.middlewares = options.middlewares || [];
@@ -329,7 +333,7 @@ class App {
   run() {
     this._ready
       .then(() => {
-        this.app.listen(this.port, () => {
+        this.server.listen(this.port, () => {
           console.log(
             chalk.bold.blue("Blue Bird Server Online\n") +
               chalk.bold.cyan("App URL: ") +
@@ -350,6 +354,29 @@ class App {
         );
         process.exit(1);
       });
+  }
+
+  /**
+   * Initializes and returns the WebSocket manager attached to the Express HTTP server instance.
+   * @param {Function|Object} [options] - Connection callback handler: (ws, req) => {} or options object.
+   * @returns {WebSocketManager}
+   * @example
+   * app.websocket((ws, req) => {
+   *   ws.join("chat");
+   *   ws.sendJSON({ message: "Welcome to Blue Bird WebSockets" });
+   * });
+   */
+  websocket(options = {}) {
+    const handler = typeof options === "function" ? options : null;
+    const wsOptions = typeof options === "object" && options !== null ? options : {};
+
+    if (!this.wsManager) {
+      this.wsManager = new WebSocketManager(this.server, wsOptions);
+    }
+    if (handler) {
+      this.wsManager.onConnection(handler);
+    }
+    return this.wsManager;
   }
 
   /**

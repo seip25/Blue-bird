@@ -62,9 +62,22 @@ export class App {
 
   use(record: any): void;
   set(key: string, value: any): void;
+  websocket(
+    options?:
+      | ((ws: any, req: any) => void)
+      | { path?: string; auth?: boolean }
+  ): WebSocketManager;
   run(): void;
 
   static helmet(options?: any): any;
+}
+
+export class WebSocketManager {
+  constructor(server: any, options?: { path?: string; auth?: boolean });
+  onConnection(handler: (ws: any, req: any) => void): void;
+  join(room: string, ws: any): void;
+  leave(room: string, ws: any): void;
+  broadcast(data: any, room?: string | null): void;
 }
 
 export class Router {

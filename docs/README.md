@@ -218,6 +218,61 @@ const userId = await db.transaction(async (tx) => {
 });
 ```
 
+### 7. Real-Time WebSockets Engine (`WebSocketManager`)
+High-performance, vanilla WebSocket server integration built on native Node.js HTTP server with room subscriptions, JWT authentication, 30s heartbeat ping/pong, and Redis Pub/Sub cluster synchronization:
+
+```javascript
+import App from "@seip/blue-bird/core/app.js";
+
+const app = new App({ ... });
+
+// 1. Initialize WebSocket server on route /ws with optional JWT Auth check
+const ws = app.websocket({ path: "/ws", auth: true });
+
+ws.onConnection((socket, req) => {
+  console.log("Connected user:", socket.user);
+  
+  socket.join("chat_room");
+  socket.sendJSON({ status: "connected", user: socket.user });
+
+  socket.on("message", (raw) => {
+    // Broadcast message to room (synced across PM2 cluster via Redis Pub/Sub)
+    ws.broadcast({ room: "chat_room", text: raw.toString() }, "chat_room");
+  });
+});
+
+app.run();
+```
+
+#### Broadcasting from Express API Routes:
+```javascript
+router.post("/api/comments", async (req, res) => {
+  // 1. Save comment into database...
+  const comment = { id: 1, text: req.body.text };
+
+  // 2. Broadcast in real time to all WebSocket clients in the "lobby" room
+  app.wsManager.broadcast({ type: "NEW_COMMENT", data: comment }, "lobby");
+
+  return res.success(comment, "Comment created");
+});
+```
+
+#### Native Client Connection (Browser & Node.js v22+):
+```javascript
+// Native W3C Standard WebSocket Client (Browser & Node.js v22+)
+const socket = new WebSocket("ws://localhost:3000/ws");
+
+socket.addEventListener("open", () => {
+  console.log("Connected to WebSocket server!");
+  socket.send("Hello server from native client!");
+});
+
+socket.addEventListener("message", (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Message received from server:", data);
+});
+```
+
 ---
 
 ## 💻 CLI Commands Quick Reference

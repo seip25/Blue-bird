@@ -693,6 +693,75 @@ const txUserId = await connection.transaction(async (tx) => {
 });</code></pre>
                             </article>
 
+                            <!-- WebSockets Section -->
+                            <article id="doc-websockets" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                    Real-Time WebSockets Engine
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Blue Bird includes a built-in high performance WebSocket server wrapper (`core/ws.js`) based on vanilla WebSockets (<code>ws</code>). It runs on the <strong>exact same HTTP server and port as Express</strong> without requiring socket.io bloat or separate ports.
+                                </p>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    It features automatic room subscriptions (<code>socket.join</code> / <code>socket.leave</code>), JWT authentication verification, 30-second ping/pong heartbeat to prune dead sockets, and <strong>Redis Pub/Sub cluster synchronization</strong> so events broadcasted from any Express route are instantly delivered across all PM2 workers.
+                                </p>
+                                <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
+
+const app = new App({ ... });
+
+// 1. Initialize WebSocket server route (/ws) with optional JWT auth validation
+const ws = app.websocket({ path: "/ws", auth: true });
+
+ws.onConnection((socket, req) => {
+  console.log("Connected user:", socket.user);
+  
+  // Join a real-time room
+  socket.join("lobby");
+  
+  // Send JSON helper
+  socket.sendJSON({ message: "Welcome to Blue Bird WebSockets" });
+
+  socket.on("message", (raw) => {
+    // Broadcast to room (synced across PM2 cluster via Redis Pub/Sub)
+    ws.broadcast({ room: "lobby", text: raw.toString() }, "lobby");
+  });
+});
+
+app.run();</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Broadcasting Real-Time Events from Express API Routes</h4>
+                                <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                    You can broadcast events to connected WebSocket rooms directly from inside any Express REST endpoint. <code>app.wsManager.broadcast()</code> automatically distributes the message across all PM2 cluster processes via Redis Pub/Sub:
+                                </p>
+                                <pre><code class="language-javascript">router.post("/api/comments", async (req, res) => {
+  // 1. Save comment into database...
+  const comment = { id: 1, text: req.body.text };
+
+  // 2. Broadcast in real time to all WebSocket clients in the "lobby" room
+  app.wsManager.broadcast({ type: "NEW_COMMENT", data: comment }, "lobby");
+
+  return res.success(comment, "Comment created");
+});</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Native Client Connection (Browser &amp; Node.js v22+)</h4>
+                                <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                    Connect effortlessly using standard native W3C WebSockets without installing heavy client libraries:
+                                </p>
+                                <pre><code class="language-javascript">// Native W3C Standard WebSocket Client (Browser & Node.js v22+)
+const socket = new WebSocket("ws://localhost:3000/ws");
+
+socket.addEventListener("open", () => {
+  console.log("Connected to WebSocket server!");
+  socket.send("Hello server from native client!");
+});
+
+socket.addEventListener("message", (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Message received from server:", data);
+});</code></pre>
+                            </article>
+
                             <!-- Docker Section -->
                             <article id="doc-docker" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
