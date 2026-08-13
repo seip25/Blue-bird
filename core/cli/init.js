@@ -104,6 +104,7 @@ class ProjectInit {
       ".env_example",
       "AGENTS.md",
       "index.js",
+      ".gitignore"
     ];
 
     try {
