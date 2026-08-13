@@ -122,11 +122,11 @@
 
         <!-- Philosophy Section -->
         <section id="philosophy" class="py-20 bg-white">
-            <div class="max-w-4xl mx-auto px-4 text-center">
+            <div class="max-w-5xl mx-auto px-4 text-center">
                 <h2
                     class="text-3xl font-bold text-slate-900 mb-8 underline decoration-brand-500 decoration-4 underline-offset-8">
                     The Blue Bird Philosophy</h2>
-                <p class="text-lg text-slate-600 leading-relaxed mb-8">
+                <p class="text-lg text-slate-600 leading-relaxed mb-12 max-w-4xl mx-auto">
                     Stop wasting time configuring CORS, security headers, database connections, and authentication
                     flows.
                     Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing
@@ -135,19 +135,45 @@
                     the backend APIs. Includes a preconfigured Docker stack with Nginx reverse proxy, Redis cache, and
                     PM2 cluster scaling.
                 </p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h4 class="font-bold text-brand-600 mb-2">Decoupled Architecture</h4>
-                        <p class="text-sm text-slate-500">Nginx natively serves static frontend assets and extensionless
-                            HTML pages from <code>frontend/</code>.
-                            Express owns the API layer, keeping your backend entirely focused on performance and logic.
-                        </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 card-hover flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-bold mb-4">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-lg mb-2">Decoupled &amp; Multi-Platform</h4>
+                            <p class="text-sm text-slate-500 leading-relaxed">
+                                Nginx natively serves static frontend assets and extensionless HTML pages from <code>frontend/</code>. Express owns the API layer, allowing you to easily target <strong>Web</strong>, <strong>Mobile</strong> (Capacitor, Cordova), and <strong>Desktop</strong> (Electron, Tauri) using the exact same backend logic.
+                            </p>
+                        </div>
                     </div>
-                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h4 class="font-bold text-brand-600 mb-2">Built-in Orchestration</h4>
-                        <p class="text-sm text-slate-500">Includes a comprehensive Docker Compose CLI wrapper to
-                            bootstrap, build, stop, and clean dev and production environments with zero manual
-                            scripting.</p>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 card-hover flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mb-4">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-lg mb-2">Strong Logic &amp; Low Footprint</h4>
+                            <p class="text-sm text-slate-500 leading-relaxed">
+                                Separating static file delivery to Nginx keeps your Express API layer focused purely on high-performance business logic, data validation, and authentication with extremely low CPU, RAM, and disk consumption.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 card-hover flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold mb-4">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-slate-900 text-lg mb-2">Built-in Orchestration</h4>
+                            <p class="text-sm text-slate-500 leading-relaxed">
+                                Includes a comprehensive Docker Compose CLI wrapper to bootstrap, build, stop, and clean dev and production environments with zero manual scripting.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
