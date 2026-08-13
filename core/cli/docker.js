@@ -278,7 +278,12 @@ async function logsCommand(service, followOpt) {
  * @param {boolean} rootOpt - Flag for overriding database credentials to connect as root/postgres.
  * @param {string} explicitService - Explicit target service if specified ('mysql' or 'postgres').
  */
-async function dbClientCommand(userOpt, passOpt, dbOpt, rootOpt, explicitService) {
+/**
+ * Handles interactive shell connections or smart queries into the MySQL or PostgreSQL container.
+ * @param {string[]} clientArgs - CLI arguments.
+ * @param {string} explicitService - Explicit target service if specified ('mysql', 'postgres', 'psql', 'db').
+ */
+async function dbClientCommand(clientArgs = [], explicitService) {
   checkComposeFile();
   const env = getEnvVars();
   const dbType = explicitService === "postgres" || explicitService === "psql" ? "postgres" : (explicitService === "mysql" ? "mysql" : getDbType(env));
@@ -287,25 +292,82 @@ async function dbClientCommand(userOpt, passOpt, dbOpt, rootOpt, explicitService
     return;
   }
 
+  let userOpt, passOpt, dbOpt, rootOpt = false;
+  let limitOpt = null, whereOpt = null;
+  const positionalArgs = [];
+
+  for (let i = 0; i < clientArgs.length; i++) {
+    const arg = clientArgs[i];
+    if (arg === "-u" || arg === "--user") {
+      userOpt = clientArgs[++i];
+    } else if (arg.startsWith("--user=")) {
+      userOpt = arg.split("=")[1];
+    } else if (arg === "-p" || arg === "--password") {
+      passOpt = clientArgs[++i];
+    } else if (arg.startsWith("--password=")) {
+      passOpt = arg.split("=")[1];
+    } else if (arg === "-d" || arg === "--db") {
+      dbOpt = clientArgs[++i];
+    } else if (arg.startsWith("--db=")) {
+      dbOpt = arg.split("=")[1];
+    } else if (arg === "--root") {
+      rootOpt = true;
+    } else if (arg === "--limit" || arg === "-l") {
+      limitOpt = clientArgs[++i];
+    } else if (arg.startsWith("--limit=")) {
+      limitOpt = arg.split("=")[1];
+    } else if (arg === "--where" || arg === "-w") {
+      whereOpt = clientArgs[++i];
+    } else if (arg.startsWith("--where=")) {
+      whereOpt = arg.split("=")[1];
+    } else if (!arg.startsWith("-")) {
+      positionalArgs.push(arg);
+    }
+  }
+
   let dbUser = userOpt;
   let dbPass = passOpt;
   let dbName = dbOpt;
 
-  if (dbType === "postgres") {
-    if (rootOpt) {
-      dbUser = "postgres";
+  let sqlQuery = null;
+  if (positionalArgs.length > 0) {
+    const rawInput = positionalArgs.join(" ").trim();
+    const isFullQuery = /^(select|show|desc|describe|explain|insert|update|delete|create|drop|alter|truncate)\b/i.test(rawInput) || rawInput.includes(" ");
+    if (isFullQuery) {
+      sqlQuery = rawInput;
     } else {
-      dbUser = dbUser || env.DB_USER || "postgres";
+      const tableName = rawInput;
+      sqlQuery = `SELECT * FROM ${tableName}`;
+      if (whereOpt) {
+        sqlQuery += ` WHERE ${whereOpt}`;
+      }
+      if (limitOpt) {
+        sqlQuery += ` LIMIT ${limitOpt}`;
+      }
     }
-    dbName = dbName || env.DB_NAME || "blue_bird";
+    if (!sqlQuery.endsWith(";")) {
+      sqlQuery += ";";
+    }
+  }
 
-    const targetDb = dbName ? ` (database: ${dbName})` : "";
-    console.log(chalk.cyan(`Connecting to PostgreSQL shell (psql) in container as '${dbUser}'${targetDb}...`));
+  if (dbType === "postgres") {
+    dbUser = rootOpt ? "postgres" : (dbUser || env.DB_USER || "postgres");
+    dbName = dbName || env.DB_NAME || "blue_bird";
 
     const cmdArgs = ["compose", "exec", "postgres", "psql", `-U${dbUser}`];
     if (dbName) {
       cmdArgs.push("-d", dbName);
     }
+
+    if (sqlQuery) {
+      console.log(chalk.cyan(`🔍 Executing PostgreSQL query on database '${dbName}':`));
+      console.log(chalk.gray(`   ${sqlQuery}\n`));
+      cmdArgs.push("-c", sqlQuery);
+    } else {
+      const targetDb = dbName ? ` (database: ${dbName})` : "";
+      console.log(chalk.cyan(`Connecting to PostgreSQL shell (psql) in container as '${dbUser}'${targetDb}...`));
+    }
+
     const code = await runCmd("docker", cmdArgs);
     if (code !== 0) {
       console.error(chalk.yellow("Make sure the PostgreSQL container is running: npx blue-bird docker start postgres"));
@@ -329,8 +391,14 @@ async function dbClientCommand(userOpt, passOpt, dbOpt, rootOpt, explicitService
       cmdArgs.push(dbName);
     }
 
-    const targetDb = dbName ? ` (database: ${dbName})` : "";
-    console.log(chalk.cyan(`Connecting to MySQL shell in container as '${dbUser}'${targetDb}...`));
+    if (sqlQuery) {
+      console.log(chalk.cyan(`🔍 Executing MySQL query on database '${dbName}':`));
+      console.log(chalk.gray(`   ${sqlQuery}\n`));
+      cmdArgs.push("-t", "-e", sqlQuery);
+    } else {
+      const targetDb = dbName ? ` (database: ${dbName})` : "";
+      console.log(chalk.cyan(`Connecting to MySQL shell in container as '${dbUser}'${targetDb}...`));
+    }
 
     const code = await runCmd("docker", cmdArgs);
     if (code !== 0) {
@@ -385,12 +453,43 @@ async function pm2Command(pm2Args = []) {
 }
 
 /**
- * Handles interactive shell connections into the Redis container.
+ * Handles interactive shell connections or smart query subcommands into the Redis container.
+ * @param {string[]} redisArgs - Subcommands or key parameters.
  */
-async function redisCommand() {
+async function redisCommand(redisArgs = []) {
   checkComposeFile();
   const cmdArgs = ["compose", "exec", "redis", "redis-cli"];
-  await runCmd("docker", cmdArgs);
+
+  if (redisArgs.length > 0) {
+    const firstArg = redisArgs[0].toLowerCase();
+
+    if (firstArg === "monitor") {
+      console.log(chalk.cyan("📡 Monitoring live Redis commands... (Press Ctrl+C to exit)"));
+      cmdArgs.push("monitor");
+    } else if (firstArg === "keys") {
+      const pattern = redisArgs[1] || "*";
+      console.log(chalk.cyan(`🔑 Fetching Redis keys matching '${pattern}'...`));
+      cmdArgs.push("keys", pattern);
+    } else if (firstArg === "key") {
+      const keyName = redisArgs[1];
+      if (!keyName) {
+        console.error(chalk.red("Error: Please specify a key name. Example: npx blue-bird docker redis key session:123"));
+        process.exit(1);
+      }
+      console.log(chalk.cyan(`📄 Getting value for Redis key '${keyName}'...`));
+      cmdArgs.push("get", keyName);
+    } else {
+      cmdArgs.push(...redisArgs);
+    }
+  } else {
+    console.log(chalk.cyan("Connecting to Redis interactive terminal (redis-cli)..."));
+  }
+
+  const code = await runCmd("docker", cmdArgs);
+  if (code !== 0) {
+    console.error(chalk.yellow("Make sure the Redis container is running: npx blue-bird docker start redis"));
+    process.exit(1);
+  }
 }
 
 /**
@@ -451,22 +550,14 @@ async function main() {
       await pm2Command(args.slice(1));
       break;
     case "redis":
-      await redisCommand();
+      await redisCommand(args.slice(1));
       break;
     case "mysql":
     case "postgres":
     case "psql":
-    case "db": {
-      let user, password, db, root = false;
-      for (let i = 1; i < args.length; i++) {
-        if (args[i] === "-u" || args[i] === "--user") user = args[++i];
-        else if (args[i] === "-p" || args[i] === "--password") password = args[++i];
-        else if (args[i] === "-d" || args[i] === "--db") db = args[++i];
-        else if (args[i] === "--root") root = true;
-      }
-      await dbClientCommand(user, password, db, root, command);
+    case "db":
+      await dbClientCommand(args.slice(1), command);
       break;
-    }
     case "df":
     case "disk":
       console.log(chalk.cyan("📊 Docker Disk Usage:"));

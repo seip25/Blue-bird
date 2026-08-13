@@ -280,31 +280,46 @@
                                 <code>index.js</code>, and sets <code>type: "module"</code> automatically.
                             </p>
 
-                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Available Scripts</h4>
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Available Commands &amp; Scripts</h4>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden mb-6">
                                     <thead class="bg-slate-100 text-slate-600 font-bold">
                                         <tr>
-                                            <th class="px-4 py-3 text-left">Script</th>
-                                            <th class="px-4 py-3 text-left">Command</th>
+                                            <th class="px-4 py-3 text-left">Script / Command</th>
+                                            <th class="px-4 py-3 text-left">Command / Details</th>
                                             <th class="px-4 py-3 text-left">Description</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm run dev</td>
-                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env
-                                                index.js</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env index.js</td>
                                             <td class="px-4 py-3 text-slate-500">Express API with file-watcher</td>
                                         </tr>
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
                                             <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
-                                            <td class="px-4 py-3 text-slate-500">Production server startup</td>
+                                            <td class="px-4 py-3 text-slate-500">Standalone production server startup</td>
                                         </tr>
-                                        <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
-                                        <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
-                                        <td class="px-4 py-3 text-slate-500">Production server startup</td>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker dev</td>
+                                            <td class="px-4 py-3 font-mono text-xs">blue-bird docker dev</td>
+                                            <td class="px-4 py-3 text-slate-500">Full containerized dev stack (Nginx, App, DB, Redis)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker start prod</td>
+                                            <td class="px-4 py-3 font-mono text-xs">blue-bird docker start prod</td>
+                                            <td class="px-4 py-3 text-slate-500">Full containerized production stack</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker logs</td>
+                                            <td class="px-4 py-3 font-mono text-xs">blue-bird docker logs [app]</td>
+                                            <td class="px-4 py-3 text-slate-500">Tails Node.js application container logs</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker ps</td>
+                                            <td class="px-4 py-3 font-mono text-xs">blue-bird docker ps</td>
+                                            <td class="px-4 py-3 text-slate-500">Displays status of active Docker containers</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -375,13 +390,49 @@ DB_PORT=5432</code></pre>
 import routerApi from "./backend/routes/api.js";
 
 const app = new App({
-  port: 3000,
+  port: process.env.PORT || 3000,
+  host: "http://localhost",
   routes: [routerApi],
-  cors: { origin: "http://localhost:3000" },
-  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 }
+  cors: [],
+  middlewares: [],
+  logger: false
 });
 
 app.run();</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">Standalone Express Frontend Serving (Without Docker / Nginx)</h4>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                If your application does not use Docker, Nginx, MySQL, or Redis (e.g. standalone Express apps, Express + SQLite, or pure Node.js environments), or if you want Express to serve static assets directly as a fallback, you can pass the <code>static</code> configuration parameter to <code>new App(...)</code>.
+                            </p>
+                            <pre><code class="language-javascript">const app = new App({
+  routes: [routerApi],
+  cors: [],
+  middlewares: [],
+  host: "http://localhost",
+  port: process.env.PORT || 3000,
+  logger: false,
+  // Configure static asset serving directly inside Express
+  static: {
+    path: "../frontend", // relative path to static files directory
+    options: {}           // express.static options
+  }
+});
+
+app.run();</code></pre>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                Under the hood, <code>core/app.js</code> evaluates <code>if (this.static.path)</code> and automatically mounts <code>express.static</code> with custom security headers:
+                            </p>
+                            <pre><code class="language-javascript">if (this.static.path) {
+  this.app.use(
+    express.static(path.join(__dirname, this.static.path), {
+      ...this.static.options,
+      setHeaders: (res) => {
+        res.setHeader("X-Powered-By", "Blue Bird");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      },
+    })
+  );
+}</code></pre>
                         </article>
 
                         <!-- Router Section -->
@@ -444,30 +495,43 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
                                     Authentication (Auth)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Implements stateless JWT authentication. Payload structures are encrypted with
-                                    military-grade AES-256-GCM algorithms and set inside secure, signed cookies or read
-                                    from
-                                    header strings.
+                                    Implements stateless and Redis-backed session authentication. Token payloads are encrypted with military-grade AES-256-GCM algorithms and transmitted via secure HTTP-Only cookies or <code>Authorization</code> headers.
                                 </p>
                                 <pre><code class="language-javascript">import Auth from "@seip/blue-bird/core/auth.js";
 
-// 1. Protecting API routes (returns 401 on failure)
+// 1. Protect API routes (returns 401 JSON on failure)
 router.get("/api/profile", Auth.protect(), (req, res) => {
   res.json({ user: req.user });
 });
 
-// 2. Logging in and setting session cookies
+// 2. Protect Web Pages with custom redirect
+router.get("/dashboard", Auth.protect({ redirect: "/login", key: "user", cookieKey: "auth" }), (req, res) => {
+  res.send(`<h1>Welcome ${req.user.name}</h1>`);
+});
+
+// 3. Log in user, set AES-256-GCM cookie & sync session in Redis
 router.post("/api/login", async (req, res) => {
   const user = { id: 1, name: "John Doe", role: "admin" };
-  await Auth.login(res, user);
+  await Auth.login(res, user, "auth", {
+    expiresIn: "7d",
+    cookie: { sameSite: "strict" }
+  });
   res.json({ success: true });
 });
 
-// 3. Logging out and clearing cookies
+// 4. Log out user, clear cookie & delete session in Redis
 router.post("/api/logout", async (req, res) => {
-  await Auth.logout(res);
+  await Auth.logout(res, "auth", {}, req);
   res.json({ success: true });
-});</code></pre>
+});
+
+// 5. Utility: Generate & Verify Encrypted JWT Tokens manually
+const token = Auth.generateToken({ id: 10 }, process.env.JWT_SECRET, "2h");
+const payload = Auth.verifyToken(token, process.env.JWT_SECRET);
+
+// 6. Utility: Raw AES-256-GCM String Encryption & Decryption
+const encrypted = Auth.encrypt({ secretData: "supersecret" }, process.env.JWT_SECRET);
+const decrypted = Auth.decrypt(encrypted, process.env.JWT_SECRET);</code></pre>
                             </article>
 
                             <!-- Cache Section -->
@@ -475,17 +539,33 @@ router.post("/api/logout", async (req, res) => {
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
                                         class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">7</span>
-                                    Cache Middleware
+                                    Cache Module &amp; Redis Client
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    For database or heavy operations, cache the resulting JSON/HTML stream automatically
-                                    using our routing middleware cache wrapper.
+                                    Provides automatic route response caching and direct Redis integration for database query caching. Automatically degrades to an in-memory cache if Redis is not configured or unavailable in Docker.
                                 </p>
-                                <pre><code class="language-javascript">import Cache from "@seip/blue-bird/core/cache.js";
+                                <pre><code class="language-javascript">import Cache, { getRedisClient } from "@seip/blue-bird/core/cache.js";
 
-// Cache this API result for 60 seconds
+// 1. Automatic Route Caching Middleware (JSON or HTML for 60 seconds)
 router.get("/api/statistics", Cache.middleware(60), (req, res) => {
   res.json({ computedData: [10, 20, 30] });
+});
+
+// 2. Direct Redis Access for Custom Database & Data Caching
+router.get("/api/custom-data", async (req, res) => {
+  const redis = getRedisClient();
+  
+  if (redis) {
+    const cached = await redis.get("my_custom_key");
+    if (cached) return res.json({ source: "redis", data: JSON.parse(cached) });
+
+    const freshData = { time: Date.now(), items: ["A", "B", "C"] };
+    await redis.set("my_custom_key", JSON.stringify(freshData), { EX: 120 });
+    return res.json({ source: "db", data: freshData });
+  }
+
+  // Fallback response when Redis is not enabled
+  res.json({ source: "direct", data: { items: ["A", "B", "C"] } });
 });</code></pre>
                             </article>
 
@@ -615,13 +695,21 @@ npx blue-bird docker pm2 status
 npx blue-bird docker pm2 monit
 npx blue-bird docker pm2 reload all
 
-# Run Interactive Shell Inside the Database Container (psql or mysql)
-npx blue-bird docker db
-npx blue-bird docker psql
-npx blue-bird docker mysql
+# Run Interactive Shell or Smart SQL Queries Inside Database Container (mysql or psql)
+npx blue-bird docker mysql                            # Interactive MySQL shell
+npx blue-bird docker mysql users                      # Smart query: SELECT * FROM users;
+npx blue-bird docker mysql users --limit=10           # Smart query: SELECT * FROM users LIMIT 10;
+npx blue-bird docker mysql users --where="id > 5"     # Smart query: SELECT * FROM users WHERE id > 5;
+npx blue-bird docker mysql "SELECT count(*) FROM users" # Custom SQL query execution
+npx blue-bird docker psql users                      # Smart PostgreSQL query: SELECT * FROM users;
 
-# Run Interactive Redis CLI Connection Inside the Container
-npx blue-bird docker redis
+# Run Interactive Shell or Smart Redis Commands
+npx blue-bird docker redis                            # Interactive redis-cli shell
+npx blue-bird docker redis monitor                    # Live Redis command stream monitor
+npx blue-bird docker redis keys                       # List all Redis keys (keys *)
+npx blue-bird docker redis keys "session:*"           # List matching Redis keys
+npx blue-bird docker redis key session:123            # Fetch value for a specific key
+npx blue-bird docker redis info                       # Get Redis server status info
 
 # Remove Unused Volumes, Dangling Images, and Buildkit Cache
 npx blue-bird docker prune</code></pre>

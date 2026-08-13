@@ -62,7 +62,50 @@ project/
 
 ## 🚀 Key Framework Features
 
-### 1. Custom Router (`Router`)
+### 1. Application Server (`App`)
+Initializes the framework server with default middleware, CORS, cookies, rate limiting, and optional static frontend asset serving:
+
+```javascript
+import App from "@seip/blue-bird/core/app.js";
+import routerApi from "./backend/routes/api.js";
+
+const app = new App({
+  port: process.env.PORT || 3000,
+  host: "http://localhost",
+  routes: [routerApi],
+  cors: [],
+  middlewares: [],
+  logger: false,
+  // Standalone Express Static Serving (Optional when not using Docker/Nginx or as fallback)
+  static: {
+    path: "../frontend", // relative directory to serve static files
+    options: {}           // express.static options
+  }
+});
+
+app.run();
+```
+
+#### Standalone Express Frontend Serving (Without Docker / Nginx)
+If your application does not require Docker, Nginx, MySQL, or Redis (e.g., pure Express applications, Express + SQLite, or simple single-container Node.js setups), you can pass `static: { path: "../frontend" }` to `App`. Under the hood, `core/app.js` automatically mounts `express.static`:
+
+```javascript
+if (this.static.path) {
+  this.app.use(
+    express.static(path.join(__dirname, this.static.path), {
+      ...this.static.options,
+      setHeaders: (res) => {
+        res.setHeader("X-Powered-By", "Blue Bird");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      },
+    })
+  );
+}
+```
+
+---
+
+### 2. Custom Router (`Router`)
 Blue Bird provides a clean wrapper around Express Routing:
 ```javascript
 import Router from "@seip/blue-bird/core/router.js";
@@ -76,7 +119,7 @@ routerApi.get("/status", (req, res) => {
 export default routerApi;
 ```
 
-### 2. Schema Validation (`Validator`)
+### 3. Schema Validation (`Validator`)
 Automatic request validation returning structured `400 Bad Request` responses on errors:
 ```javascript
 import Validator from "@seip/blue-bird/core/validate.js";
@@ -93,28 +136,67 @@ routerApi.post("/login", validator.middleware(), (req, res) => {
 });
 ```
 
-### 3. Encrypted JWT Auth (`Auth`)
-Stateless AES-256-GCM encrypted tokens delivered via HTTP-Only cookies or Authorization headers:
+### 4. Encrypted JWT Auth (`Auth`)
+Stateless and Redis-backed session authentication using AES-256-GCM encrypted tokens. Transmitted via HTTP-Only cookies or `Authorization` headers:
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
-// Protected route
+// 1. Protected API endpoint (returns 401 JSON)
 routerApi.get("/profile", Auth.protect(), (req, res) => {
   res.json({ user: req.user });
 });
+
+// 2. Protected Web page with redirect
+routerApi.get("/dashboard", Auth.protect({ redirect: "/login", key: "user" }), (req, res) => {
+  res.send(`<h1>Welcome ${req.user.name}</h1>`);
+});
+
+// 3. User Login & Redis Session Sync
+routerApi.post("/login", async (req, res) => {
+  const user = { id: 1, name: "Admin" };
+  await Auth.login(res, user, "auth", { expiresIn: "7d" });
+  res.json({ message: "Logged in" });
+});
+
+// 4. User Logout & Redis Session Invalidation
+routerApi.post("/logout", async (req, res) => {
+  await Auth.logout(res, "auth", {}, req);
+  res.json({ message: "Logged out" });
+});
+
+// 5. Raw Token Utilities & AES-256-GCM Encryption
+const token = Auth.generateToken({ id: 1 }, process.env.JWT_SECRET, "2h");
+const payload = Auth.verifyToken(token, process.env.JWT_SECRET);
+const encrypted = Auth.encrypt({ secret: "1234" }, process.env.JWT_SECRET);
+const decrypted = Auth.decrypt(encrypted, process.env.JWT_SECRET);
 ```
 
-### 4. Transparent Redis / Memory Caching (`Cache`)
-Seamless endpoint response caching that automatically degrades to in-memory cache if Redis is offline:
+### 5. Transparent Redis / Memory Caching (`Cache`)
+Seamless endpoint response caching and direct Redis client access. Automatically degrades to an in-memory cache if Redis is not configured or offline:
 ```javascript
-import Cache from "@seip/blue-bird/core/cache.js";
+import Cache, { getRedisClient } from "@seip/blue-bird/core/cache.js";
 
+// 1. Automatic Route Caching Middleware (JSON or HTML)
 routerApi.get("/products", Cache.middleware(60), (req, res) => {
   res.json({ products: [] });
 });
+
+// 2. Direct Redis Access for Database Query & Custom Data Caching
+routerApi.get("/stats", async (req, res) => {
+  const redis = getRedisClient();
+  if (redis) {
+    const cached = await redis.get("stats_key");
+    if (cached) return res.json(JSON.parse(cached));
+
+    const dbData = { users: 100, active: 42 };
+    await redis.set("stats_key", JSON.stringify(dbData), { EX: 300 });
+    return res.json(dbData);
+  }
+  res.json({ users: 100, active: 42 });
+});
 ```
 
-### 5. Multi-Database Client (`Database`)
+### 6. Multi-Database Client (`Database`)
 Unified wrapper supporting **MySQL (`mysql2`)** and **PostgreSQL (`pg`)** with parameter translation and query caching:
 ```javascript
 import { Database } from "@seip/blue-bird/core/database.js";
@@ -137,16 +219,28 @@ npx blue-bird                 # Interactive database & environment setup CLI
 # Local Development
 npm run dev                  # Start Express development server
 
-# Docker CLI Tooling
-npx blue-bird docker dev     # Start full containerized dev stack
-npx blue-bird docker start   # Start full production stack
-npx blue-bird docker stop    # Stop all containers
-npx blue-bird docker build   # Build production docker image
-npx blue-bird docker ps      # Check active containers status
-npx blue-bird docker logs    # View app logs
-npx blue-bird docker db      # Open interactive SQL terminal
-npx blue-bird docker redis   # Open interactive Redis terminal
-npx blue-bird docker prune   # Cleanup unused docker caches & containers
+# Docker CLI Tooling & Smart Queries
+npx blue-bird docker dev                 # Start full containerized dev stack
+npx blue-bird docker start               # Start full production stack
+npx blue-bird docker stop                # Stop all containers
+npx blue-bird docker build               # Build production docker image
+npx blue-bird docker ps                  # Check active containers status
+npx blue-bird docker logs                # View app logs
+
+# Smart Database Queries
+npx blue-bird docker mysql               # Open interactive MySQL terminal
+npx blue-bird docker mysql users         # Smart query: SELECT * FROM users;
+npx blue-bird docker mysql users --limit=10 --where="id > 5"
+npx blue-bird docker mysql "SELECT count(*) FROM users"
+npx blue-bird docker psql users          # Smart query in PostgreSQL
+
+# Smart Redis CLI Subcommands
+npx blue-bird docker redis               # Open interactive Redis terminal
+npx blue-bird docker redis monitor       # Live Redis command stream monitor
+npx blue-bird docker redis keys          # List all Redis keys (keys *)
+npx blue-bird docker redis keys "user:*" # List matching keys
+npx blue-bird docker redis key session:123 # Get value of a specific key
+npx blue-bird docker prune               # Cleanup unused docker caches & containers
 ```
 
 ---
