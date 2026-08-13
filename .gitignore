@@ -5,6 +5,4 @@ package-lock.json
 *.db
 test/
 
-# Astro
-frontend/dist
-frontend/.astro
+backups/*.sql

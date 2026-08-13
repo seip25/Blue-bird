@@ -325,10 +325,13 @@ npx blue-bird docker <command> [options]
 - **`npx blue-bird docker ps`**: Lists running project containers and ports.
 - **`npx blue-bird docker logs [app|db|postgres|mysql]`**: Tails logs for the specified container.
 - **`npx blue-bird docker pm2 [args]`**: Runs PM2 commands inside the Node.js application container (e.g. `status`, `monit`, `reload all`).
-- **`npx blue-bird docker db`** (or `psql` / `mysql`): Connects into the container's interactive database shell (`psql` for PostgreSQL, `mysql` for MySQL). Accepts table name or custom query for smart execution:
+- **`npx blue-bird docker db`** (or `psql` / `mysql`): Connects into the container's interactive database shell (`psql` for PostgreSQL, `mysql` for MySQL). Supports smart table queries, schema inspection, and backups:
   - `npx blue-bird docker mysql users` -> executes `SELECT * FROM users;` formatted as ASCII table.
   - `npx blue-bird docker mysql users --limit=10 --where="id > 5"` -> executes filtered query.
-  - `npx blue-bird docker mysql "SELECT count(*) FROM users"` -> executes custom SQL string.
+  - `npx blue-bird docker mysql tables` -> lists database tables (`SHOW TABLES`).
+  - `npx blue-bird docker mysql columns users` -> describes table schema (`SHOW COLUMNS`).
+- **`npx blue-bird docker export [filename.sql]`** (or `npx blue-bird docker mysql export`): Dumps database schema and data into `backups/backup_YYYY-MM-DD.sql` (creates `backups/` folder automatically).
+- **`npx blue-bird docker import [filename.sql]`** (or `npx blue-bird docker mysql import`): Restores database from a `.sql` file in `backups/` (uses the most recent `.sql` backup if no filename is specified).
 - **`npx blue-bird docker redis`**: Connects into the container's interactive Redis CLI terminal. Supports smart subcommands:
   - `npx blue-bird docker redis monitor` -> live stream of all incoming Redis commands.
   - `npx blue-bird docker redis keys [pattern]` -> lists all matching Redis keys (defaults to `*`).

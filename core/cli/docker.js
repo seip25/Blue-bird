@@ -331,22 +331,51 @@ async function dbClientCommand(clientArgs = [], explicitService) {
 
   let sqlQuery = null;
   if (positionalArgs.length > 0) {
-    const rawInput = positionalArgs.join(" ").trim();
-    const isFullQuery = /^(select|show|desc|describe|explain|insert|update|delete|create|drop|alter|truncate)\b/i.test(rawInput) || rawInput.includes(" ");
-    if (isFullQuery) {
-      sqlQuery = rawInput;
-    } else {
-      const tableName = rawInput;
-      sqlQuery = `SELECT * FROM ${tableName}`;
-      if (whereOpt) {
-        sqlQuery += ` WHERE ${whereOpt}`;
-      }
-      if (limitOpt) {
-        sqlQuery += ` LIMIT ${limitOpt}`;
-      }
+    const firstPos = positionalArgs[0].toLowerCase();
+
+    if (firstPos === "export" || firstPos === "dump") {
+      await exportDbCommand(dbType, positionalArgs[1], userOpt, passOpt, dbOpt);
+      return;
     }
-    if (!sqlQuery.endsWith(";")) {
-      sqlQuery += ";";
+    if (firstPos === "import" || firstPos === "restore") {
+      await importDbCommand(dbType, positionalArgs[1], userOpt, passOpt, dbOpt);
+      return;
+    }
+    if (firstPos === "tables") {
+      if (dbType === "postgres") {
+        sqlQuery = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';";
+      } else {
+        sqlQuery = "SHOW TABLES;";
+      }
+    } else if (firstPos === "columns" || firstPos === "cols" || firstPos === "describe" || firstPos === "desc") {
+      const tableName = positionalArgs[1];
+      if (!tableName) {
+        console.error(chalk.red("Error: Please specify a table name. Example: npx blue-bird docker mysql columns users"));
+        process.exit(1);
+      }
+      if (dbType === "postgres") {
+        sqlQuery = `SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = '${tableName}';`;
+      } else {
+        sqlQuery = `SHOW COLUMNS FROM ${tableName};`;
+      }
+    } else {
+      const rawInput = positionalArgs.join(" ").trim();
+      const isFullQuery = /^(select|show|desc|describe|explain|insert|update|delete|create|drop|alter|truncate)\b/i.test(rawInput) || rawInput.includes(" ");
+      if (isFullQuery) {
+        sqlQuery = rawInput;
+      } else {
+        const tableName = rawInput;
+        sqlQuery = `SELECT * FROM ${tableName}`;
+        if (whereOpt) {
+          sqlQuery += ` WHERE ${whereOpt}`;
+        }
+        if (limitOpt) {
+          sqlQuery += ` LIMIT ${limitOpt}`;
+        }
+      }
+      if (!sqlQuery.endsWith(";")) {
+        sqlQuery += ";";
+      }
     }
   }
 
@@ -406,6 +435,196 @@ async function dbClientCommand(clientArgs = [], explicitService) {
       process.exit(1);
     }
   }
+}
+
+/**
+ * Exports database schema & data into a .sql file inside backups/ folder.
+ * @param {string} dbType - Target db type ('mysql', 'postgres', 'none').
+ * @param {string} [filenameArg] - Custom backup filename.
+ * @param {string} [userOpt] - Custom db user.
+ * @param {string} [passOpt] - Custom db password.
+ * @param {string} [dbOpt] - Custom db name.
+ */
+async function exportDbCommand(dbType, filenameArg, userOpt, passOpt, dbOpt) {
+  checkComposeFile();
+  const env = getEnvVars();
+  const targetDbType = dbType === "none" ? getDbType(env) : dbType;
+
+  if (targetDbType === "none") {
+    console.error(chalk.yellow("[INFO] DB_TYPE is set to 'none'. No database available to export."));
+    return;
+  }
+
+  const backupsDir = path.join(process.cwd(), "backups");
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  let outputFile;
+  if (filenameArg) {
+    let name = filenameArg;
+    if (!name.endsWith(".sql")) name += ".sql";
+    if (path.isAbsolute(name)) {
+      outputFile = name;
+    } else if (name.includes("/") || name.includes("\\")) {
+      outputFile = path.resolve(process.cwd(), name);
+    } else {
+      outputFile = path.join(backupsDir, name);
+    }
+  } else {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
+    outputFile = path.join(backupsDir, `backup_${targetDbType}_${timestamp}.sql`);
+  }
+
+  const dbUser = userOpt || env.DB_USER || (targetDbType === "postgres" ? "postgres" : "root");
+  const dbPass = passOpt || env.DB_PASSWORD || (targetDbType === "postgres" ? "postgres" : "root");
+  const dbName = dbOpt || env.DB_NAME || "blue_bird";
+
+  let cmdArgs = [];
+  if (targetDbType === "postgres") {
+    cmdArgs = ["compose", "exec", "-T", "postgres", "pg_dump", `-U${dbUser}`, "-d", dbName];
+  } else {
+    cmdArgs = ["compose", "exec", "-T", "mysql", "mysqldump", `-u${dbUser}`, `-p${dbPass}`, dbName];
+  }
+
+  const relPath = path.relative(process.cwd(), outputFile);
+  console.log(chalk.cyan(`📦 Exporting ${targetDbType.toUpperCase()} database '${dbName}' to '${relPath}'...`));
+
+  const success = await exportDbToFile(cmdArgs, outputFile);
+  if (success) {
+    const stats = fs.statSync(outputFile);
+    const sizeKb = (stats.size / 1024).toFixed(2);
+    console.log(chalk.green(`\n✔ Database exported successfully!`));
+    console.log(chalk.cyan(`   File: ${relPath} (${sizeKb} KB)`));
+  } else {
+    console.error(chalk.red(`\n✖ Database export failed.`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Streams stdout from container dump command into a local file.
+ */
+function exportDbToFile(cmdArgs, outputFile) {
+  return new Promise((resolve) => {
+    const outStream = fs.createWriteStream(outputFile);
+    const proc = spawn("docker", cmdArgs, { stdio: ["inherit", "pipe", "pipe"], env: process.env });
+    proc.stdout.pipe(outStream);
+
+    let errOutput = "";
+    proc.stderr.on("data", (chunk) => {
+      errOutput += chunk.toString();
+    });
+
+    proc.on("close", (code) => {
+      outStream.close();
+      if (code === 0) {
+        resolve(true);
+      } else {
+        if (errOutput) console.error(chalk.yellow(`Warning/Stderr: ${errOutput.trim()}`));
+        resolve(code === 0);
+      }
+    });
+  });
+}
+
+/**
+ * Imports a .sql file from backups/ folder into the container database.
+ * @param {string} dbType - Target db type ('mysql', 'postgres', 'none').
+ * @param {string} [filenameArg] - Custom backup filename.
+ * @param {string} [userOpt] - Custom db user.
+ * @param {string} [passOpt] - Custom db password.
+ * @param {string} [dbOpt] - Custom db name.
+ */
+async function importDbCommand(dbType, filenameArg, userOpt, passOpt, dbOpt) {
+  checkComposeFile();
+  const env = getEnvVars();
+  const targetDbType = dbType === "none" ? getDbType(env) : dbType;
+
+  if (targetDbType === "none") {
+    console.error(chalk.yellow("[INFO] DB_TYPE is set to 'none'. No database available to import into."));
+    return;
+  }
+
+  const backupsDir = path.join(process.cwd(), "backups");
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  let inputFile;
+  if (filenameArg) {
+    let name = filenameArg;
+    if (!name.endsWith(".sql") && !fs.existsSync(name)) name += ".sql";
+    if (fs.existsSync(name)) {
+      inputFile = path.resolve(process.cwd(), name);
+    } else if (fs.existsSync(path.join(backupsDir, name))) {
+      inputFile = path.join(backupsDir, name);
+    } else {
+      console.error(chalk.red(`Error: Backup file '${filenameArg}' not found in current directory or 'backups/' folder.`));
+      process.exit(1);
+    }
+  } else {
+    const files = fs.readdirSync(backupsDir)
+      .filter(f => f.endsWith(".sql"))
+      .map(f => ({ name: f, time: fs.statSync(path.join(backupsDir, f)).mtimeMs }))
+      .sort((a, b) => b.time - a.time);
+
+    if (files.length === 0) {
+      console.error(chalk.red(`Error: No .sql backup files found in 'backups/' directory.`));
+      console.log(chalk.yellow(`Usage: npx blue-bird docker import <file.sql>`));
+      process.exit(1);
+    }
+
+    inputFile = path.join(backupsDir, files[0].name);
+    console.log(chalk.yellow(`[INFO] No file specified. Using most recent backup: '${files[0].name}'`));
+  }
+
+  const dbUser = userOpt || env.DB_USER || (targetDbType === "postgres" ? "postgres" : "root");
+  const dbPass = passOpt || env.DB_PASSWORD || (targetDbType === "postgres" ? "postgres" : "root");
+  const dbName = dbOpt || env.DB_NAME || "blue_bird";
+
+  let cmdArgs = [];
+  if (targetDbType === "postgres") {
+    cmdArgs = ["compose", "exec", "-T", "postgres", "psql", `-U${dbUser}`, "-d", dbName];
+  } else {
+    cmdArgs = ["compose", "exec", "-T", "mysql", "mysql", `-u${dbUser}`, `-p${dbPass}`, dbName];
+  }
+
+  const relPath = path.relative(process.cwd(), inputFile);
+  console.log(chalk.cyan(`📥 Importing SQL dump '${relPath}' into ${targetDbType.toUpperCase()} database '${dbName}'...`));
+
+  const success = await importDbFromFile(cmdArgs, inputFile);
+  if (success) {
+    console.log(chalk.green(`\n✔ Database imported successfully from '${relPath}'!`));
+  } else {
+    console.error(chalk.red(`\n✖ Database import failed.`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Streams a local .sql file into container stdin.
+ */
+function importDbFromFile(cmdArgs, inputFile) {
+  return new Promise((resolve) => {
+    const inStream = fs.createReadStream(inputFile);
+    const proc = spawn("docker", cmdArgs, { stdio: ["pipe", "inherit", "pipe"], env: process.env });
+    inStream.pipe(proc.stdin);
+
+    let errOutput = "";
+    proc.stderr.on("data", (chunk) => {
+      errOutput += chunk.toString();
+    });
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve(true);
+      } else {
+        if (errOutput) console.error(chalk.yellow(`Warning/Stderr: ${errOutput.trim()}`));
+        resolve(code === 0);
+      }
+    });
+  });
 }
 
 /**
@@ -549,6 +768,14 @@ async function main() {
     case "pm2":
       await pm2Command(args.slice(1));
       break;
+    case "export":
+    case "dump":
+      await exportDbCommand("none", args[1]);
+      break;
+    case "import":
+    case "restore":
+      await importDbCommand("none", args[1]);
+      break;
     case "redis":
       await redisCommand(args.slice(1));
       break;
@@ -572,7 +799,7 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, mysql/postgres/db, redis, df/disk, prune/clean");
+      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, export/dump, import/restore, mysql/postgres/db, redis, df/disk, prune/clean");
   }
 }
 

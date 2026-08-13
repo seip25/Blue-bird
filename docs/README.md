@@ -227,12 +227,20 @@ npx blue-bird docker build               # Build production docker image
 npx blue-bird docker ps                  # Check active containers status
 npx blue-bird docker logs                # View app logs
 
-# Smart Database Queries
+# Smart Database Queries & Schema Inspection
 npx blue-bird docker mysql               # Open interactive MySQL terminal
 npx blue-bird docker mysql users         # Smart query: SELECT * FROM users;
 npx blue-bird docker mysql users --limit=10 --where="id > 5"
 npx blue-bird docker mysql "SELECT count(*) FROM users"
-npx blue-bird docker psql users          # Smart query in PostgreSQL
+npx blue-bird docker mysql tables        # List database tables
+npx blue-bird docker mysql columns users # Describe table schema & columns
+npx blue-bird docker psql tables         # List PostgreSQL tables
+
+# Database Backup & Restore (.sql files saved in backups/)
+npx blue-bird docker export              # Dump DB to backups/backup_YYYY-MM-DD.sql
+npx blue-bird docker export my_dump.sql  # Dump DB to backups/my_dump.sql
+npx blue-bird docker import              # Restore latest .sql backup from backups/
+npx blue-bird docker import my_dump.sql  # Restore specific .sql backup file
 
 # Smart Redis CLI Subcommands
 npx blue-bird docker redis               # Open interactive Redis terminal
