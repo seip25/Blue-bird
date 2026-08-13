@@ -114,6 +114,42 @@ class App {
     this.app.use((req, res, next) => {
       req.lang = req.query?.lang || req.body?.lang || req.cookies?.lang || "en";
       res.locals.lang = req.lang;
+
+      res.success = (data = null, message = "Success", statusCode = 200) => {
+        return res.status(statusCode).json({
+          status: "success",
+          message,
+          data,
+        });
+      };
+
+      res.error = (message = "Error", statusCode = 400, errors = []) => {
+        return res.status(statusCode).json({
+          status: "error",
+          message,
+          errors,
+        });
+      };
+
+      res.paginate = (data = [], pagination = {}, message = "Success") => {
+        const page = Number(pagination.page) || 1;
+        const limit = Number(pagination.limit) || data.length;
+        const total = Number(pagination.total) || data.length;
+        const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
+
+        return res.status(200).json({
+          status: "success",
+          message,
+          data,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages,
+          },
+        });
+      };
+
       next();
     });
 
@@ -241,25 +277,23 @@ class App {
    */
   _errorHandler() {
     this.app.use((err, req, res, next) => {
-      const status = err.status || 500;
+      const statusCode = err.statusCode || err.status || 500;
       const message = err.message || "Internal Server Error";
+      const errors = err.errors || [];
 
-      this.loggerInstance.error(`[${status}] ${message} - ${err.stack}`);
+      this.loggerInstance.error(`[${statusCode}] ${message} - ${err.stack}`);
 
-      if (props.debug) {
-        return res.status(status).json({
-          success: false,
-          error: true,
-          message: message,
-          stack: err.stack,
-        });
+      const responsePayload = {
+        status: "error",
+        message: statusCode === 500 && !props.debug ? "Internal Server Error" : message,
+        errors,
+      };
+
+      if (props.debug && err.stack) {
+        responsePayload.stack = err.stack;
       }
 
-      return res.status(status).json({
-        success: false,
-        error: true,
-        message: status === 500 ? "Internal Server Error" : message,
-      });
+      return res.status(statusCode).json(responsePayload);
     });
   }
 
@@ -332,6 +366,26 @@ class App {
       hidePoweredBy: false,
     };
     return helmet({ ...defaultOptions, ...options });
+  }
+}
+
+/**
+ * Operational application error class for standardizing custom API errors.
+ */
+export class AppError extends Error {
+  /**
+   * Creates an AppError instance.
+   * @param {string} message - Error message description.
+   * @param {number} [statusCode=500] - HTTP status code.
+   * @param {Array|Object} [errors=[]] - Array or object of detailed errors.
+   */
+  constructor(message, statusCode = 500, errors = []) {
+    super(message);
+    this.name = "AppError";
+    this.statusCode = statusCode;
+    this.errors = errors;
+    this.isOperational = true;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 

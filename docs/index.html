@@ -400,6 +400,38 @@ const app = new App({
 
 app.run();</code></pre>
 
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">Standardized Response Helpers</h4>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                Every Express response object is automatically enhanced with standardized API response methods:
+                            </p>
+                            <pre><code class="language-javascript">// 1. Success Response
+res.success(user, "User fetched successfully", 200);
+// Responds: { status: "success", message: "User fetched successfully", data: user }
+
+// 2. Error Response
+res.error("Invalid credentials", 401, [{ field: "password", message: "Incorrect password" }]);
+// Responds: { status: "error", message: "Invalid credentials", errors: [...] }
+
+// 3. Paginated Response
+res.paginate(usersArray, { page: 1, limit: 10, total: 100 }, "Users page 1");
+// Responds: { status: "success", message: "Users page 1", data: [...], pagination: { page: 1, limit: 10, total: 100, totalPages: 10 } }</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">AppError &amp; Automatic Async Error Handling</h4>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                All GET/POST/PUT/DELETE routes created with Blue Bird's <code>Router</code> automatically catch <code>async</code> errors and pass them to the global error handler. You can throw operational <code>AppError</code> instances anywhere without wrapping your routes in <code>try/catch</code> blocks:
+                            </p>
+                            <pre><code class="language-javascript">import { AppError } from "@seip/blue-bird/core/app.js";
+
+router.get("/users/:id", async (req, res) => {
+  const user = await db.query("SELECT * FROM users WHERE id = ?", [req.params.id], "return_row");
+  
+  if (!user) {
+    throw new AppError("User not found", 404); // Caught automatically and returned as standard JSON error
+  }
+  
+  return res.success(user);
+});</code></pre>
+
                             <h4 class="font-bold text-slate-800 mt-6 mb-2">Standalone Express Frontend Serving (Without Docker / Nginx)</h4>
                             <p class="text-slate-600 mb-4 leading-relaxed text-sm">
                                 If your application does not use Docker, Nginx, MySQL, or Redis (e.g. standalone Express apps, Express + SQLite, or pure Node.js environments), or if you want Express to serve static assets directly as a fallback, you can pass the <code>static</code> configuration parameter to <code>new App(...)</code>.
@@ -643,7 +675,22 @@ const debug = await connection.query("SELECT * FROM users", [], { debug: true })
 // [DATABASE DEBUG] CACHE HIT / MISS
 
 // 5. INSERT query (returns insertId for MySQL, or row ID / rowCount for PostgreSQL)
-const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);</code></pre>
+const newUserId = await connection.query("INSERT INTO users (email) VALUES (?)", ["test@example.com"]);
+
+// 6. Automatic SQL Query Pagination (Runs count query + LIMIT/OFFSET calculation)
+const paginated = await connection.paginate(
+  "SELECT * FROM users WHERE status = ?",
+  ["active"],
+  { page: 1, limit: 10, cache: 60 }
+);
+// Returns: { data: [...], total: 100, page: 1, limit: 10, totalPages: 10 }
+
+// 7. Atomic Database Transactions with Automatic Commit & Rollback
+const txUserId = await connection.transaction(async (tx) => {
+  const userId = await tx.query("INSERT INTO users (name, email) VALUES (?, ?)", ["Alice", "alice@example.com"]);
+  await tx.query("INSERT INTO profiles (user_id, bio) VALUES (?, ?)", [userId, "Developer"]);
+  return userId;
+});</code></pre>
                             </article>
 
                             <!-- Docker Section -->

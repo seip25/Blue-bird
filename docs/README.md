@@ -197,14 +197,25 @@ routerApi.get("/stats", async (req, res) => {
 ```
 
 ### 6. Multi-Database Client (`Database`)
-Unified wrapper supporting **MySQL (`mysql2`)** and **PostgreSQL (`pg`)** with parameter translation and query caching:
+Unified wrapper supporting **MySQL (`mysql2`)** and **PostgreSQL (`pg`)** with parameter translation, automatic pagination, transactions with rollback, and query caching:
 ```javascript
 import { Database } from "@seip/blue-bird/core/database.js";
 
 const db = new Database(20);
 
-// Unified SQL query using '?' syntax (translated to $1, $2 for Postgres automatically)
+// 1. Unified SQL query using '?' syntax (translated to $1, $2 for Postgres automatically)
 const user = await db.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
+
+// 2. Automatic SQL Query Pagination (count query + LIMIT/OFFSET calculation)
+const paginated = await db.paginate("SELECT * FROM users WHERE status = ?", ["active"], { page: 1, limit: 10, cache: 60 });
+// Returns: { data: [...], total: 100, page: 1, limit: 10, totalPages: 10 }
+
+// 3. Atomic Database Transactions with Automatic Commit & Rollback
+const userId = await db.transaction(async (tx) => {
+  const id = await tx.query("INSERT INTO users (name, email) VALUES (?, ?)", ["Alice", "alice@example.com"]);
+  await tx.query("INSERT INTO profiles (user_id) VALUES (?)", [id]);
+  return id;
+});
 ```
 
 ---

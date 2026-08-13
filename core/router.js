@@ -5,6 +5,25 @@ import Config from "./config.js";
 const props = Config.props();
 
 /**
+ * Wraps route handlers to automatically catch async rejections and forward them to next(err).
+ * @param {Function} fn - Handler function.
+ * @returns {Function} Wrapped handler.
+ */
+function wrapAsync(fn) {
+  if (typeof fn !== "function") return fn;
+  return (req, res, next) => {
+    try {
+      const result = fn(req, res, next);
+      if (result && typeof result.catch === "function") {
+        result.catch(next);
+      }
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+/**
  * Router wrapper class for handling Express routing logic.
  * When created with { seo: true }, all GET routes registered on this router
  * are automatically included in the generated sitemap.xml and robots.txt.
@@ -37,7 +56,8 @@ class Router {
    * router.use(App.helmet());
    */
   use(...middleware) {
-    this.router.use(...middleware);
+    const handlers = middleware.map(wrapAsync);
+    this.router.use(...handlers);
   }
 
   /**
@@ -57,8 +77,8 @@ class Router {
     if (path === "/*" || path === "*") {
       path = /.*/;
     }
-
-    this.router.get(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.get(path, ...handlers);
   }
 
   /**
@@ -74,7 +94,8 @@ class Router {
     if (path === "/*" || path === "*") {
       path = /.*/;
     }
-    this.router.post(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.post(path, ...handlers);
   }
 
   /**
@@ -87,7 +108,8 @@ class Router {
    * })
    */
   put(path, ...callback) {
-    this.router.put(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.put(path, ...handlers);
   }
 
   /**
@@ -100,7 +122,8 @@ class Router {
    * })
    */
   delete(path, ...callback) {
-    this.router.delete(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.delete(path, ...handlers);
   }
 
   /**
@@ -113,7 +136,8 @@ class Router {
    * })
    */
   patch(path, ...callback) {
-    this.router.patch(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.patch(path, ...handlers);
   }
 
   /**
@@ -122,7 +146,8 @@ class Router {
    * @param {...Function} callback - One or more handler functions (middlewares and controller).
    */
   options(path, ...callback) {
-    this.router.options(path, callback);
+    const handlers = callback.map(wrapAsync);
+    this.router.options(path, ...handlers);
   }
 
   /**

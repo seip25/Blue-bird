@@ -258,6 +258,142 @@ class Database {
       throw err;
     }
   }
+
+  /**
+   * Executes a paginated SQL query.
+   * Runs an automatic count query to calculate total records and pages, then appends LIMIT and OFFSET.
+   *
+   * @param {string} sql - SQL query string.
+   * @param {Array} [params=[]] - Query parameters.
+   * @param {Object} [options={}] - Pagination options: page, limit, cache.
+   * @returns {Promise<{data: Array, total: number, page: number, limit: number, totalPages: number}>}
+   * @example const result = await connection.paginate("SELECT * FROM users WHERE status = ?", ["active"], { page: 1, limit: 10 });
+   */
+  async paginate(sql, params = [], options = {}) {
+    const page = Math.max(1, parseInt(options.page) || 1);
+    const limit = Math.max(1, parseInt(options.limit) || 10);
+    const offset = (page - 1) * limit;
+
+    const cleanSql = sql.trim().replace(/;$/, "");
+    const countSql = `SELECT COUNT(*) as total FROM (${cleanSql}) as _count_subquery`;
+
+    const countResult = await this.query(countSql, params, { return_row: true });
+    const total = Number(countResult?.total || countResult?.count || 0);
+    const totalPages = Math.ceil(total / limit);
+
+    const paginatedSql = `${cleanSql} LIMIT ${limit} OFFSET ${offset}`;
+    const rows = await this.query(paginatedSql, params, options);
+
+    return {
+      data: Array.isArray(rows) ? rows : [],
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  /**
+   * Executes a database transaction with automatic commit and rollback.
+   * @param {Function} callback - Async function receiving transaction client: async (tx) => { ... }
+   * @returns {Promise<*>} Value returned from callback.
+   * @example
+   * const userId = await connection.transaction(async (tx) => {
+   *   const id = await tx.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
+   *   await tx.query("INSERT INTO profiles (user_id) VALUES (?)", [id]);
+   *   return id;
+   * });
+   */
+  async transaction(callback) {
+    if (!mysqlPromise && !pgPromise) throw new Error("[DATABASE ERROR] No database driver available.");
+    if (!this.pool) {
+      const initialized = await this.init();
+      if (!initialized) throw new Error("[DATABASE ERROR] Failed to initialize database pool.");
+    }
+
+    if (this.type === "postgres" && pgPromise) {
+      const client = await this.pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        const tx = {
+          query: async (sql, params = [], options = {}) => {
+            const queryOptions = typeof options === "string" ? { [options]: true } : options;
+            const cleanSql = sql.trim();
+            const isSelect = cleanSql.toLowerCase().startsWith("select");
+            const isInsert = cleanSql.toLowerCase().startsWith("insert");
+
+            let paramIndex = 1;
+            const pgSql = cleanSql.replace(/\?/g, () => `$${paramIndex++}`);
+            const res = await client.query(pgSql, params);
+
+            if (isSelect) {
+              const rows = res.rows || [];
+              return queryOptions.return_row ? (rows[0] || null) : rows;
+            }
+            if (isInsert) {
+              if (res.rows && res.rows.length > 0) return res.rows[0].id || res.rows[0];
+              return res.rowCount;
+            }
+            return res.rowCount;
+          }
+        };
+
+        const result = await callback(tx);
+        await client.query("COMMIT");
+        return result;
+      } catch (err) {
+        await client.query("ROLLBACK").catch(() => {});
+        console.error("[DATABASE ERROR] Transaction rolled back:", err.message);
+        throw err;
+      } finally {
+        client.release();
+      }
+    } else {
+      const connection = await this.pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        const tx = {
+          query: async (sql, params = [], options = {}) => {
+            const queryOptions = typeof options === "string" ? { [options]: true } : options;
+            const cleanSql = sql.trim();
+            const isSelect = cleanSql.toLowerCase().startsWith("select");
+            const isInsert = cleanSql.toLowerCase().startsWith("insert");
+
+            const [results] = await connection.execute(cleanSql, params);
+
+            if (isSelect) {
+              const rows = Array.isArray(results) ? results : [];
+              return queryOptions.return_row ? (rows[0] || null) : rows;
+            }
+            if (isInsert) {
+              return results.insertId || results;
+            }
+            return results;
+          }
+        };
+
+        const result = await callback(tx);
+        await connection.commit();
+        return result;
+      } catch (err) {
+        await connection.rollback().catch(() => {});
+        console.error("[DATABASE ERROR] Transaction rolled back:", err.message);
+        throw err;
+      } finally {
+        connection.release();
+      }
+    }
+  }
+
+  /**
+   * Alias for transaction().
+   * @param {Function} callback
+   */
+  async executeTransaction(callback) {
+    return this.transaction(callback);
+  }
 }
 
 export { Database, DB_TYPE };

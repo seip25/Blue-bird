@@ -3,6 +3,7 @@
   "version": "0.9.1",
   "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
   "type": "module",
+  "types": "core/index.d.ts",
   "exports": {
     "./*": "./*"
   },
