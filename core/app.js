@@ -157,15 +157,15 @@ class App {
       next();
     });
 
-    if (this.static.path)
+    if (this.static.path || props.debug)
       this.app.use(
-        express.static(path.join(__dirname, this.static.path), {
+        express.static(path.join(__dirname, this.static.path || "frontend"), {
           ...this.static.options,
           setHeaders: (res) => {
             res.setHeader("X-Powered-By", "Blue Bird");
             res.setHeader(
               "Cache-Control",
-              "public, max-age=31536000, immutable",
+              props.debug ? "no-cache" : "public, max-age=31536000, immutable",
             );
           },
         }),
@@ -336,14 +336,14 @@ class App {
         this.server.listen(this.port, () => {
           console.log(
             chalk.bold.blue("Blue Bird Server Online\n") +
-              chalk.bold.cyan("App URL: ") +
-              chalk.green(`${this.appUrl}`) +
-              "\n" +
-              chalk.bold.cyan("Internal: ") +
-              chalk.green(`${this.host}:${this.port}`) +
-              "\n" +
-              (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
-              chalk.gray("────────────────────────────────"),
+            chalk.bold.cyan("App URL: ") +
+            chalk.green(`${this.appUrl}`) +
+            "\n" +
+            chalk.bold.cyan("Internal: ") +
+            chalk.green(`${this.host}:${this.port}`) +
+            "\n" +
+            (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
+            chalk.gray("────────────────────────────────"),
           );
         });
       })

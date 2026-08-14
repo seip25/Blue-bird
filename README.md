@@ -385,7 +385,7 @@ npx blue-bird docker <command> [options]
 
 ### Supported Actions:
 
-- **`npx blue-bird docker dev`**: Boots the development environment stack (Database + Redis + Nginx). Run `npm run dev` locally to start the Node.js application.
+- **`npx blue-bird docker dev`**: Boots the development database and Redis containers. Run `npm run dev` locally on your host machine.
 - **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + Database + Redis).
 - **`npx blue-bird docker start db`** (or `postgres` / `mysql`): Boots the configured database container only (great for local development outside Docker).
 - **`npx blue-bird docker start redis`**: Boots the Redis container only.

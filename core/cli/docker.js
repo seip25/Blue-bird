@@ -148,20 +148,20 @@ async function startCommand(service) {
 async function devCommand() {
   checkComposeFile();
   const dbType = getDbType();
-  console.log(chalk.cyan("Starting development stack (DB + Redis + Nginx)..."));
+  console.log(chalk.cyan("Starting development environment (Database + Redis)..."));
 
-  const containers = ["redis", "nginx"];
+  const containers = ["redis"];
   if (dbType !== "none") {
     containers.unshift(dbType);
   }
 
   const code = await runCmd("docker", ["compose", "up", "-d", ...containers]);
   if (code === 0) {
-    console.log(chalk.green("Development stack started."));
-    console.log(chalk.cyan("View live logs with: npx blue-bird docker logs"));
+    console.log(chalk.green("Development containers started."));
+    console.log(chalk.cyan("View live logs with: npx blue-bird docker logs db"));
     console.log(chalk.yellow("Now execute: npm run dev"));
   } else {
-    console.error(chalk.red("Error starting development stack."));
+    console.error(chalk.red("Error starting development environment."));
     process.exit(1);
   }
 }
