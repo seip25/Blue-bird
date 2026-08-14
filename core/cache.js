@@ -45,7 +45,7 @@ async function initRedis() {
   }
 }
 
-initRedis().catch(() => {});
+initRedis().catch(() => { });
 
 setInterval(() => {
   const now = Date.now();
@@ -70,7 +70,7 @@ class Cache {
       const key = req.originalUrl;
 
       if (redisHost && !redisClient) {
-        await initRedis().catch(() => {});
+        await initRedis().catch(() => { });
       }
 
       if (isRedisConnected && redisClient) {
@@ -79,6 +79,7 @@ class Cache {
           if (cachedData) {
             const cached = JSON.parse(cachedData);
             if (cached.type === "json") {
+              res.set("X-Blue-Bird-Cache", "HIT");
               return res.json(cached.data);
             } else {
               res.type("text/html");
