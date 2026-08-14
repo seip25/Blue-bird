@@ -15,7 +15,7 @@ services:
     environment:
       - NODE_ENV=production
       - DEBUG=false
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-root}@postgres:${DB_PORT:-5432}/${DB_NAME:-blue_bird}?schema=public
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-root}@postgres:5432/${DB_NAME:-blue_bird}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=3000
@@ -59,7 +59,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-blue_bird}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-blue_bird}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -78,7 +78,7 @@ services:
     networks:
       - bluebird_net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
