@@ -160,6 +160,7 @@ class App {
     if (this.static.path || props.debug)
       this.app.use(
         express.static(path.join(__dirname, this.static.path || "frontend"), {
+          extensions: ["html"],
           ...this.static.options,
           setHeaders: (res) => {
             res.setHeader("X-Powered-By", "Blue Bird");

@@ -42,8 +42,10 @@ class Config {
       port: Number.isNaN(portRaw) ? 3000 : portRaw,
       jwtSecret: process.env.JWT_SECRET,
       static: {
-        path: process.env.STATIC_PATH || "frontend/public",
-        options: {},
+        path: process.env.STATIC_PATH || "frontend",
+        options: {
+          extensions: ["html"],
+        },
       },
     };
     return _cachedProps;
