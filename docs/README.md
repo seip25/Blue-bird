@@ -34,7 +34,7 @@ Because Node.js is relieved from serving heavy static assets, memory allocation 
 
 Includes a comprehensive Docker Compose CLI wrapper to bootstrap, build, stop, and clean dev and production environments with zero manual scripting.
 
-- **Dev Environment**: Single command startup (`npx blue-bird docker dev`) bringing up Node.js with hot reload, Nginx reverse proxy, Redis cache, and MySQL / PostgreSQL database containers.
+- **Dev Environment**: Single command startup (`npx blue-bird docker dev`) bringing up Nginx reverse proxy, Redis cache, and MySQL / PostgreSQL database containers. Run `npm run dev` locally for Node.js hot reload.
 - **Production Environment**: Optimized PM2 cluster startup inside Docker with automatic process monitoring, multi-threaded CPU utilization, and rate-limiting security headers.
 - **Zero Scripting Required**: Preconfigured docker-compose files automatically copied and managed by the `blue-bird` CLI tool.
 
@@ -286,7 +286,7 @@ npx blue-bird                 # Interactive database & environment setup CLI
 npm run dev                  # Start Express development server
 
 # Docker CLI Tooling & Smart Queries
-npx blue-bird docker dev                 # Start full containerized dev stack
+npx blue-bird docker dev                 # Start dev environment stack (DB + Redis + Nginx)
 npx blue-bird docker start               # Start full production stack
 npx blue-bird docker stop                # Stop all containers
 npx blue-bird docker build               # Build production docker image

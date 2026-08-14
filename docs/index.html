@@ -304,7 +304,7 @@
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker dev</td>
                                             <td class="px-4 py-3 font-mono text-xs">blue-bird docker dev</td>
-                                            <td class="px-4 py-3 text-slate-500">Full containerized dev stack (Nginx, App, DB, Redis)</td>
+                                            <td class="px-4 py-3 text-slate-500">Development environment stack (Nginx, DB, Redis). Run npm run dev manually</td>
                                         </tr>
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker start prod</td>
@@ -776,7 +776,7 @@ socket.addEventListener("message", (event) => {
                                     uses MySQL or PostgreSQL based on `getDbType()` reading your <code>.env</code>
                                     configuration.
                                 </p>
-                                <pre><code class="language-bash"># Start Development Application Stack (App with live reload + Nginx + Database + Redis)
+                                <pre><code class="language-bash"># Start Development Environment Stack (Nginx + Database + Redis). Run npm run dev manually
 npx blue-bird docker dev
 
 # Start Production Application Stack (App + Nginx + Database + Redis)

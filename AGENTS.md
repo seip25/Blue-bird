@@ -117,7 +117,7 @@ Production deployments always use Docker for orchestration, running:
 
 ```bash
 # Manage containers using blue-bird CLI
-npx blue-bird docker dev            # Starts development app stack (DB, redis, app, nginx) with npm run dev
+npx blue-bird docker dev            # Starts development environment stack (DB, redis, nginx). Run npm run dev manually.
 npx blue-bird docker start          # Starts production app stack (DB, redis, app, nginx)
 npx blue-bird docker start db       # Starts configured database container only (postgres or mysql)
 npx blue-bird docker start redis    # Starts Redis container only

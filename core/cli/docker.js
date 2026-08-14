@@ -147,23 +147,19 @@ async function startCommand(service) {
  */
 async function devCommand() {
   checkComposeFile();
-  console.log(chalk.cyan("Starting development stack (DB + Redis + App (npm run dev) + Nginx)..."));
-  
-  const devComposeFile = path.join(process.cwd(), "docker", "docker-compose.dev.yml");
-  const cmdArgs = ["compose", "-f", "docker-compose.yml"];
-  
-  if (fs.existsSync(devComposeFile)) {
-    cmdArgs.push("-f", "docker/docker-compose.dev.yml");
-  } else {
-    console.log(chalk.yellow("[WARN] docker/docker-compose.dev.yml not found, running standard stack."));
+  const dbType = getDbType();
+  console.log(chalk.cyan("Starting development stack (DB + Redis + Nginx)..."));
+
+  const containers = ["redis", "nginx"];
+  if (dbType !== "none") {
+    containers.unshift(dbType);
   }
-  
-  cmdArgs.push("--profile", "prod", "up", "-d");
-  
-  const code = await runCmd("docker", cmdArgs);
+
+  const code = await runCmd("docker", ["compose", "up", "-d", ...containers]);
   if (code === 0) {
     console.log(chalk.green("Development stack started."));
     console.log(chalk.cyan("View live logs with: npx blue-bird docker logs"));
+    console.log(chalk.yellow("Now execute: npm run dev"));
   } else {
     console.error(chalk.red("Error starting development stack."));
     process.exit(1);
