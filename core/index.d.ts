@@ -112,6 +112,11 @@ export class Auth {
 
 export class Cache {
   static middleware(seconds?: number): (req: Request, res: Response, next: NextFunction) => Promise<any>;
+  static get(key: string): Promise<any | null>;
+  static set(key: string, value: any, seconds?: number): Promise<boolean>;
+  static delete(keys: string | string[]): Promise<boolean>;
+  static del(keys: string | string[]): Promise<boolean>;
+  static clear(): Promise<boolean>;
 }
 
 export function getRedisClient(): any;

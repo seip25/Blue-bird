@@ -87,9 +87,17 @@ If an Express route involves heavy processing or database queries, utilize the `
 ```javascript
 import Cache from "@seip/blue-bird/core/cache.js";
 
+// Express route middleware caching
 router.get("/stats", Cache.middleware(60), (req, res) => {
   res.json({ ok: true });
 });
+
+// Programmatic cache manipulation
+await Cache.set("custom_key", { data: "value" }, 120);
+const cachedData = await Cache.get("custom_key");
+
+// Invalidate route cache manually (e.g. after updating DB)
+await Cache.delete("/api/public/config");
 ```
 
 The Cache module integrates with Redis when `REDIS_HOST` is configured in the environment. If Redis is unavailable or fails, it transparently falls back to an in-memory cache system without interrupting requests.

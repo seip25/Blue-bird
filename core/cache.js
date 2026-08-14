@@ -162,6 +162,137 @@ class Cache {
       next();
     };
   }
+
+  /**
+   * Retrieves cached value by key.
+   * @param {string} key - Cache key.
+   * @returns {Promise<any|null>} Cached payload or null.
+   */
+  static async get(key) {
+    key = key.trim();
+    if (!key) return null;
+
+    if (redisHost && !redisClient) {
+      await initRedis().catch(() => { });
+    }
+
+    if (isRedisConnected && redisClient) {
+      try {
+        const cachedData = await redisClient.get(key);
+        if (cachedData) {
+          try {
+            const cached = JSON.parse(cachedData);
+            return cached && typeof cached === "object" && "data" in cached ? cached.data : cached;
+          } catch {
+            return cachedData;
+          }
+        }
+        return null;
+      } catch (err) {
+        isRedisConnected = false;
+      }
+    }
+
+    if (CACHE[key]) {
+      if (CACHE[key].expiry > Date.now()) {
+        const cached = CACHE[key];
+        return cached.data !== undefined ? cached.data : cached;
+      }
+      delete CACHE[key];
+    }
+
+    return null;
+  }
+
+  /**
+   * Sets data into cache with a specified TTL in seconds.
+   * @param {string} key - Cache key.
+   * @param {any} value - Data to cache.
+   * @param {number} [seconds=60] - Expiry time in seconds.
+   * @returns {Promise<boolean>} True if set successfully.
+   */
+  static async set(key, value, seconds = 60) {
+    key = key.trim();
+    if (!key) return false;
+
+    if (redisHost && !redisClient) {
+      await initRedis().catch(() => { });
+    }
+
+    const cacheObject = {
+      type: typeof value === "string" ? "html" : "json",
+      data: value,
+      expiry: Date.now() + seconds * 1000,
+    };
+
+    if (isRedisConnected && redisClient) {
+      try {
+        await redisClient.set(key, JSON.stringify(cacheObject), {
+          EX: seconds,
+        });
+      } catch (err) {
+        CACHE[key] = cacheObject;
+      }
+    } else {
+      CACHE[key] = cacheObject;
+    }
+
+    return true;
+  }
+
+  /**
+   * Deletes one or more entries from cache.
+   * @param {string|string[]} keys - Single key or array of keys to delete.
+   * @returns {Promise<boolean>} True if deleted.
+   */
+  static async delete(keys) {
+    if (!keys) return false;
+    const keyList = Array.isArray(keys) ? keys : [keys];
+
+    if (redisHost && !redisClient) {
+      await initRedis().catch(() => { });
+    }
+
+    for (const key of keyList) {
+      delete CACHE[key];
+      if (isRedisConnected && redisClient) {
+        try {
+          await redisClient.del(key);
+        } catch (err) {
+          isRedisConnected = false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Alias for delete.
+   * @param {string|string[]} keys - Single key or array of keys to delete.
+   * @returns {Promise<boolean>} True if deleted.
+   */
+  static async del(keys) {
+    return this.delete(keys);
+  }
+
+  /**
+   * Flushes all cached data in memory (and Redis if connected).
+   * @returns {Promise<boolean>} True if flushed.
+   */
+  static async clear() {
+    for (const key in CACHE) {
+      delete CACHE[key];
+    }
+    if (isRedisConnected && redisClient) {
+      try {
+        await redisClient.flushDb();
+      } catch (err) {
+        isRedisConnected = false;
+      }
+    }
+    return true;
+  }
 }
 
 /**

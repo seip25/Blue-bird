@@ -222,6 +222,20 @@ router.get("/stats", Cache.middleware(60), (req, res) => {
 });
 ```
 
+#### Programmatic Cache Manipulation & Invalidation
+
+```javascript
+// Get / Set keys programmatically
+await Cache.set("custom_key", { data: "value" }, 120);
+const cachedData = await Cache.get("custom_key");
+
+// Manually invalidate route cache (e.g. after updating DB)
+await Cache.delete("/api/public/config");
+
+// Clear all cache entries
+await Cache.clear();
+```
+
 #### Custom Database & Data Caching with `getRedisClient()`
 
 ```javascript

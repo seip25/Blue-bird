@@ -583,7 +583,17 @@ router.get("/api/statistics", Cache.middleware(60), (req, res) => {
   res.json({ computedData: [10, 20, 30] });
 });
 
-// 2. Direct Redis Access for Custom Database & Data Caching
+// 2. Programmatic Cache Manipulation & Invalidation
+await Cache.set("custom_key", { data: "value" }, 120);
+const cachedData = await Cache.get("custom_key");
+
+// Manually invalidate route cache (e.g. after updating DB)
+await Cache.delete("/api/public/config");
+
+// Clear all cache entries (memory & Redis)
+await Cache.clear();
+
+// 3. Direct Redis Access for Custom Database & Data Caching
 router.get("/api/custom-data", async (req, res) => {
   const redis = getRedisClient();
   
