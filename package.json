@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
   "type": "module",
   "types": "core/index.d.ts",
@@ -46,7 +46,6 @@
     "docker",
     "docker-compose.yml",
     "AGENTS.md",
-    "index.js",
     ".env_example"
   ],
   "dependencies": {

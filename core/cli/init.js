@@ -103,8 +103,6 @@ class ProjectInit {
       "docker",
       ".env_example",
       "AGENTS.md",
-      "index.js",
-      ".gitignore"
     ];
 
     try {
@@ -127,6 +125,24 @@ class ProjectInit {
           );
         }
       });
+
+      const gitignoreContent = `node_modules\nlogs\n.env\npackage-lock.json\n*.db\ntest/\n\nbackups/*.sql\n`;
+      const gitignoreDest = path.join(this.appDir, ".gitignore");
+      const gitignoreSrc = path.join(this.sourceDir, ".gitignore");
+
+      if (!fs.existsSync(gitignoreDest)) {
+        if (fs.existsSync(gitignoreSrc)) {
+          fs.copyFileSync(gitignoreSrc, gitignoreDest);
+          console.log(chalk.green("[OK] Copied .gitignore to root."));
+        } else {
+          fs.writeFileSync(gitignoreDest, gitignoreContent, "utf-8");
+          console.log(chalk.green("[OK] Created .gitignore file."));
+        }
+      } else {
+        console.log(
+          chalk.yellow("[SKIP] .gitignore already exists, skipping."),
+        );
+      }
 
       const composeTemplateName =
         dbType === "postgres"
@@ -166,8 +182,15 @@ class ProjectInit {
         let envContent = fs.readFileSync(envExamplePath, "utf-8");
 
         const jwtSecret = crypto.randomBytes(32).toString("hex");
+        const composeProjectName =
+          title
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9_-]/g, "") || "blue-bird";
 
         const updates = {
+          COMPOSE_PROJECT_NAME: composeProjectName,
           TITLE: title,
           PORT: port,
           APP_URL: appUrl,
@@ -190,10 +213,14 @@ class ProjectInit {
         }
 
         const lines = envContent.split(/\r?\n/);
+        let foundComposeProjectName = false;
         const updatedLines = lines.map((line) => {
           const match = line.match(/^([A-Z_]+)=(.+)/);
           if (match) {
             const key = match[1];
+            if (key === "COMPOSE_PROJECT_NAME") {
+              foundComposeProjectName = true;
+            }
             if (updates[key] !== undefined) {
               const value = updates[key];
               if (typeof value === "string" && !value.startsWith('"')) {
@@ -204,6 +231,21 @@ class ProjectInit {
           }
           return line;
         });
+
+        if (!foundComposeProjectName && updates.COMPOSE_PROJECT_NAME) {
+          const titleIdx = updatedLines.findIndex((l) => l.startsWith("TITLE="));
+          if (titleIdx !== -1) {
+            updatedLines.splice(
+              titleIdx,
+              0,
+              `COMPOSE_PROJECT_NAME="${updates.COMPOSE_PROJECT_NAME}"`,
+            );
+          } else {
+            updatedLines.push(
+              `COMPOSE_PROJECT_NAME="${updates.COMPOSE_PROJECT_NAME}"`,
+            );
+          }
+        }
         envContent = updatedLines.join("\n");
 
         fs.writeFileSync(envPath, envContent, "utf-8");

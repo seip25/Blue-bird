@@ -6,7 +6,7 @@ This document serves as the primary manual for any AI Agent interacting with the
 
 Blue Bird is a performance-first API framework built on **Express**. It saves developers from repetitive configuration, validation, security, JWT authentication, and database environment configuration out of the box, delegating all static frontend rendering to Nginx.
 
-- **Entrypoint (`index.js`)**: Initializes the server using `App` from `core/app.js` and registers the routes.
+- **Entrypoint (`backend/index.js`)**: Initializes the server using `App` from `core/app.js` and registers the routes.
 - **Backend (`backend/`)**: Application routes and logic (e.g. `backend/routes/`).
 - **Frontend (`frontend/`)**: Static assets (HTML, CSS, JS). Handled directly by Nginx in production, bypassing Express.
 - **Core (`core/`)**: The framework core. Contains wrapper classes such as `Router`, `Validator`, `Auth`, `Cache`, etc. **DO NOT MODIFY** the core unless explicitly requested, as it could break other apps.
