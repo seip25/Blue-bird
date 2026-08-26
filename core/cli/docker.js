@@ -855,13 +855,16 @@ async function main() {
   process.env.BLUEBIRD_PROJECT_NAME = projectName;
   process.env.TITLE = projectName;
 
-  const args = process.argv.slice(3);
+  const rawArgs = process.argv.slice(2);
+  const dockerIdx = rawArgs.indexOf("docker");
+  const args = dockerIdx !== -1 ? rawArgs.slice(dockerIdx + 1) : rawArgs;
   const command = args[0];
 
   if (!command) {
     await psCommand();
     return;
   }
+
 
   switch (command) {
     case "start":
@@ -916,11 +919,61 @@ async function main() {
       await pruneCommand(force, all);
       break;
     }
+    case "help":
+    case "--help":
+    case "-h":
+      helpCommand();
+      break;
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, export/dump, import/restore, sqlite/mysql/postgres/db, redis, df/disk, prune/clean");
+      console.log("Run 'npx blue-bird docker help' to see all available commands.");
   }
+
+}
+
+/**
+ * Displays the Blue Bird Docker CLI help manual.
+ */
+function helpCommand() {
+  console.log(chalk.bold.blue("\n🐦 Blue Bird Docker CLI — Command Reference"));
+  console.log(chalk.gray("────────────────────────────────────────────────────────────"));
+  console.log(chalk.bold("Usage: ") + chalk.cyan("npx blue-bird docker <command> [options]\n"));
+
+  console.log(chalk.bold.yellow("📦 Container Lifecycle:"));
+  console.log(`  ${chalk.green("dev")}                      Starts development containers (Redis / DB). Run npm run dev locally.`);
+  console.log(`  ${chalk.green("start [service]")}          Starts production stack (app, nginx, redis, db) or specific service.`);
+  console.log(`  ${chalk.green("start dev")}              Starts development services only.`);
+  console.log(`  ${chalk.green("start db")}               Starts configured database container only.`);
+  console.log(`  ${chalk.green("start redis")}            Starts Redis container only.`);
+  console.log(`  ${chalk.green("start dbs")}              Starts all database containers (DB + Redis).`);
+  console.log(`  ${chalk.green("stop [service]")}           Stops all running containers (or specific service).`);
+  console.log(`  ${chalk.green("build [--no-cache]")}      Builds or updates the Node.js production image.`);
+  console.log(`  ${chalk.green("ps | status")}             Lists status of active project containers.`);
+  console.log(`  ${chalk.green("logs [service] [-f]")}     Tails logs for container (app, db, redis, nginx).`);
+
+  console.log(chalk.bold.yellow("\n🗄️  Database & Inspection:"));
+  console.log(`  ${chalk.green("db | sqlite | mysql | psql")} [query/table]`);
+  console.log(`                             Inspects active database (tables, columns, or runs SQL query).`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker db tables")}`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker db columns users")}`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker db \"SELECT * FROM users\"")}`);
+  console.log(`  ${chalk.green("export | dump [file]")}     Dumps database backup (.db file for SQLite or .sql) into backups/.`);
+  console.log(`  ${chalk.green("import | restore [file]")}   Restores database from backups/ (.db or .sql).`);
+
+  console.log(chalk.bold.yellow("\n⚡ Redis & Monitoring:"));
+  console.log(`  ${chalk.green("redis")} [command]          Runs interactive Redis CLI or smart subcommands.`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker redis monitor")}`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker redis keys")}`);
+  console.log(`                             ${chalk.gray("e.g. npx blue-bird docker redis key <keyname>")}`);
+  console.log(`  ${chalk.green("pm2 [args]")}               Runs PM2 commands inside app container (status, monit, reload).`);
+  console.log(`  ${chalk.green("df | disk")}                Shows Docker disk usage statistics.`);
+  console.log(`  ${chalk.green("prune | clean [-f] [-a]")}  Cleans unused volumes, dangling images, and build caches.`);
+
+  console.log(chalk.bold.yellow("\nℹ️  Help:"));
+  console.log(`  ${chalk.green("help | --help | -h")}       Displays this help message.`);
+  console.log(chalk.gray("────────────────────────────────────────────────────────────\n"));
 }
 
 main();
+
 
