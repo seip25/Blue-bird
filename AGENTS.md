@@ -251,4 +251,25 @@ await connection.transaction(async (tx) => {
 In production, Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.png`, etc.) in the user's browser with the `Cache-Control` header (valid for 1 month). 
 HTML and API endpoints (`/api/*`) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
 
+## 13. VPS Production Deployment & Security Troubleshooting
+
+When deploying Blue Bird to Linux VPS servers using Docker Compose orchestration:
+
+### Linux Permissions Architecture
+1. **Unprivileged Nginx Worker:** Nginx runs in Alpine container under user `nginx` (`UID 101`). Host parent folders (`/home/user`, `/home/user/projects`) must have `755` permissions to allow path traversal.
+2. **Static Asset Security:** `./frontend` is mounted read-only (`:ro`). Dirs must be `755`, files `644`.
+3. **Executable Binaries:** `node_modules` must maintain `755` (`+x`) permissions so `npx blue-bird` CLI can execute symlinks in `node_modules/.bin/`.
+4. **Secret Isolation:** `.env` must be restricted to `600` (`rw-------`) to prevent unauthorized local file access. Never use `777`.
+
+### Failure Modes & Remediation Playbook
+* **Error 13: Permission Denied on static assets (`/js/tailwind.js`, etc.):**
+  - Fix: `chmod 755 /home/$(whoami) && chmod 755 /home/$(whoami)/projects && chmod -R 755 frontend`
+* **`sh: 1: blue-bird: Permission denied` on CLI:**
+  - Fix: `chmod -R 755 node_modules` or `npm rebuild`
+* **Docker Inode Desync (404 after `mv` / `rm` directory):**
+  - Fix: `npx blue-bird docker stop && npx blue-bird docker start prod`
+* **Real-time Diagnostic:** `docker compose logs -f nginx`
+
+---
+
 _This file can be retrieved by intelligent agents reading its absolute physical path during reasoning._

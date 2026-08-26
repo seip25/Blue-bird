@@ -1032,7 +1032,7 @@ npx blue-bird docker prune</code></pre>
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
                                         class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
-                                    Production Setup (VPS / PM2)
+                                    Production Setup &amp; VPS Security
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Using the built-in Docker stack is the recommended production deployment method.
@@ -1042,17 +1042,64 @@ npx blue-bird docker prune</code></pre>
                                 </p>
                                 <h4 class="text-lg font-bold text-slate-900 mb-4">Option A: Docker Deployment
                                     (Recommended)</h4>
-                                <pre><code class="language-bash">#1. Edit .env , debug=false and PM2_INSTANCES='max' or instances
+                                <pre><code class="language-bash"># 1. Configure .env with production keys
 DEBUG=false
 PM2_INSTANCES='max'
-# PM2_INSTANCES=1
-# PM2_INSTANCES=2
 
 # 2. Build the production image
 npx blue-bird docker build
 
 # 3. Run the production containers stack
 npx blue-bird docker start prod</code></pre>
+
+                                <!-- Security & Permissions Card -->
+                                <div class="my-8 p-6 bg-amber-50/60 border border-amber-200 rounded-2xl">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <span class="text-xl">🛡️</span>
+                                        <h4 class="text-lg font-bold text-amber-900">VPS Permissions &amp; Security Hardening</h4>
+                                    </div>
+                                    <p class="text-sm text-amber-800 mb-4 leading-relaxed">
+                                        Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101). To ensure static assets can be read without exposing your server to vulnerabilities:
+                                    </p>
+                                    <div class="bg-white/80 rounded-xl p-4 border border-amber-200/80 mb-4 text-xs font-mono text-slate-800 space-y-1">
+                                        <p class="text-slate-500 font-sans font-bold mb-2">Recommended Permissions Matrix:</p>
+                                        <p><span class="font-bold text-indigo-600">/home/user</span> : <code>chmod 755</code> (Allows unprivileged container path traversal)</p>
+                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>chmod -R 755</code> (dirs) / <code>644</code> (files)</p>
+                                        <p><span class="font-bold text-indigo-600">node_modules/</span> : <code>chmod -R 755</code> (Preserves binary execution bits in .bin)</p>
+                                        <p><span class="font-bold text-red-600">.env</span> : <code>chmod 600</code> (Restricted private access - NEVER 777)</p>
+                                    </div>
+                                    <pre><code class="language-bash"># Apply safe permissions on your Linux VPS:
+chmod 755 /home/$(whoami)
+chmod 755 /home/$(whoami)/projects
+chmod -R 755 frontend && find frontend -type f -exec chmod 644 {} +
+chmod -R 755 node_modules
+chmod 600 .env</code></pre>
+                                </div>
+
+                                <!-- Troubleshooting Card -->
+                                <div class="my-8 p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <span class="text-xl">🔧</span>
+                                        <h4 class="text-lg font-bold text-white">VPS Troubleshooting Guide (Problems &amp; Solutions)</h4>
+                                    </div>
+                                    <div class="space-y-6 text-sm text-slate-300">
+                                        <div class="border-b border-slate-800 pb-4">
+                                            <p class="font-bold text-red-400 mb-1">❌ Problem 1: Static files return 404 / 403 (stat() failed 13: Permission denied)</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent directories on host (e.g. <code>/home/user/</code>) lack <code>+x</code> traversal permission for unprivileged <code>nginx</code> worker.</p>
+                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod 755 /home/$(whoami) &amp;&amp; chmod 755 /home/$(whoami)/projects &amp;&amp; chmod -R 755 frontend</p>
+                                        </div>
+                                        <div class="border-b border-slate-800 pb-4">
+                                            <p class="font-bold text-amber-400 mb-1">❌ Problem 2: <code>npx blue-bird</code> fails with <code>sh: 1: blue-bird: Permission denied</code></p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Global <code>chmod 644</code> stripped execute permissions from binary links in <code>node_modules/.bin/</code>.</p>
+                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod -R 755 node_modules</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or recreating project folder (<code>mv</code> / <code>rm -r</code>)</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Docker volume mounts bind to disk inodes. Recreating the folder desynchronizes active mounts.</p>
+                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
                                     Deployment</h4>
