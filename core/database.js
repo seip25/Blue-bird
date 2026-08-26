@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import crypto from "node:crypto";
 import { getRedisClient } from "./cache.js";
 
@@ -15,14 +17,20 @@ if (
     DB_TYPE = "postgres";
   } else if (process.env.DATABASE_URL.startsWith("mysql://")) {
     DB_TYPE = "mysql";
+  } else if (
+    process.env.DATABASE_URL.startsWith("sqlite://") ||
+    process.env.DATABASE_URL.startsWith("sqlite:")
+  ) {
+    DB_TYPE = "sqlite";
   }
 }
 if (!DB_TYPE) {
-  DB_TYPE = "mysql";
+  DB_TYPE = "sqlite";
 }
 
 let mysqlPromise = null;
 let pgPromise = null;
+let sqlitePromise = null;
 
 if (DB_TYPE === "postgres") {
   try {
@@ -40,23 +48,79 @@ if (DB_TYPE === "postgres") {
       "[DATABASE ERROR] mysql2 package is not installed. Database wrapper is disabled.",
     );
   }
+} else if (DB_TYPE === "sqlite") {
+  try {
+    sqlitePromise = await import("better-sqlite3");
+  } catch (err) {
+    console.error(
+      "[DATABASE ERROR] better-sqlite3 package is not installed. Database wrapper is disabled.",
+    );
+  }
 }
 
 /**
- * Database class wrapping mysql2 and pg with reconnection retries, connection pooling, and query caching.
+ * Database class wrapping better-sqlite3, mysql2, and pg with reconnection retries, connection pooling, and query caching.
  */
 class Database {
   /**
    * Initializes config from DATABASE_URL or DB_* environment variables.
-   * For default Database use .env DB_HOST, DB_USER, DB_PASSWORD...
-   * @param {number} [connectionLimit=10] - Maximum number of connections in the pool.
-   * @param {number} [queueLimit=0] - Maximum number of queued connections.
-   * @param {Object} [config={}] - Additional configuration options: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_TYPE.
+   * For default Database use .env DB_HOST, DB_USER, DB_PASSWORD... or DB_FILE for SQLite.
+   * @param {number} [connectionLimit=10] - Maximum number of connections in the pool (MySQL/Postgres).
+   * @param {number} [queueLimit=0] - Maximum number of queued connections (MySQL/Postgres).
+   * @param {Object} [config={}] - Additional configuration options: DB_FILE, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_TYPE.
+   * @example const connection = new Database(10, 0, { DB_TYPE: "sqlite", DB_FILE: "database/blue_bird.db" });
    * @example const connection = new Database(10, 0, { DB_HOST: "localhost", DB_USER: "root", DB_PASSWORD: "password", DB_NAME: "blue_bird", DB_PORT: 3306, DB_TYPE: "mysql" });
    */
   constructor(connectionLimit = 10, queueLimit = 0, config = {}) {
     this.pool = null;
-    this.type = DB_TYPE;
+    this.db = null;
+    this.type = config.DB_TYPE || DB_TYPE;
+
+    let defaultSqliteFile = process.env.DB_FILE || "database/blue_bird.db";
+    let busyTimeout = 5000;
+    let journalMode = "WAL";
+    let synchronous = "NORMAL";
+
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith("#")) {
+      try {
+        if (
+          process.env.DATABASE_URL.startsWith("sqlite://") ||
+          process.env.DATABASE_URL.startsWith("sqlite:")
+        ) {
+          const rawUrl = process.env.DATABASE_URL;
+          const cleanUrl = rawUrl.replace(/^sqlite:\/\/|^sqlite:/, "");
+          const [filePath, queryStr] = cleanUrl.split("?");
+          if (filePath) {
+            defaultSqliteFile = filePath;
+          }
+          if (queryStr) {
+            const params = new URLSearchParams(queryStr);
+            if (params.has("busy_timeout")) {
+              busyTimeout =
+                parseInt(params.get("busy_timeout"), 10) || busyTimeout;
+            }
+            if (params.has("journal_mode")) {
+              journalMode = params.get("journal_mode").toUpperCase();
+            }
+            if (params.has("synchronous")) {
+              synchronous = params.get("synchronous").toUpperCase();
+            }
+          }
+        }
+      } catch (err) {
+        console.error(
+          "[DATABASE ERROR] Failed to parse SQLite DATABASE_URL:",
+          err.message,
+        );
+      }
+    }
+
+    this.sqliteConfig = {
+      filename: config.DB_FILE || defaultSqliteFile,
+      busyTimeout: config.busyTimeout || busyTimeout,
+      journalMode: config.journalMode || journalMode,
+      synchronous: config.synchronous || synchronous,
+    };
 
     this.config = {
       ...config,
@@ -101,13 +165,46 @@ class Database {
   }
 
   /**
-   * Creates the database connection pool with 3 retry attempts on failure.
+   * Creates the database connection pool or SQLite instance with retries on failure.
    * @param {number} [retries=3] - Number of connection attempts.
-   * @returns {Promise<boolean>} True if connection pool was created.
+   * @returns {Promise<boolean>} True if connection was created.
    */
   async init(retries = 3) {
-    if (!mysqlPromise && !pgPromise) return false;
-    if (this.pool) return true;
+    if (!mysqlPromise && !pgPromise && !sqlitePromise) return false;
+    if (this.pool || this.db) return true;
+
+    if (this.type === "sqlite" && sqlitePromise) {
+      try {
+        const BetterSqlite = sqlitePromise.default || sqlitePromise;
+        const dbFilePath = path.isAbsolute(this.sqliteConfig.filename)
+          ? this.sqliteConfig.filename
+          : path.resolve(process.cwd(), this.sqliteConfig.filename);
+
+        const dir = path.dirname(dbFilePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+
+        this.db = new BetterSqlite(dbFilePath, {
+          timeout: this.sqliteConfig.busyTimeout,
+        });
+
+        this.db.pragma(`journal_mode = ${this.sqliteConfig.journalMode}`);
+        this.db.pragma(`synchronous = ${this.sqliteConfig.synchronous}`);
+        this.db.pragma("foreign_keys = ON");
+        this.db.pragma(`busy_timeout = ${this.sqliteConfig.busyTimeout}`);
+        this.db.pragma("temp_store = MEMORY");
+
+        return true;
+      } catch (err) {
+        console.error(
+          "[DATABASE ERROR] Failed to initialize SQLite database:",
+          err.message,
+        );
+        this.db = null;
+        return false;
+      }
+    }
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -138,7 +235,7 @@ class Database {
 
   /**
    * Runs a SQL query with parameters and formatting options.
-   * Supports both MySQL and PostgreSQL (converting ? to $1, $2 for Postgres automatically).
+   * Supports SQLite, MySQL, and PostgreSQL (converting ? to $1, $2 for Postgres automatically).
    *
    * @param {string} sql - SQL query string.
    * @param {Array} [params=[]] - Query parameter array.
@@ -150,8 +247,8 @@ class Database {
    * @example const insert_id = await connection.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", ["John Doe", "john@example.com", "password"]);
    */
   async query(sql, params = [], options = {}) {
-    if (!mysqlPromise && !pgPromise) return false;
-    if (!this.pool) {
+    if (!mysqlPromise && !pgPromise && !sqlitePromise) return false;
+    if (!this.pool && !this.db) {
       const initialized = await this.init();
       if (!initialized) return false;
     }
@@ -159,8 +256,8 @@ class Database {
     const queryOptions =
       typeof options === "string" ? { [options]: true } : options;
     const cleanSql = sql.trim();
-    const isSelect = cleanSql.toLowerCase().startsWith("select");
-    const isInsert = cleanSql.toLowerCase().startsWith("insert");
+    const isSelect = /^(select|pragma|explain)/i.test(cleanSql);
+    const isInsert = /^insert/i.test(cleanSql);
 
     const redisClient = getRedisClient();
     let cacheKey = null;
@@ -201,7 +298,42 @@ class Database {
     }
 
     try {
-      if (this.type === "postgres" && pgPromise) {
+      if (this.type === "sqlite" && this.db) {
+        const stmt = this.db.prepare(cleanSql);
+
+        if (isSelect) {
+          if (queryOptions.return_row) {
+            const row = stmt.get(...params);
+            const result = row || null;
+            if (cacheKey && queryOptions.cache && redisClient) {
+              await redisClient
+                .set(cacheKey, JSON.stringify(result), {
+                  EX: parseInt(queryOptions.cache),
+                })
+                .catch(() => {});
+            }
+            return result;
+          }
+
+          const rows = stmt.all(...params);
+          if (cacheKey && queryOptions.cache && redisClient) {
+            await redisClient
+              .set(cacheKey, JSON.stringify(rows), {
+                EX: parseInt(queryOptions.cache),
+              })
+              .catch(() => {});
+          }
+          return rows;
+        }
+
+        if (isInsert) {
+          const info = stmt.run(...params);
+          return Number(info.lastInsertRowid);
+        }
+
+        const info = stmt.run(...params);
+        return info.changes;
+      } else if (this.type === "postgres" && pgPromise) {
         let paramIndex = 1;
         const pgSql = cleanSql.replace(/\?/g, () => `$${paramIndex++}`);
         const res = await this.pool.query(pgSql, params);
@@ -305,13 +437,48 @@ class Database {
    * });
    */
   async transaction(callback) {
-    if (!mysqlPromise && !pgPromise) throw new Error("[DATABASE ERROR] No database driver available.");
-    if (!this.pool) {
+    if (!mysqlPromise && !pgPromise && !sqlitePromise) throw new Error("[DATABASE ERROR] No database driver available.");
+    if (!this.pool && !this.db) {
       const initialized = await this.init();
       if (!initialized) throw new Error("[DATABASE ERROR] Failed to initialize database pool.");
     }
 
-    if (this.type === "postgres" && pgPromise) {
+    if (this.type === "sqlite" && this.db) {
+      this.db.exec("BEGIN IMMEDIATE");
+      try {
+        const tx = {
+          query: async (sql, params = [], options = {}) => {
+            const queryOptions = typeof options === "string" ? { [options]: true } : options;
+            const cleanSql = sql.trim();
+            const isSelect = /^(select|pragma|explain)/i.test(cleanSql);
+            const isInsert = /^insert/i.test(cleanSql);
+
+            const stmt = this.db.prepare(cleanSql);
+            if (isSelect) {
+              if (queryOptions.return_row) {
+                const row = stmt.get(...params);
+                return row || null;
+              }
+              return stmt.all(...params);
+            }
+            if (isInsert) {
+              const info = stmt.run(...params);
+              return Number(info.lastInsertRowid);
+            }
+            const info = stmt.run(...params);
+            return info.changes;
+          }
+        };
+
+        const result = await callback(tx);
+        this.db.exec("COMMIT");
+        return result;
+      } catch (err) {
+        this.db.exec("ROLLBACK");
+        console.error("[DATABASE ERROR] Transaction rolled back:", err.message);
+        throw err;
+      }
+    } else if (this.type === "postgres" && pgPromise) {
       const client = await this.pool.connect();
       try {
         await client.query("BEGIN");
@@ -394,6 +561,24 @@ class Database {
   async executeTransaction(callback) {
     return this.transaction(callback);
   }
+
+  /**
+   * Closes the database connection pool or SQLite instance.
+   */
+  async close() {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+    if (this.pool) {
+      if (typeof this.pool.end === "function") {
+        await this.pool.end();
+      }
+      this.pool = null;
+    }
+  }
 }
 
 export { Database, DB_TYPE };
+
+

@@ -1,0 +1,69 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ${TITLE:-bluebird}-app
+    restart: unless-stopped
+    expose:
+      - "3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./database:/app/database
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - DB_TYPE=sqlite
+      - DB_FILE=${DB_FILE:-database/blue_bird.db}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:database/blue_bird.db}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3000
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bluebird_net
+    profiles:
+      - prod
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: ${TITLE:-bluebird}-nginx
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:80"
+    volumes:
+      - .:/app:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - bluebird_net
+    profiles:
+      - prod
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${TITLE:-bluebird}-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bluebird_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_data:
+
+networks:
+  bluebird_net:
+    name: ${TITLE:-bluebird}_network
+    driver: bridge

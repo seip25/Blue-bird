@@ -1,6 +1,6 @@
 {
   "name": "@seip/blue-bird",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
   "type": "module",
   "types": "core/index.d.ts",
@@ -49,6 +49,7 @@
     ".env_example"
   ],
   "dependencies": {
+    "better-sqlite3": "^13.0.3",
     "chalk": "^5.6.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",

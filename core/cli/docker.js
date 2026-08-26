@@ -26,11 +26,14 @@ function getEnvVars() {
 }
 
 /**
- * Determines the target database type (mysql or postgres) from environment variables.
+ * Determines the target database type (sqlite, mysql, or postgres) from environment variables.
  * @param {Object} [env] - Environment dictionary.
- * @returns {string} 'postgres' or 'mysql'.
+ * @returns {string} 'sqlite', 'postgres', 'mysql', or 'none'.
  */
 function getDbType(env = getEnvVars()) {
+  if (env.DB_TYPE && (env.DB_TYPE.toLowerCase() === "sqlite" || env.DB_TYPE.toLowerCase() === "sqlite3")) {
+    return "sqlite";
+  }
   if (env.DB_TYPE && (env.DB_TYPE.toLowerCase() === "postgres" || env.DB_TYPE.toLowerCase() === "postgresql" || env.DB_TYPE.toLowerCase() === "pg")) {
     return "postgres";
   }
@@ -41,6 +44,9 @@ function getDbType(env = getEnvVars()) {
     return "none";
   }
   if (env.DATABASE_URL && !env.DATABASE_URL.startsWith("#")) {
+    if (env.DATABASE_URL.startsWith("sqlite://") || env.DATABASE_URL.startsWith("sqlite:")) {
+      return "sqlite";
+    }
     if (env.DATABASE_URL.startsWith("postgres://") || env.DATABASE_URL.startsWith("postgresql://")) {
       return "postgres";
     }
@@ -48,7 +54,7 @@ function getDbType(env = getEnvVars()) {
       return "mysql";
     }
   }
-  return "mysql";
+  return "sqlite";
 }
 
 /**
@@ -84,10 +90,21 @@ async function startCommand(service) {
   checkComposeFile();
   const dbType = getDbType();
 
-  if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db" || service === "dev") {
-    const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
+  if (service === "sqlite" || service === "--sqlite" || service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db" || service === "dev") {
+    const targetContainer = (service === "sqlite" || service === "--sqlite") ? "sqlite" : ((service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType));
     if (targetContainer === "none") {
       console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', skipping database container startup."));
+      return;
+    }
+    if (targetContainer === "sqlite") {
+      console.log(chalk.cyan("[INFO] SQLite is file-based (embedded in app). Starting Redis container..."));
+      const code = await runCmd("docker", ["compose", "up", "-d", "redis"]);
+      if (code === 0) {
+        console.log(chalk.green("Redis started."));
+      } else {
+        console.error(chalk.red("Error starting Redis."));
+        process.exit(1);
+      }
       return;
     }
     console.log(chalk.cyan(`Starting ${targetContainer.toUpperCase()} container...`));
@@ -108,8 +125,8 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else if (service === "dbs" || service === "databases") {
-    if (dbType === "none") {
-      console.log(chalk.cyan("DB_TYPE is 'none', starting Redis container only..."));
+    if (dbType === "none" || dbType === "sqlite") {
+      console.log(chalk.cyan(`DB_TYPE is '${dbType}' (embedded/none), starting Redis container only...`));
       const code = await runCmd("docker", ["compose", "up", "-d", "redis"]);
       if (code === 0) {
         console.log(chalk.green("Redis started."));
@@ -137,7 +154,7 @@ async function startCommand(service) {
       process.exit(1);
     }
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: mysql, postgres, db, redis, dbs, prod.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: sqlite, mysql, postgres, db, redis, dbs, prod.`));
     process.exit(1);
   }
 }
@@ -151,14 +168,16 @@ async function devCommand() {
   console.log(chalk.cyan("Starting development environment (Database + Redis)..."));
 
   const containers = ["redis"];
-  if (dbType !== "none") {
+  if (dbType !== "none" && dbType !== "sqlite") {
     containers.unshift(dbType);
   }
 
   const code = await runCmd("docker", ["compose", "up", "-d", ...containers]);
   if (code === 0) {
     console.log(chalk.green("Development containers started."));
-    console.log(chalk.cyan("View live logs with: npx blue-bird docker logs db"));
+    if (dbType !== "none" && dbType !== "sqlite") {
+      console.log(chalk.cyan("View live logs with: npx blue-bird docker logs db"));
+    }
     console.log(chalk.yellow("Now execute: npm run dev"));
   } else {
     console.error(chalk.red("Error starting development environment."));
@@ -178,10 +197,10 @@ async function stopCommand(service) {
     console.log(chalk.cyan("Stopping all Blue Bird containers..."));
     await runCmd("docker", ["compose", "--profile", "prod", "down"]);
     console.log(chalk.green("All containers stopped."));
-  } else if (service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db") {
-    const targetContainer = (service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType);
-    if (targetContainer === "none") {
-      console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', no database container to stop."));
+  } else if (service === "sqlite" || service === "--sqlite" || service === "mysql" || service === "--mysql" || service === "postgres" || service === "--postgres" || service === "db" || service === "--db") {
+    const targetContainer = (service === "sqlite" || service === "--sqlite") ? "sqlite" : ((service === "postgres" || service === "--postgres") ? "postgres" : ((service === "mysql" || service === "--mysql") ? "mysql" : dbType));
+    if (targetContainer === "none" || targetContainer === "sqlite") {
+      console.log(chalk.yellow(`[INFO] DB_TYPE is set to '${targetContainer}', no database container to stop.`));
       return;
     }
     console.log(chalk.cyan(`Stopping ${targetContainer.toUpperCase()}...`));
@@ -199,7 +218,7 @@ async function stopCommand(service) {
     await runCmd("docker", ["compose", "--profile", "prod", "rm", "-f", "app"]);
     console.log(chalk.green("App container stopped."));
   } else {
-    console.error(chalk.red(`Unknown service '${service}'. Use: all, mysql, postgres, db, redis, app.`));
+    console.error(chalk.red(`Unknown service '${service}'. Use: all, sqlite, mysql, postgres, db, redis, app.`));
     process.exit(1);
   }
 }
@@ -245,12 +264,16 @@ async function logsCommand(service, followOpt) {
   const follow = followOpt !== "--no-follow";
   const dbType = getDbType();
   let targetService = "app";
-  if (service === "mysql" || service === "postgres" || service === "db") {
+  if (service === "mysql" || service === "postgres" || service === "sqlite" || service === "db") {
     targetService = service === "db" ? dbType : service;
   }
   if (targetService === "none") {
     console.log(chalk.yellow("[INFO] DB_TYPE is set to 'none', no database container logs to display."));
     return;
+  }
+  if (targetService === "sqlite") {
+    console.log(chalk.yellow("[INFO] SQLite is embedded in the Node.js application container. Displaying app logs:"));
+    targetService = "app";
   }
 
   const cmdArgs = ["compose"];
@@ -267,22 +290,14 @@ async function logsCommand(service, followOpt) {
 }
 
 /**
- * Handles interactive shell connections into the MySQL or PostgreSQL container.
- * @param {string} userOpt - DB username.
- * @param {string} passOpt - DB password.
- * @param {string} dbOpt - DB database name.
- * @param {boolean} rootOpt - Flag for overriding database credentials to connect as root/postgres.
- * @param {string} explicitService - Explicit target service if specified ('mysql' or 'postgres').
- */
-/**
- * Handles interactive shell connections or smart queries into the MySQL or PostgreSQL container.
+ * Handles interactive shell connections or smart queries into the SQLite, MySQL, or PostgreSQL database.
  * @param {string[]} clientArgs - CLI arguments.
- * @param {string} explicitService - Explicit target service if specified ('mysql', 'postgres', 'psql', 'db').
+ * @param {string} explicitService - Explicit target service if specified ('sqlite', 'mysql', 'postgres', 'psql', 'db').
  */
 async function dbClientCommand(clientArgs = [], explicitService) {
   checkComposeFile();
   const env = getEnvVars();
-  const dbType = explicitService === "postgres" || explicitService === "psql" ? "postgres" : (explicitService === "mysql" ? "mysql" : getDbType(env));
+  const dbType = explicitService === "sqlite" ? "sqlite" : (explicitService === "postgres" || explicitService === "psql" ? "postgres" : (explicitService === "mysql" ? "mysql" : getDbType(env)));
   if (dbType === "none") {
     console.error(chalk.yellow("[INFO] DB_TYPE is set to 'none'. No database container available to connect to."));
     return;
@@ -340,23 +355,27 @@ async function dbClientCommand(clientArgs = [], explicitService) {
     if (firstPos === "tables") {
       if (dbType === "postgres") {
         sqlQuery = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';";
+      } else if (dbType === "sqlite") {
+        sqlQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
       } else {
         sqlQuery = "SHOW TABLES;";
       }
     } else if (firstPos === "columns" || firstPos === "cols" || firstPos === "describe" || firstPos === "desc") {
       const tableName = positionalArgs[1];
       if (!tableName) {
-        console.error(chalk.red("Error: Please specify a table name. Example: npx blue-bird docker mysql columns users"));
+        console.error(chalk.red("Error: Please specify a table name. Example: npx blue-bird docker db columns users"));
         process.exit(1);
       }
       if (dbType === "postgres") {
         sqlQuery = `SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = '${tableName}';`;
+      } else if (dbType === "sqlite") {
+        sqlQuery = `PRAGMA table_info(${tableName});`;
       } else {
         sqlQuery = `SHOW COLUMNS FROM ${tableName};`;
       }
     } else {
       const rawInput = positionalArgs.join(" ").trim();
-      const isFullQuery = /^(select|show|desc|describe|explain|insert|update|delete|create|drop|alter|truncate)\b/i.test(rawInput) || rawInput.includes(" ");
+      const isFullQuery = /^(select|show|desc|describe|explain|insert|update|delete|create|drop|alter|truncate|pragma)\b/i.test(rawInput) || rawInput.includes(" ");
       if (isFullQuery) {
         sqlQuery = rawInput;
       } else {
@@ -375,7 +394,53 @@ async function dbClientCommand(clientArgs = [], explicitService) {
     }
   }
 
-  if (dbType === "postgres") {
+  if (dbType === "sqlite") {
+    const dbFile = env.DB_FILE || "database/blue_bird.db";
+    const dbPath = path.isAbsolute(dbFile) ? dbFile : path.resolve(process.cwd(), dbFile);
+    if (!fs.existsSync(dbPath)) {
+      console.log(chalk.yellow(`[INFO] SQLite database file not found at '${dbFile}'. It will be created upon query execution.`));
+    }
+
+    try {
+      let BetterSqlite;
+      try {
+        BetterSqlite = (await import("better-sqlite3")).default;
+      } catch (err) {
+        console.error(chalk.red("Error: 'better-sqlite3' is not installed. Run: npm install better-sqlite3"));
+        process.exit(1);
+      }
+
+      const dir = path.dirname(dbPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const db = new BetterSqlite(dbPath);
+      if (sqlQuery) {
+        console.log(chalk.cyan(`🔍 Executing SQLite query on '${dbFile}':`));
+        console.log(chalk.gray(`   ${sqlQuery}\n`));
+        const isSelect = /^(select|pragma|explain)/i.test(sqlQuery.trim());
+        if (isSelect) {
+          const rows = db.prepare(sqlQuery).all();
+          console.table(rows);
+        } else {
+          const info = db.prepare(sqlQuery).run();
+          console.log(chalk.green(`✔ Query executed successfully. Changes: ${info.changes}, LastInsertRowId: ${info.lastInsertRowid}`));
+        }
+      } else {
+        console.log(chalk.cyan(`Connected to SQLite database '${dbFile}'.`));
+        console.log(chalk.gray("Active Tables:"));
+        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+        console.table(tables);
+        console.log(chalk.yellow("\nTip: Run queries with: npx blue-bird docker db \"SELECT * FROM table_name\""));
+      }
+      db.close();
+      return;
+    } catch (err) {
+      console.error(chalk.red("[DATABASE ERROR] SQLite operation failed:"), err.message);
+      process.exit(1);
+    }
+  } else if (dbType === "postgres") {
     dbUser = rootOpt ? "postgres" : (dbUser || env.DB_USER || "postgres");
     dbName = dbName || env.DB_NAME || "blue_bird";
 
@@ -434,8 +499,8 @@ async function dbClientCommand(clientArgs = [], explicitService) {
 }
 
 /**
- * Exports database schema & data into a .sql file inside backups/ folder.
- * @param {string} dbType - Target db type ('mysql', 'postgres', 'none').
+ * Exports database schema & data into a .sql or .db file inside backups/ folder.
+ * @param {string} dbType - Target db type ('sqlite', 'mysql', 'postgres', 'none').
  * @param {string} [filenameArg] - Custom backup filename.
  * @param {string} [userOpt] - Custom db user.
  * @param {string} [passOpt] - Custom db password.
@@ -454,6 +519,29 @@ async function exportDbCommand(dbType, filenameArg, userOpt, passOpt, dbOpt) {
   const backupsDir = path.join(process.cwd(), "backups");
   if (!fs.existsSync(backupsDir)) {
     fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  if (targetDbType === "sqlite") {
+    const dbFile = env.DB_FILE || "database/blue_bird.db";
+    const srcDbPath = path.isAbsolute(dbFile) ? dbFile : path.resolve(process.cwd(), dbFile);
+    if (!fs.existsSync(srcDbPath)) {
+      console.error(chalk.red(`Error: SQLite database file '${dbFile}' does not exist.`));
+      return;
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
+    const backupName = filenameArg || `backup_sqlite_${timestamp}.db`;
+    const destFile = path.isAbsolute(backupName)
+      ? backupName
+      : (backupName.includes("/") || backupName.includes("\\")
+        ? path.resolve(process.cwd(), backupName)
+        : path.join(backupsDir, backupName));
+
+    fs.copyFileSync(srcDbPath, destFile);
+    const stats = fs.statSync(destFile);
+    const sizeKb = (stats.size / 1024).toFixed(2);
+    console.log(chalk.green(`\n✔ SQLite database exported successfully!`));
+    console.log(chalk.cyan(`   File: ${path.relative(process.cwd(), destFile)} (${sizeKb} KB)`));
+    return;
   }
 
   let outputFile;
@@ -525,8 +613,8 @@ function exportDbToFile(cmdArgs, outputFile) {
 }
 
 /**
- * Imports a .sql file from backups/ folder into the container database.
- * @param {string} dbType - Target db type ('mysql', 'postgres', 'none').
+ * Imports a .sql or .db file from backups/ folder into the database.
+ * @param {string} dbType - Target db type ('sqlite', 'mysql', 'postgres', 'none').
  * @param {string} [filenameArg] - Custom backup filename.
  * @param {string} [userOpt] - Custom db user.
  * @param {string} [passOpt] - Custom db password.
@@ -550,29 +638,64 @@ async function importDbCommand(dbType, filenameArg, userOpt, passOpt, dbOpt) {
   let inputFile;
   if (filenameArg) {
     let name = filenameArg;
-    if (!name.endsWith(".sql") && !fs.existsSync(name)) name += ".sql";
-    if (fs.existsSync(name)) {
+    if (path.isAbsolute(name) && fs.existsSync(name)) {
+      inputFile = name;
+    } else if (fs.existsSync(path.resolve(process.cwd(), name))) {
       inputFile = path.resolve(process.cwd(), name);
     } else if (fs.existsSync(path.join(backupsDir, name))) {
       inputFile = path.join(backupsDir, name);
+    } else if (fs.existsSync(path.join(backupsDir, `${name}.sql`))) {
+      inputFile = path.join(backupsDir, `${name}.sql`);
+    } else if (fs.existsSync(path.join(backupsDir, `${name}.db`))) {
+      inputFile = path.join(backupsDir, `${name}.db`);
     } else {
       console.error(chalk.red(`Error: Backup file '${filenameArg}' not found in current directory or 'backups/' folder.`));
       process.exit(1);
     }
   } else {
     const files = fs.readdirSync(backupsDir)
-      .filter(f => f.endsWith(".sql"))
+      .filter(f => f.endsWith(".sql") || f.endsWith(".db"))
       .map(f => ({ name: f, time: fs.statSync(path.join(backupsDir, f)).mtimeMs }))
       .sort((a, b) => b.time - a.time);
 
     if (files.length === 0) {
-      console.error(chalk.red(`Error: No .sql backup files found in 'backups/' directory.`));
-      console.log(chalk.yellow(`Usage: npx blue-bird docker import <file.sql>`));
+      console.error(chalk.red(`Error: No backup files found in 'backups/' directory.`));
+      console.log(chalk.yellow(`Usage: npx blue-bird docker import <file.sql | file.db>`));
       process.exit(1);
     }
 
     inputFile = path.join(backupsDir, files[0].name);
     console.log(chalk.yellow(`[INFO] No file specified. Using most recent backup: '${files[0].name}'`));
+  }
+
+  const relPath = path.relative(process.cwd(), inputFile);
+
+  if (targetDbType === "sqlite") {
+    const dbFile = env.DB_FILE || "database/blue_bird.db";
+    const destDbPath = path.isAbsolute(dbFile) ? dbFile : path.resolve(process.cwd(), dbFile);
+    const destDir = path.dirname(destDbPath);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    if (inputFile.endsWith(".db") || inputFile.endsWith(".sqlite")) {
+      fs.copyFileSync(inputFile, destDbPath);
+      console.log(chalk.green(`\n✔ SQLite database restored successfully from '${relPath}' to '${dbFile}'!`));
+      return;
+    }
+
+    try {
+      const BetterSqlite = (await import("better-sqlite3")).default;
+      const db = new BetterSqlite(destDbPath);
+      const sqlContent = fs.readFileSync(inputFile, "utf-8");
+      db.exec(sqlContent);
+      db.close();
+      console.log(chalk.green(`\n✔ SQL statements from '${relPath}' imported successfully into '${dbFile}'!`));
+    } catch (err) {
+      console.error(chalk.red(`\n✖ SQLite import failed:`), err.message);
+      process.exit(1);
+    }
+    return;
   }
 
   const dbUser = userOpt || env.DB_USER || (targetDbType === "postgres" ? "postgres" : "root");
@@ -586,7 +709,6 @@ async function importDbCommand(dbType, filenameArg, userOpt, passOpt, dbOpt) {
     cmdArgs = ["compose", "exec", "-T", "mysql", "mysql", `-u${dbUser}`, `-p${dbPass}`, dbName];
   }
 
-  const relPath = path.relative(process.cwd(), inputFile);
   console.log(chalk.cyan(`📥 Importing SQL dump '${relPath}' into ${targetDbType.toUpperCase()} database '${dbName}'...`));
 
   const success = await importDbFromFile(cmdArgs, inputFile);
@@ -775,6 +897,7 @@ async function main() {
     case "redis":
       await redisCommand(args.slice(1));
       break;
+    case "sqlite":
     case "mysql":
     case "postgres":
     case "psql":
@@ -795,8 +918,9 @@ async function main() {
     }
     default:
       console.log(chalk.yellow(`Unknown docker command: ${command}`));
-      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, export/dump, import/restore, mysql/postgres/db, redis, df/disk, prune/clean");
+      console.log("Available commands: dev, start, stop, build, ps, logs, pm2, export/dump, import/restore, sqlite/mysql/postgres/db, redis, df/disk, prune/clean");
   }
 }
 
 main();
+

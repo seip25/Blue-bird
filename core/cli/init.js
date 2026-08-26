@@ -28,8 +28,9 @@ class ProjectInit {
     let title = "Blue-Bird";
     let port = 3000;
     let appUrl = "http://localhost:3000";
-    let dbType = "none";
+    let dbType = "sqlite";
     let dbName = "blue_bird";
+    let dbFile = "database/blue_bird.db";
     let dbUser = "root";
     let dbPassword = "root";
     let dbPort = 3306;
@@ -55,11 +56,17 @@ class ProjectInit {
       appUrl = await ask("Application URL", defaultAppUrl);
 
       const dbTypeAns = await ask(
-        "Which database do you want to configure? (none / mysql / postgres)",
-        "none",
+        "Which database do you want to configure? (sqlite / mysql / postgres / none)",
+        "sqlite",
       );
       const cleanDbTypeAns = dbTypeAns.toLowerCase().trim();
       if (
+        cleanDbTypeAns === "sqlite" ||
+        cleanDbTypeAns === "sql" ||
+        cleanDbTypeAns === "sqlite3"
+      ) {
+        dbType = "sqlite";
+      } else if (
         cleanDbTypeAns === "postgres" ||
         cleanDbTypeAns === "postgresql" ||
         cleanDbTypeAns === "pg" ||
@@ -72,7 +79,15 @@ class ProjectInit {
         dbType = "none";
       }
 
-      if (dbType !== "none") {
+      if (dbType === "sqlite") {
+        dbName = await ask("Database Name", dbName);
+        const defaultDbFile = `database/${dbName}.db`;
+        dbFile = await ask("Database File Path", defaultDbFile);
+        const dbDir = path.dirname(path.join(this.appDir, dbFile));
+        if (!fs.existsSync(dbDir)) {
+          fs.mkdirSync(dbDir, { recursive: true });
+        }
+      } else if (dbType !== "none") {
         dbName = await ask("Database Name", dbName);
         dbUser = await ask(
           "Database User",
@@ -126,7 +141,7 @@ class ProjectInit {
         }
       });
 
-      const gitignoreContent = `node_modules\nlogs\n.env\npackage-lock.json\n*.db\ntest/\n\nbackups/*.sql\n`;
+      const gitignoreContent = `node_modules\nlogs\n.env\npackage-lock.json\n*.db\n*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n*.db-wal\n*.db-shm\ntest/\n\nbackups/*.sql\nbackups/*.db\n`;
       const gitignoreDest = path.join(this.appDir, ".gitignore");
       const gitignoreSrc = path.join(this.sourceDir, ".gitignore");
 
@@ -149,7 +164,9 @@ class ProjectInit {
           ? "docker-compose.postgres.yml"
           : dbType === "mysql"
             ? "docker-compose.mysql.yml"
-            : "docker-compose.none.yml";
+            : dbType === "sqlite"
+              ? "docker-compose.sqlite.yml"
+              : "docker-compose.none.yml";
       const composeSrc = path.join(
         this.sourceDir,
         "docker",
@@ -198,13 +215,19 @@ class ProjectInit {
           DB_TYPE: dbType,
         };
 
-        if (dbType === "mysql") {
+        if (dbType === "sqlite") {
+          updates.DB_TYPE = "sqlite";
+          updates.DB_FILE = dbFile;
+          updates.DATABASE_URL = `sqlite:${dbFile}`;
+        } else if (dbType === "mysql") {
+          updates.DB_TYPE = "mysql";
           updates.DB_NAME = dbName;
           updates.DB_USER = dbUser;
           updates.DB_PASSWORD = dbPassword;
           updates.DB_PORT = dbPort;
           updates.DATABASE_URL = `mysql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}`;
         } else if (dbType === "postgres") {
+          updates.DB_TYPE = "postgres";
           updates.DB_NAME = dbName;
           updates.DB_USER = dbUser;
           updates.DB_PASSWORD = dbPassword;
@@ -260,7 +283,9 @@ class ProjectInit {
         );
         try {
           let packagesToInstall = ["redis"];
-          if (dbType === "postgres") {
+          if (dbType === "sqlite") {
+            packagesToInstall.push("better-sqlite3");
+          } else if (dbType === "postgres") {
             packagesToInstall.push("pg");
           } else {
             packagesToInstall.push("mysql2");
