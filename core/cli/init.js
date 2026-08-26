@@ -390,6 +390,63 @@ class ProjectInit {
   }
 }
 
+/**
+ * Handles adding on-demand modules and dependencies.
+ * @param {string} [feature]
+ */
+function addCommand(feature) {
+  if (!feature) {
+    console.log(chalk.yellow("Usage: npx blue-bird add <feature>"));
+    console.log("Available features to add:");
+    console.log("  upload | multer     - Installs multer for file uploads");
+    console.log("  ws | websocket      - Installs ws for WebSockets");
+    console.log("  redis               - Installs redis for distributed caching and sessions");
+    console.log("  sqlite              - Installs better-sqlite3 for local SQLite database");
+    console.log("  mysql               - Installs mysql2 for MySQL database");
+    console.log("  postgres | pg       - Installs pg for PostgreSQL database");
+    console.log("  bcrypt              - Installs bcrypt for password hashing");
+    console.log("  swagger             - Installs swagger-ui-express");
+    return;
+  }
+
+  const cleanFeature = feature.toLowerCase().trim();
+  const packageMap = {
+    upload: "multer",
+    multer: "multer",
+    ws: "ws",
+    websocket: "ws",
+    websockets: "ws",
+    redis: "redis",
+    sqlite: "better-sqlite3",
+    "better-sqlite3": "better-sqlite3",
+    mysql: "mysql2",
+    mysql2: "mysql2",
+    postgres: "pg",
+    postgresql: "pg",
+    pg: "pg",
+    bcrypt: "bcrypt",
+    swagger: "swagger-ui-express",
+  };
+
+  const pkgName = packageMap[cleanFeature];
+  if (!pkgName) {
+    console.error(chalk.red(`[ERROR] Unknown feature '${feature}'.`));
+    console.log("Available features: upload, ws, redis, sqlite, mysql, postgres, bcrypt, swagger");
+    return;
+  }
+
+  console.log(chalk.cyan(`[INFO] Installing ${pkgName}...`));
+  try {
+    execSync(`npm install ${pkgName}`, {
+      stdio: "inherit",
+      cwd: process.cwd(),
+    });
+    console.log(chalk.green(`[OK] Successfully installed ${pkgName}.`));
+  } catch (err) {
+    console.error(chalk.red(`[ERROR] Failed to install ${pkgName}:`), err.message);
+  }
+}
+
 const initializer = new ProjectInit();
 
 const args = process.argv.slice(2);
@@ -398,4 +455,6 @@ const command = args[0];
 if (command === "route") import("./route.js");
 else if (command === "swagger-install") import("./swagger.js");
 else if (command === "docker") import("./docker.js");
+else if (command === "add") addCommand(args[1]);
 else initializer.run();
+

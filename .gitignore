@@ -3,6 +3,8 @@ logs
 .env
 package-lock.json
 *.db
-test/
+*.db-wal
+*.db-shm
 
 backups/*.sql
+

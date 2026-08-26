@@ -47,11 +47,30 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 });
 ```
 
-## 5. Authentication (Auth)
+## 5. Authentication & Password Hashing (Auth & Hash)
+
+### Password Hashing (Hash)
+
+Blue Bird includes native password hashing using `node:crypto.scrypt` with random salt and timing-safe comparison (zero external npm dependencies required). It also seamlessly supports `bcrypt` when installed or verifying `$2a$/$2b$` hashes.
+
+```javascript
+import Hash from "@seip/blue-bird/core/hash.js";
+
+// Hash password with scrypt (default)
+const hash = await Hash.make("mySecretPassword");
+
+// Verify password
+const isValid = await Hash.verify("mySecretPassword", hash);
+
+// Hash with bcrypt (if 'bcrypt' package is installed)
+const bcryptHash = await Hash.make("mySecretPassword", { driver: "bcrypt" });
+```
+
+### JWT Handling (Auth)
 
 The system includes built-in JWT handling with AES-256-GCM encryption. The framework handles tokens via Cookies or the `Authorization` header.
 
-### Protecting Routes
+#### Protecting Routes
 
 Use `Auth.protect()` as a middleware to secure routes.
 
@@ -63,7 +82,7 @@ router.get("/profile", Auth.protect(), (req, res) => {
 });
 ```
 
-### Login and Logout
+#### Login and Logout
 
 The `Auth` class provides helpers to handle session management via cookies.
 
@@ -71,25 +90,50 @@ The `Auth` class provides helpers to handle session management via cookies.
 router.post("/login", async (req, res) => {
   const user = { id: 1, name: "John" };
   await Auth.login(res, user);
-  res.json({ message: "Logged in" });
+  res.ok(user, "Logged in");
 });
 
 router.post("/logout", async (req, res) => {
   await Auth.logout(res);
-  res.json({ message: "Logged out" });
+  res.ok(null, "Logged out");
 });
 ```
 
-## 6. Performance Caching (Cache)
+## 6. HTTP Response Helpers & Health Check
 
-If an Express route involves heavy processing or database queries, utilize the `Cache` middleware to cache the REST API JSON or HTML payload.
+Blue Bird decorates the Express `res` object with standardized helper methods:
+
+```javascript
+// Success responses
+res.ok(data, "Success message");            // HTTP 200 { status: "success", message, data }
+res.created(data, "Created successfully");  // HTTP 201 { status: "success", message, data }
+res.paginate(items, pagination, "Fetched"); // HTTP 200 { status: "success", message, data, pagination }
+
+// Error responses
+res.badRequest("Invalid input", errors);    // HTTP 400 { status: "error", message, errors }
+res.unauthorized("Authentication required");// HTTP 401 { status: "error", message }
+res.forbidden("Access denied");             // HTTP 403 { status: "error", message }
+res.notFound("Resource not found");         // HTTP 404 { status: "error", message }
+res.serverError("Internal failure", err);   // HTTP 500 { status: "error", message }
+```
+
+### Built-in Health Endpoint
+
+Every Blue Bird application provides a native `/api/health` endpoint out of the box returning system uptime, timestamp, environment, and memory consumption.
+
+## 7. Performance Caching (Cache)
+
+Configure caching via `CACHE_MODE` in `.env`:
+- `CACHE_MODE="memory"`: Fast local RAM cache inside Node.js (default when Redis is not used). Zero network overhead.
+- `CACHE_MODE="redis"`: Distributed cache across containers with automatic fallback to memory if Redis is unavailable.
+- `CACHE_MODE="none"`: Caching disabled.
 
 ```javascript
 import Cache from "@seip/blue-bird/core/cache.js";
 
 // Express route middleware caching
 router.get("/stats", Cache.middleware(60), (req, res) => {
-  res.json({ ok: true });
+  res.ok({ usersCount: 150 });
 });
 
 // Programmatic cache manipulation
@@ -100,9 +144,22 @@ const cachedData = await Cache.get("custom_key");
 await Cache.delete("/api/public/config");
 ```
 
-The Cache module integrates with Redis when `REDIS_HOST` is configured in the environment. If Redis is unavailable or fails, it transparently falls back to an in-memory cache system without interrupting requests.
+## 8. On-Demand Modules & CLI Add
 
-## 7. Security (Helmet)
+To keep `node_modules` lightweight, optional modules load dynamically on-demand. Install them easily via:
+
+```bash
+npx blue-bird add upload      # Installs multer for file uploads
+npx blue-bird add ws          # Installs ws for WebSockets
+npx blue-bird add redis       # Installs redis for caching/sessions
+npx blue-bird add sqlite      # Installs better-sqlite3
+npx blue-bird add mysql       # Installs mysql2
+npx blue-bird add postgres    # Installs pg
+npx blue-bird add bcrypt      # Installs bcrypt
+npx blue-bird add swagger     # Installs swagger-ui-express
+```
+
+## 9. Security (Helmet)
 
 Helmet is **not applied globally** by default. Apply it per-router where needed:
 
@@ -113,7 +170,8 @@ const apiRouter = new Router("/api");
 apiRouter.use(App.helmet());
 ```
 
-## 8. Docker Compose CLI
+
+## 10. Docker Compose CLI
 
 Blue Bird features a built-in Docker Compose CLI wrapper (`core/cli/docker.js`) to deploy and manage containerized development databases and production stacks across SQLite (default), MySQL, PostgreSQL, or no-database (`none`) architectures.
 
@@ -148,16 +206,17 @@ npx blue-bird docker prune          # Cleans unused volumes, dangling images, an
 
 The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts. Alternatively, PM2 and other services can be run manually in standalone server environments by configuring `DATABASE_URL` inside `.env`.
 
-## 9. AI Development Guidelines
+## 11. AI Development Guidelines
 
 1. **Frontend**: Static files are stored in `frontend/` (e.g. `frontend/css`, `frontend/js`). HTML files will be served without the `.html` extension (e.g. `login.html` is accessible as `/login`).
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
 4. **No inline comments**: Only use JSDoc for documentation.
 
-## 10. Database Module (database.js)
+## 12. Database Module (database.js)
 
 Blue Bird provides a unified wrapper class (`core/database.js`) supporting **SQLite (`better-sqlite3`)**, **MySQL (`mysql2/promise`)**, and **PostgreSQL (`pg`)**. It features connection pooling/reconnection, automatic retries on startup, query formatting, and built-in Redis query caching:
+
 
 - **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for the database type (`sqlite` [default], `mysql`, `postgres`, `none`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.sqlite.yml`, `docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE`, `DB_FILE`, and `DATABASE_URL`.
 - **SQLite Concurrency & WAL:** SQLite automatically runs with `PRAGMA journal_mode = WAL;`, `PRAGMA busy_timeout = 5000;`, `PRAGMA synchronous = NORMAL;`, and `PRAGMA foreign_keys = ON;` to eliminate "database is locked" errors and ensure high concurrency with readers and writers.

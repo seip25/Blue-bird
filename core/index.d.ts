@@ -12,6 +12,52 @@ declare global {
       success(data?: any, message?: string, statusCode?: number): Response;
 
       /**
+       * Sends a standardized HTTP 200 OK success response.
+       * @param data Data payload.
+       * @param message Success message.
+       */
+      ok(data?: any, message?: string): Response;
+
+      /**
+       * Sends a standardized HTTP 201 Created success response.
+       * @param data Data payload.
+       * @param message Success message.
+       */
+      created(data?: any, message?: string): Response;
+
+      /**
+       * Sends a standardized HTTP 400 Bad Request error response.
+       * @param message Error message.
+       * @param errors Detailed errors array or object.
+       */
+      badRequest(message?: string, errors?: any): Response;
+
+      /**
+       * Sends a standardized HTTP 401 Unauthorized error response.
+       * @param message Error message.
+       */
+      unauthorized(message?: string): Response;
+
+      /**
+       * Sends a standardized HTTP 403 Forbidden error response.
+       * @param message Error message.
+       */
+      forbidden(message?: string): Response;
+
+      /**
+       * Sends a standardized HTTP 404 Not Found error response.
+       * @param message Error message.
+       */
+      notFound(message?: string): Response;
+
+      /**
+       * Sends a standardized HTTP 500 Internal Server Error response.
+       * @param message Error message.
+       * @param errors Error details.
+       */
+      serverError(message?: string, errors?: any): Response;
+
+      /**
        * Sends a standardized JSON error response.
        * @param message Error message.
        * @param statusCode HTTP status code (default: 400).
@@ -100,6 +146,14 @@ export class Validator {
   validate(data: Record<string, any>): { valid: boolean; errors: any[] };
 }
 
+export class Hash {
+  static make(password: string, options?: { driver?: "scrypt" | "bcrypt"; rounds?: number; N?: number; r?: number; p?: number }): Promise<string>;
+  static hash(password: string, options?: { driver?: "scrypt" | "bcrypt"; rounds?: number; N?: number; r?: number; p?: number }): Promise<string>;
+  static verify(password: string, hash: string): Promise<boolean>;
+  static check(password: string, hash: string): Promise<boolean>;
+  static needsRehash(hash: string, options?: { driver?: "scrypt" | "bcrypt"; N?: number; r?: number; p?: number }): boolean;
+}
+
 export class Auth {
   static encrypt(payload: any, secret: string): string;
   static decrypt(data: string, secret: string): any;
@@ -117,6 +171,7 @@ export class Cache {
   static delete(keys: string | string[]): Promise<boolean>;
   static del(keys: string | string[]): Promise<boolean>;
   static clear(): Promise<boolean>;
+  static getMode(): string;
 }
 
 export function getRedisClient(): any;
@@ -132,6 +187,8 @@ export class Database {
   ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>;
   transaction<T = any>(callback: (tx: { query: (sql: string, params?: any[], options?: any) => Promise<any> }) => Promise<T>): Promise<T>;
   executeTransaction<T = any>(callback: (tx: { query: (sql: string, params?: any[], options?: any) => Promise<any> }) => Promise<T>): Promise<T>;
+  close(): Promise<void>;
 }
 
 export default App;
+

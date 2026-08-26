@@ -213,28 +213,37 @@
                                 (.env)</a>
                             <a href="#doc-app"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Application
-                                (App)</a>
+                                (App &amp; Helpers)</a>
                             <a href="#doc-router"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Routing</a>
-
                             <a href="#doc-validator"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Validation</a>
+                            <a href="#doc-hash"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Password
+                                Hashing</a>
                             <a href="#doc-auth"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Authentication</a>
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Authentication
+                                (Auth)</a>
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">
                                 Utilities</p>
                             <a href="#doc-cache"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Cache
-                                Middleware</a>
+                                (Memory &amp; Redis)</a>
                             <a href="#doc-helmet"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Helmet
                                 Security</a>
                             <a href="#doc-database"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Database
-                                Module</a>
+                                (SQLite, MySQL, PG)</a>
+                            <a href="#doc-websockets"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">WebSockets
+                                Engine</a>
 
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Devops
                                 & Deployment</p>
+                            <a href="#doc-add"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Modular
+                                Add Packages</a>
                             <a href="#doc-docker"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Docker
                                 CLI Wrapper</a>
@@ -244,6 +253,7 @@
                             <a href="#doc-production"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Production
                                 Setup</a>
+
                         </div>
                     </aside>
 
@@ -382,6 +392,10 @@ REDIS_HOST="localhost"
 REDIS_PORT=6379
 REDIS_PASSWORD=""
 
+# Cache Configuration
+# Options: "memory" (Fast in-memory RAM), "redis" (Distributed container cache), "none" (Disabled)
+CACHE_MODE="memory"
+
 # PM2 Clustering Instances (integer or 'max')
 PM2_INSTANCES='max'
 
@@ -430,17 +444,40 @@ app.run();</code></pre>
                                 Every Express response object is automatically enhanced with standardized API response
                                 methods:
                             </p>
-                            <pre><code class="language-javascript">// 1. Success Response
-res.success(user, "User fetched successfully", 200);
-// Responds: { status: "success", message: "User fetched successfully", data: user }
+                            <pre><code class="language-javascript">// 1. Success Responses
+res.ok(user, "User fetched successfully");       // HTTP 200 { status: "success", message, data: user }
+res.created(newItem, "Item created");            // HTTP 201 { status: "success", message, data: newItem }
+res.success(data, "Custom success", 200);
 
-// 2. Error Response
-res.error("Invalid credentials", 401, [{ field: "password", message: "Incorrect password" }]);
-// Responds: { status: "error", message: "Invalid credentials", errors: [...] }
+// 2. Error Responses
+res.badRequest("Invalid input", [{ field: "email", message: "Email is required" }]); // HTTP 400 { status: "error", message, errors }
+res.unauthorized("Authentication required");     // HTTP 401 { status: "error", message }
+res.forbidden("Access denied");                  // HTTP 403 { status: "error", message }
+res.notFound("Resource not found");              // HTTP 404 { status: "error", message }
+res.serverError("Internal failure");             // HTTP 500 { status: "error", message }
+res.error("Custom error", 422, errors);
 
 // 3. Paginated Response
 res.paginate(usersArray, { page: 1, limit: 10, total: 100 }, "Users page 1");
 // Responds: { status: "success", message: "Users page 1", data: [...], pagination: { page: 1, limit: 10, total: 100, totalPages: 10 } }</code></pre>
+
+                            <h4 class="font-bold text-slate-800 mt-6 mb-2">Built-in Health Endpoint (/api/health)</h4>
+                            <p class="text-slate-600 mb-4 leading-relaxed text-sm">
+                                All Blue Bird instances expose an automatic <code>/api/health</code> route for Docker,
+                                Kubernetes, or uptime monitoring:
+                            </p>
+                            <pre><code class="language-json">// GET /api/health
+{
+  "status": "ok",
+  "timestamp": "2026-08-26T15:45:00.000Z",
+  "uptime": 1420,
+  "environment": "production",
+  "memory": {
+    "rss": "28MB",
+    "heapUsed": "14MB"
+  }
+}</code></pre>
+
 
                             <h4 class="font-bold text-slate-800 mt-6 mb-2">AppError &amp; Automatic Async Error Handling
                             </h4>
@@ -554,13 +591,44 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 });</code></pre>
                             </article>
 
+                            <!-- Password Hashing Section -->
+                            <article id="doc-hash" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-violet-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                    Password Hashing (Hash)
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Provides secure, timing-safe password hashing using native
+                                    <code>node:crypto.scrypt</code>
+                                    (zero external npm dependencies required). It also seamlessly integrates with
+                                    <code>bcrypt</code>
+                                    when the package is installed or when verifying existing bcrypt hashes.
+                                </p>
+                                <pre><code class="language-javascript">import Hash from "@seip/blue-bird/core/hash.js";
+
+// 1. Hash a password with scrypt (default, random salt)
+const hash = await Hash.make("mySecretPassword123");
+// Generated format: $scrypt$N=16384,r=8,p=1$salt$hash
+
+// 2. Verify password with constant-time comparison
+const isValid = await Hash.verify("mySecretPassword123", hash); // true or false
+
+// 3. Convenience alias
+const check = await Hash.check("mySecretPassword123", hash);
+
+// 4. Using bcrypt driver (requires: npx blue-bird add bcrypt)
+const bcryptHash = await Hash.make("mySecretPassword123", { driver: "bcrypt", rounds: 10 });</code></pre>
+                            </article>
+
                             <!-- Auth Section -->
                             <article id="doc-auth" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                        class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">7</span>
                                     Authentication (Auth)
                                 </h3>
+
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Implements stateless and Redis-backed session authentication. Token payloads are
                                     encrypted with military-grade AES-256-GCM algorithms and transmitted via secure
@@ -607,19 +675,25 @@ const decrypted = Auth.decrypt(encrypted, process.env.JWT_SECRET);</code></pre>
                             <article id="doc-cache" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">7</span>
-                                    Cache Module &amp; Redis Client
+                                        class="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center text-sm font-bold">8</span>
+                                    Cache Module (Memory &amp; Redis)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Provides automatic route response caching and direct Redis integration for database
-                                    query caching. Automatically degrades to an in-memory cache if Redis is not
-                                    configured or unavailable in Docker.
+                                    Provides high-performance response and data caching. Configured via
+                                    <code>CACHE_MODE</code> in <code>.env</code>:
+                                <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-4">
+                                    <li><code>CACHE_MODE="memory"</code>: Fast local RAM cache inside Node.js with
+                                        auto-TTL cleanup. Zero network latency (Default).</li>
+                                    <li><code>CACHE_MODE="redis"</code>: Distributed cache across containers with
+                                        auto-fallback to memory if Redis is down.</li>
+                                    <li><code>CACHE_MODE="none"</code>: Bypasses caching.</li>
+                                </ul>
                                 </p>
                                 <pre><code class="language-javascript">import Cache, { getRedisClient } from "@seip/blue-bird/core/cache.js";
 
 // 1. Automatic Route Caching Middleware (JSON or HTML for 60 seconds)
 router.get("/api/statistics", Cache.middleware(60), (req, res) => {
-  res.json({ computedData: [10, 20, 30] });
+  res.ok({ computedData: [10, 20, 30] });
 });
 
 // 2. Programmatic Cache Manipulation & Invalidation
@@ -632,21 +706,21 @@ await Cache.delete("/api/public/config");
 // Clear all cache entries (memory & Redis)
 await Cache.clear();
 
-// 3. Direct Redis Access for Custom Database & Data Caching
+// 3. Direct Redis Access for Custom Database & Data Caching (when in redis mode)
 router.get("/api/custom-data", async (req, res) => {
   const redis = getRedisClient();
   
   if (redis) {
     const cached = await redis.get("my_custom_key");
-    if (cached) return res.json({ source: "redis", data: JSON.parse(cached) });
+    if (cached) return res.ok(JSON.parse(cached));
 
     const freshData = { time: Date.now(), items: ["A", "B", "C"] };
     await redis.set("my_custom_key", JSON.stringify(freshData), { EX: 120 });
-    return res.json({ source: "db", data: freshData });
+    return res.ok(freshData);
   }
 
   // Fallback response when Redis is not enabled
-  res.json({ source: "direct", data: { items: ["A", "B", "C"] } });
+  res.ok({ items: ["A", "B", "C"] });
 });</code></pre>
                             </article>
 
@@ -654,7 +728,7 @@ router.get("/api/custom-data", async (req, res) => {
                             <article id="doc-helmet" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">8</span>
+                                        class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">9</span>
                                     Helmet Security
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -676,31 +750,28 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                             <article id="doc-database" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">9</span>
-                                    Database Module
+                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                    Database Module (SQLite, MySQL, PostgreSQL)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Blue Bird includes a unified database wrapper (`core/database.js`) supporting
-                                    <strong>MySQL</strong> (<code>mysql2/promise</code>) and <strong>PostgreSQL</strong>
-                                    (<code>pg</code>). During project setup with
-                                    <code>npx blue-bird</code>, the CLI interactive wizard asks for your preferred
-                                    database
-                                    (<code>none</code>, <code>mysql</code>, or <code>postgres</code>),
-                                    automatically copying the corresponding Docker Compose template
-                                    (<code>docker/docker-compose.mysql.yml</code>,
-                                    <code>docker/docker-compose.postgres.yml</code>, or
-                                    <code>docker/docker-compose.none.yml</code>) as the root
-                                    <code>docker-compose.yml</code>.
+                                    <strong>SQLite</strong> (<code>better-sqlite3</code>, default),
+                                    <strong>MySQL</strong> (<code>mysql2/promise</code>), and
+                                    <strong>PostgreSQL</strong>
+                                    (<code>pg</code>).
                                 </p>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    If connecting to PostgreSQL using native SQL queries, parameter placeholders (`?`)
-                                    are
-                                    automatically converted to PostgreSQL `$1, $2, ...` placeholders under the hood,
-                                    allowing unified
-                                    query writing across engines. You can also connect without Docker directly by
-                                    setting
-                                    <code>DATABASE_URL</code> inside your <code>.env</code> file.
+                                    <strong>SQLite WAL &amp; Concurrency:</strong> SQLite is configured with
+                                    <code>PRAGMA journal_mode = WAL;</code>, <code>PRAGMA busy_timeout = 5000;</code>,
+                                    <code>PRAGMA synchronous = NORMAL;</code>, and
+                                    <code>PRAGMA foreign_keys = ON;</code> to eliminate "database is locked" errors and
+                                    ensure high concurrency with readers and writers.
                                 </p>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Supports <code>?</code> parameter placeholders across all engines (automatically
+                                    translated to <code>$1, $2, ...</code> for PostgreSQL).
+                                </p>
+
                                 <pre><code class="language-javascript">import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
 // Instantiate the database connection pool with a custom limit (e.g., 20 connections)
@@ -746,7 +817,7 @@ const txUserId = await connection.transaction(async (tx) => {
                             <article id="doc-websockets" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                        class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">11</span>
                                     Real-Time WebSockets Engine
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -823,13 +894,45 @@ socket.addEventListener("message", (event) => {
 });</code></pre>
                             </article>
 
+                            <!-- Modular Add Packages Section -->
+                            <article id="doc-add" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                    Modular Add Packages (CLI)
+                                </h3>
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Blue Bird keeps your base <code>node_modules</code> ultralight by dynamically
+                                    loading optional modules only when needed. You can install optional capabilities on
+                                    demand via the CLI:
+                                </p>
+                                <pre><code class="language-bash"># Install Multer for file uploads (core/upload.js)
+npx blue-bird add upload
+
+# Install WebSocket server (core/ws.js)
+npx blue-bird add ws
+
+# Install Redis client (core/cache.js)
+npx blue-bird add redis
+
+# Install Database drivers
+npx blue-bird add sqlite      # better-sqlite3
+npx blue-bird add mysql       # mysql2
+npx blue-bird add postgres    # pg
+
+# Install Password Hashing & Documentation extras
+npx blue-bird add bcrypt      # bcrypt
+npx blue-bird add swagger     # swagger-ui-express</code></pre>
+                            </article>
+
                             <!-- Docker Section -->
                             <article id="doc-docker" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                        class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">13</span>
                                     Docker CLI Command Wrapper
                                 </h3>
+
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     Manage development containers and full-stack deployments directly using the
                                     built-in Docker CLI tool wrapper. The wrapper dynamically detects whether your
@@ -908,9 +1011,10 @@ npx blue-bird docker prune</code></pre>
                             <article id="doc-nginx-cache" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">11</span>
+                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">14</span>
                                     Nginx Static Asset Caching
                                 </h3>
+
                                 <p class="text-slate-600 mb-6 leading-relaxed">
                                     In production, Nginx is configured to explicitly cache static assets
                                     (<code>.js</code>, <code>.css</code>, <code>.jpg</code>, <code>.png</code>, etc.) in

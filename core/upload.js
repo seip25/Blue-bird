@@ -1,4 +1,3 @@
-import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
 import Config from "./config.js";
@@ -6,72 +5,99 @@ import Config from "./config.js";
 const __dirname = Config.dirname();
 const props = Config.props();
 
+let multer = null;
+try {
+  multer = (await import("multer")).default || (await import("multer"));
+} catch {
+  // multer not installed
+}
+
 /**
  * Upload helper to manage file uploads using multer.
  */
 class Upload {
-    /**
-     * Configures storage for uploaded files.
-     * @param {string} folder - The destination folder within the static path.
-     * @returns {import('multer').StorageEngine}
-     * @example
-     * const storage = Upload.storage("uploads");
-     */
-    static storage(folder = "uploads") {
-        const dest = path.join(__dirname, props.static.path, folder);
+  /**
+   * Asserts that the multer package is available.
+   * @private
+   */
+  static _ensureMulter() {
+    if (!multer) {
+      throw new Error(
+        "[UPLOAD ERROR] 'multer' package is not installed. Install it with: npm install multer or npx blue-bird add upload",
+      );
+    }
+  }
 
-        if (!fs.existsSync(dest)) {
-            fs.mkdirSync(dest, { recursive: true });
+  /**
+   * Configures storage for uploaded files.
+   * @param {string} folder - The destination folder within the static path.
+   * @returns {import('multer').StorageEngine}
+   * @example
+   * const storage = Upload.storage("uploads");
+   */
+  static storage(folder = "uploads") {
+    this._ensureMulter();
+    const dest = path.join(__dirname, props.static.path, folder);
+
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+
+    return multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, dest);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix =
+          Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+      },
+    });
+  }
+
+  /**
+   * Returns a multer instance for single or multiple file uploads.
+   * @param {Object} options - Multer options.
+   * @param {string} [options.folder='uploads'] - Destination folder.
+   * @param {number} [options.fileSize=5000000] - Max file size in bytes (default 5MB).
+   * @param {Array<string>} [options.allowedTypes=[]] - Allowed mime types (e.g. ['image/png', 'image/jpeg']).
+   * @returns {import('multer').Multer}
+   * @example
+   * const upload = Upload.disk({ folder: "uploads", fileSize: 5000000, allowedTypes: ["image/png", "image/jpeg"] });
+   */
+  static disk(options = {}) {
+    this._ensureMulter();
+    const {
+      folder = "uploads",
+      fileSize = 5000000,
+      allowedTypes = [],
+    } = options;
+
+    return multer({
+      storage: this.storage(folder),
+      limits: { fileSize },
+      fileFilter: (req, file, cb) => {
+        if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
+          return cb(new Error("File type not allowed"), false);
         }
+        cb(null, true);
+      },
+    });
+  }
 
-        return multer.diskStorage({
-            destination: (req, file, cb) => {
-                cb(null, dest);
-            },
-            filename: (req, file, cb) => {
-                const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-                cb(null, uniqueSuffix + path.extname(file.originalname));
-            }
-        });
-    }
-
-    /**
-     * Returns a multer instance for single or multiple file uploads.
-     * @param {Object} options - Multer options.
-     * @param {string} [options.folder='uploads'] - Destination folder.
-     * @param {number} [options.fileSize=5000000] - Max file size in bytes (default 5MB).
-     * @param {Array<string>} [options.allowedTypes=[]] - Allowed mime types (e.g. ['image/png', 'image/jpeg']).
-     * @returns {import('multer').Multer}
-     * @example
-     * const upload = Upload.disk({ folder: "uploads", fileSize: 5000000, allowedTypes: ["image/png", "image/jpeg"] });
-     */
-    static disk(options = {}) {
-        const { folder = "uploads", fileSize = 5000000, allowedTypes = [] } = options;
-
-        return multer({
-            storage: this.storage(folder),
-            limits: { fileSize },
-            fileFilter: (req, file, cb) => {
-                if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
-                    return cb(new Error("File type not allowed"), false);
-                }
-                cb(null, true);
-            }
-        });
-    }
-
-    /**
-     * Helper to get the public URL of an uploaded file.
-     * @param {string} filename - The name of the file.
-     * @param {string} [folder='uploads'] - The folder where the file is stored.
-     * @returns {string} The full public URL.
-     * @example
-     * const url = Upload.url("file.jpg", "uploads");
-     */
-    static url(filename, folder = "uploads") {
-        const appUrl = props.appUrl ?? `${props.host}:${props.port}`;
-        return `${appUrl}/${folder}/${filename}`;
-    }
+  /**
+   * Helper to get the public URL of an uploaded file.
+   * @param {string} filename - The name of the file.
+   * @param {string} [folder='uploads'] - The folder where the file is stored.
+   * @returns {string} The full public URL.
+   * @example
+   * const url = Upload.url("file.jpg", "uploads");
+   */
+  static url(filename, folder = "uploads") {
+    const appUrl = props.appUrl ?? `${props.host}:${props.port}`;
+    return `${appUrl}/${folder}/${filename}`;
+  }
 }
 
 export default Upload;
+

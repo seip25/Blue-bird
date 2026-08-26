@@ -163,18 +163,37 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
 
 ---
 
-### 4. JWT Authentication & Redis Sessions (`Auth`)
+### 4. Authentication & Password Hashing (`Auth` & `Hash`)
+
+#### Password Hashing (`Hash`)
+
+Blue Bird includes high-performance password hashing using `node:crypto.scrypt` with random salt and timing-safe comparison out of the box (zero npm dependencies). It also supports `bcrypt` if installed or when verifying `$2a$/$2b$` hashes.
+
+```javascript
+import Hash from "@seip/blue-bird/core/hash.js";
+
+// 1. Hash password with scrypt (default)
+const hash = await Hash.make("mySecretPassword");
+
+// 2. Verify password (timing-safe comparison)
+const isValid = await Hash.verify("mySecretPassword", hash);
+
+// 3. Hash with bcrypt (if 'bcrypt' package is installed)
+const bcryptHash = await Hash.make("mySecretPassword", { driver: "bcrypt", rounds: 10 });
+```
+
+#### JWT Authentication & Sessions (`Auth`)
 
 Secure user authentication with AES-256-GCM encrypted tokens. Transmitted via HTTP-Only cookies or `Authorization` headers, with optional Redis session storage and invalidation.
 
-#### Protecting Routes
+##### Protecting Routes
 
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
 // 1. Secure API endpoint (returns 401 JSON on failure)
 router.get("/profile", Auth.protect(), (req, res) => {
-  res.json({ user: req.user });
+  res.ok({ user: req.user });
 });
 
 // 2. Secure web page (redirects to /login on failure)
@@ -183,20 +202,20 @@ router.get("/dashboard", Auth.protect({ redirect: "/login", key: "user", cookieK
 });
 ```
 
-#### Authentication Sessions & Utilities
+##### Authentication Sessions & Utilities
 
 ```javascript
 // Login & Sync Session state in Redis (if active)
 router.post("/login", async (req, res) => {
   const user = { id: 1, name: "John Doe", role: "admin" };
   await Auth.login(res, user, "auth", { expiresIn: "7d" });
-  res.json({ message: "Logged in successfully" });
+  res.ok(user, "Logged in successfully");
 });
 
 // Logout & Delete Session from Redis
 router.post("/logout", async (req, res) => {
   await Auth.logout(res, "auth", {}, req);
-  res.json({ message: "Logged out" });
+  res.ok(null, "Logged out");
 });
 
 // Manual Encrypted JWT Tokens & AES-256-GCM Encryption
@@ -208,9 +227,36 @@ const decrypted = Auth.decrypt(encrypted, process.env.JWT_SECRET);
 
 ---
 
-### 5. Performance Cache & Redis Client (`Cache`)
+### 5. HTTP Response Helpers & Health Check
 
-Applies route-level response caching for JSON payloads (`res.json`) and HTML output (`res.send`). Automatically uses Redis when `REDIS_HOST` is configured, and transparently degrades to an in-memory cache if Redis is unavailable or offline.
+Blue Bird enhances Express' `res` object with standardized helper methods:
+
+```javascript
+// Standard Success Responses
+res.ok(data, "Success");                      // HTTP 200 { status: "success", message, data }
+res.created(newItem, "Item created");         // HTTP 201 { status: "success", message, data }
+res.paginate(items, pagination, "Fetched");   // HTTP 200 { status: "success", message, data, pagination }
+
+// Standard Error Responses
+res.badRequest("Invalid input", errors);      // HTTP 400 { status: "error", message, errors }
+res.unauthorized("Authentication required");  // HTTP 401 { status: "error", message }
+res.forbidden("Access denied");               // HTTP 403 { status: "error", message }
+res.notFound("Resource not found");           // HTTP 404 { status: "error", message }
+res.serverError("Internal failure", err);     // HTTP 500 { status: "error", message }
+```
+
+#### Health Check Endpoint (`/api/health`)
+
+Every application includes an automatic `/api/health` route returning server status, uptime, environment, and memory consumption.
+
+---
+
+### 6. Performance Cache & Modes (`Cache`)
+
+Configured via `CACHE_MODE` in `.env`:
+- `CACHE_MODE="memory"`: Fast local RAM cache inside Node.js with automated TTL cleanup (default when Redis is not used). Zero network overhead.
+- `CACHE_MODE="redis"`: Distributed cache across Docker containers with automatic fallback to memory if Redis is unavailable.
+- `CACHE_MODE="none"`: Caching disabled.
 
 #### Route Caching Middleware
 
@@ -219,7 +265,7 @@ import Cache, { getRedisClient } from "@seip/blue-bird/core/cache.js";
 
 // Cache endpoint for 60 seconds (sets X-Blue-Bird-Cache: HIT/MISS headers)
 router.get("/stats", Cache.middleware(60), (req, res) => {
-  res.json({ usersOnline: 42 });
+  res.ok({ usersOnline: 42 });
 });
 ```
 
@@ -236,6 +282,7 @@ await Cache.delete("/api/public/config");
 // Clear all cache entries
 await Cache.clear();
 ```
+
 
 #### Custom Database & Data Caching with `getRedisClient()`
 

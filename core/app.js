@@ -135,6 +135,34 @@ class App {
         });
       };
 
+      res.ok = (data = null, message = "Success") => {
+        return res.success(data, message, 200);
+      };
+
+      res.created = (data = null, message = "Created") => {
+        return res.success(data, message, 201);
+      };
+
+      res.badRequest = (message = "Bad Request", errors = []) => {
+        return res.error(message, 400, errors);
+      };
+
+      res.unauthorized = (message = "Unauthorized") => {
+        return res.error(message, 401);
+      };
+
+      res.forbidden = (message = "Forbidden") => {
+        return res.error(message, 403);
+      };
+
+      res.notFound = (message = "Not Found") => {
+        return res.error(message, 404);
+      };
+
+      res.serverError = (message = "Internal Server Error", errors = []) => {
+        return res.error(message, 500, errors);
+      };
+
       res.paginate = (data = [], pagination = {}, message = "Success") => {
         const page = Number(pagination.page) || 1;
         const limit = Number(pagination.limit) || data.length;
@@ -156,6 +184,20 @@ class App {
 
       next();
     });
+
+    this.app.get("/api/health", (req, res) => {
+      return res.json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor(process.uptime()),
+        environment: props.debug ? "development" : "production",
+        memory: {
+          rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
+          heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+        },
+      });
+    });
+
 
     if (this.static.path || props.debug)
       this.app.use(

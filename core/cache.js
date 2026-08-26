@@ -4,6 +4,17 @@ const CACHE = {};
 
 let redisClient = null;
 let isRedisConnected = false;
+
+const rawCacheMode = (process.env.CACHE_MODE || "").toLowerCase().trim();
+const CACHE_MODE =
+  rawCacheMode || (process.env.REDIS_HOST ? "redis" : "memory");
+const isRedisMode = CACHE_MODE === "redis";
+const isMemoryMode = CACHE_MODE === "memory" || CACHE_MODE === "inmemory";
+const isNoneMode =
+  CACHE_MODE === "none" ||
+  CACHE_MODE === "disabled" ||
+  CACHE_MODE === "false";
+
 const redisHost = process.env.REDIS_HOST ?? false;
 const redisPort = process.env.REDIS_PORT ?? 6379;
 const redisPassword = process.env.REDIS_PASSWORD || "";
@@ -12,12 +23,11 @@ const redisUrl = redisPassword
   : `redis://${redisHost}:${redisPort}`;
 
 /**
- * Initializes the Redis client connection if REDIS_HOST env is set.
+ * Initializes the Redis client connection if CACHE_MODE is 'redis' and REDIS_HOST is configured.
  * @returns {Promise<void>}
  */
 async function initRedis() {
-  if (redisClient) return;
-  if (!redisHost) return;
+  if (!isRedisMode || !redisHost || redisClient) return;
 
   try {
     const { createClient } = await import("redis");
@@ -45,8 +55,11 @@ async function initRedis() {
   }
 }
 
-initRedis().catch(() => { });
+if (isRedisMode && redisHost) {
+  initRedis().catch(() => {});
+}
 
+// Background cleanup timer for in-memory cache
 setInterval(() => {
   const now = Date.now();
   for (const key in CACHE) {
@@ -67,13 +80,18 @@ class Cache {
    */
   static middleware(seconds = 60) {
     return async (req, res, next) => {
-      const key = req.originalUrl;
-
-      if (redisHost && !redisClient) {
-        await initRedis().catch(() => { });
+      if (isNoneMode) {
+        return next();
       }
 
-      if (isRedisConnected && redisClient) {
+      const key = req.originalUrl;
+
+      // 1. Redis Cache Lookup (if enabled)
+      if (isRedisMode && redisHost && !redisClient) {
+        await initRedis().catch(() => {});
+      }
+
+      if (isRedisMode && isRedisConnected && redisClient) {
         try {
           const cachedData = await redisClient.get(key);
           if (cachedData) {
@@ -87,12 +105,13 @@ class Cache {
               return res.send(cached.data);
             }
           }
-        } catch (err) {
+        } catch {
           isRedisConnected = false;
         }
       }
 
-      if (!isRedisConnected || !redisClient) {
+      // 2. In-Memory Cache Lookup (memory mode or fallback)
+      if (!isRedisMode || !isRedisConnected || !redisClient) {
         if (CACHE[key] && CACHE[key].expiry > Date.now()) {
           const cached = CACHE[key];
           if (cached.type === "json") {
@@ -118,12 +137,12 @@ class Cache {
             data: body,
             expiry: Date.now() + seconds * 1000,
           };
-          if (isRedisConnected && redisClient) {
+          if (isRedisMode && isRedisConnected && redisClient) {
             try {
               await redisClient.set(key, JSON.stringify(cacheObject), {
                 EX: seconds,
               });
-            } catch (err) {
+            } catch {
               CACHE[key] = cacheObject;
             }
           } else {
@@ -142,12 +161,12 @@ class Cache {
             data: body,
             expiry: Date.now() + seconds * 1000,
           };
-          if (isRedisConnected && redisClient) {
+          if (isRedisMode && isRedisConnected && redisClient) {
             try {
               await redisClient.set(key, JSON.stringify(cacheObject), {
                 EX: seconds,
               });
-            } catch (err) {
+            } catch {
               CACHE[key] = cacheObject;
             }
           } else {
@@ -169,26 +188,29 @@ class Cache {
    * @returns {Promise<any|null>} Cached payload or null.
    */
   static async get(key) {
+    if (isNoneMode) return null;
     key = key.trim();
     if (!key) return null;
 
-    if (redisHost && !redisClient) {
-      await initRedis().catch(() => { });
+    if (isRedisMode && redisHost && !redisClient) {
+      await initRedis().catch(() => {});
     }
 
-    if (isRedisConnected && redisClient) {
+    if (isRedisMode && isRedisConnected && redisClient) {
       try {
         const cachedData = await redisClient.get(key);
         if (cachedData) {
           try {
             const cached = JSON.parse(cachedData);
-            return cached && typeof cached === "object" && "data" in cached ? cached.data : cached;
+            return cached && typeof cached === "object" && "data" in cached
+              ? cached.data
+              : cached;
           } catch {
             return cachedData;
           }
         }
         return null;
-      } catch (err) {
+      } catch {
         isRedisConnected = false;
       }
     }
@@ -212,11 +234,12 @@ class Cache {
    * @returns {Promise<boolean>} True if set successfully.
    */
   static async set(key, value, seconds = 60) {
+    if (isNoneMode) return true;
     key = key.trim();
     if (!key) return false;
 
-    if (redisHost && !redisClient) {
-      await initRedis().catch(() => { });
+    if (isRedisMode && redisHost && !redisClient) {
+      await initRedis().catch(() => {});
     }
 
     const cacheObject = {
@@ -225,12 +248,12 @@ class Cache {
       expiry: Date.now() + seconds * 1000,
     };
 
-    if (isRedisConnected && redisClient) {
+    if (isRedisMode && isRedisConnected && redisClient) {
       try {
         await redisClient.set(key, JSON.stringify(cacheObject), {
           EX: seconds,
         });
-      } catch (err) {
+      } catch {
         CACHE[key] = cacheObject;
       }
     } else {
@@ -246,19 +269,19 @@ class Cache {
    * @returns {Promise<boolean>} True if deleted.
    */
   static async delete(keys) {
-    if (!keys) return false;
+    if (isNoneMode || !keys) return false;
     const keyList = Array.isArray(keys) ? keys : [keys];
 
-    if (redisHost && !redisClient) {
-      await initRedis().catch(() => { });
+    if (isRedisMode && redisHost && !redisClient) {
+      await initRedis().catch(() => {});
     }
 
     for (const key of keyList) {
       delete CACHE[key];
-      if (isRedisConnected && redisClient) {
+      if (isRedisMode && isRedisConnected && redisClient) {
         try {
           await redisClient.del(key);
-        } catch (err) {
+        } catch {
           isRedisConnected = false;
         }
       }
@@ -284,14 +307,22 @@ class Cache {
     for (const key in CACHE) {
       delete CACHE[key];
     }
-    if (isRedisConnected && redisClient) {
+    if (isRedisMode && isRedisConnected && redisClient) {
       try {
         await redisClient.flushDb();
-      } catch (err) {
+      } catch {
         isRedisConnected = false;
       }
     }
     return true;
+  }
+
+  /**
+   * Returns current active cache mode ('redis', 'memory', or 'none').
+   * @returns {string}
+   */
+  static getMode() {
+    return CACHE_MODE;
   }
 }
 
@@ -300,7 +331,8 @@ class Cache {
  * @returns {Object|null} The Redis client instance or null.
  */
 export function getRedisClient() {
-  return isRedisConnected ? redisClient : null;
+  return isRedisMode && isRedisConnected ? redisClient : null;
 }
 
 export default Cache;
+

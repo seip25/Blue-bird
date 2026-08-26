@@ -1,4 +1,14 @@
-import { WebSocketServer, WebSocket } from "ws";
+let WebSocketServer = null;
+let WebSocket = null;
+
+try {
+  const wsModule = await import("ws");
+  WebSocketServer = wsModule.WebSocketServer || wsModule.default?.WebSocketServer;
+  WebSocket = wsModule.WebSocket || wsModule.default?.WebSocket;
+} catch {
+  // ws not installed
+}
+
 import { getRedisClient } from "./cache.js";
 import Auth from "./auth.js";
 
@@ -15,6 +25,12 @@ class WebSocketManager {
    * @param {boolean} [options.auth=false] - Require valid Auth JWT token on connection.
    */
   constructor(server, options = {}) {
+    if (!WebSocketServer || !WebSocket) {
+      throw new Error(
+        "[WS ERROR] 'ws' package is not installed. Install it with: npm install ws or npx blue-bird add ws",
+      );
+    }
+
     this.server = server;
     this.path = options.path || "/ws";
     this.requireAuth = options.auth ?? false;
@@ -30,6 +46,7 @@ class WebSocketManager {
     this._setupHeartbeat();
     this._setupRedisPubSub();
   }
+
 
   /**
    * Attaches the HTTP Upgrade listener to the Express HTTP server instance.
