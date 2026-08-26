@@ -115,31 +115,34 @@ apiRouter.use(App.helmet());
 
 ## 8. Docker Compose CLI
 
-Blue Bird features a built-in Docker Compose CLI wrapper (`core/cli/docker.js`) to deploy and manage containerized development databases and production stacks across MySQL, PostgreSQL, or no-database (`none`) architectures.
+Blue Bird features a built-in Docker Compose CLI wrapper (`core/cli/docker.js`) to deploy and manage containerized development databases and production stacks across SQLite (default), MySQL, PostgreSQL, or no-database (`none`) architectures.
 
 Production deployments always use Docker for orchestration, running:
 - Nginx: Serves static files directly from `frontend/` (stripping `.html` extensions) and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express for APIs.
 - Node.js App: Managed via PM2 in cluster mode using `PM2_INSTANCES` configuration (defaults to `1`, can be set to `max`).
-- Database: MySQL (`mysql:8.0`) or PostgreSQL (`postgres:18-alpine`), dynamically detected via `getDbType()` reading `DB_TYPE` / `DATABASE_URL` from `.env`.
+- Database: SQLite (default, embedded in app with volume `./database`), MySQL (`mysql:8.0`), or PostgreSQL (`postgres:18-alpine`), dynamically detected via `getDbType()` reading `DB_TYPE` / `DATABASE_URL` from `.env`.
 - Redis: Memory caching and session store.
 
 ```bash
 # Manage containers using blue-bird CLI
 npx blue-bird docker dev            # Starts development database & redis containers. Run npm run dev manually.
-npx blue-bird docker start          # Starts production app stack (DB, redis, app, nginx)
-npx blue-bird docker start db       # Starts configured database container only (postgres or mysql)
+npx blue-bird docker start          # Starts production app stack (DB/SQLite, redis, app, nginx)
+npx blue-bird docker start db       # Starts configured database container (or Redis if SQLite is used)
 npx blue-bird docker start redis    # Starts Redis container only
-npx blue-bird docker start dbs      # Starts both database containers (configured DB + Redis)
+npx blue-bird docker start dbs      # Starts database containers (configured DB + Redis)
 npx blue-bird docker stop           # Stops all running containers
 npx blue-bird docker build          # Builds/rebuilds application image
 npx blue-bird docker ps             # Shows status of active containers
 npx blue-bird docker logs           # Tails Node.js app container logs
-npx blue-bird docker logs db        # Tails configured database container logs
+npx blue-bird docker logs db        # Tails database container logs (or app logs if SQLite is used)
 npx blue-bird docker pm2 [args]     # Runs PM2 commands inside the app container (e.g. status, monit)
-npx blue-bird docker db             # Runs interactive shell inside container (psql for Postgres, mysql for MySQL)
+npx blue-bird docker db             # Inspects active database (SQLite query/tables, psql for Postgres, mysql for MySQL)
+npx blue-bird docker sqlite         # Inspects SQLite tables or runs query on configured .db file
 npx blue-bird docker psql           # Runs interactive PostgreSQL client terminal inside container
 npx blue-bird docker mysql          # Runs interactive MySQL client terminal inside container
 npx blue-bird docker redis          # Runs interactive Redis client terminal inside container
+npx blue-bird docker export         # Exports database backup (.db file for SQLite or .sql dump) into backups/
+npx blue-bird docker import         # Restores database backup (.db or .sql) from backups/
 npx blue-bird docker prune          # Cleans unused volumes, dangling images, and BuildKit caches
 ```
 
@@ -154,24 +157,34 @@ The container names and virtual networks are namespaced by the `TITLE` environme
 
 ## 10. Database Module (database.js)
 
-Blue Bird provides a unified wrapper class (`core/database.js`) supporting **MySQL (`mysql2/promise`)** and **PostgreSQL (`pg`)**. It features connection pooling, automatic retries on startup, query formatting, and built-in Redis query caching:
+Blue Bird provides a unified wrapper class (`core/database.js`) supporting **SQLite (`better-sqlite3`)**, **MySQL (`mysql2/promise`)**, and **PostgreSQL (`pg`)**. It features connection pooling/reconnection, automatic retries on startup, query formatting, and built-in Redis query caching:
 
-- **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for the database type (`none`, `mysql`, `postgres`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE` and `DATABASE_URL`.
-- **Parameter Placeholders:** When using `pg` for PostgreSQL with `connection.query()`, `?` placeholders are automatically translated to `$1, $2, ...` under the hood.
+- **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for the database type (`sqlite` [default], `mysql`, `postgres`, `none`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.sqlite.yml`, `docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE`, `DB_FILE`, and `DATABASE_URL`.
+- **SQLite Concurrency & WAL:** SQLite automatically runs with `PRAGMA journal_mode = WAL;`, `PRAGMA busy_timeout = 5000;`, `PRAGMA synchronous = NORMAL;`, and `PRAGMA foreign_keys = ON;` to eliminate "database is locked" errors and ensure high concurrency with readers and writers.
+- **Parameter Placeholders:** Supports `?` placeholders across all drivers (automatically translated to `$1, $2, ...` under the hood for PostgreSQL).
 
 ```javascript
 import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
 const connection = new Database(20);
 
-// Basic SELECT query returning single row (Supports both MySQL and PostgreSQL)
+// Basic SELECT query returning single row (Supports SQLite, MySQL, and PostgreSQL)
 const user = await connection.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
 
 // Query caching in Redis (stores results in Redis for 60 seconds)
 const stats = await connection.query("SELECT COUNT(*) as cnt FROM logs", [], { cache: 60 });
 
-// INSERT query returns insertId directly (or row ID/rowCount in Postgres)
+// INSERT query returns insertId directly (or row ID in SQLite / Postgres)
 const newUserId = await connection.query("INSERT INTO users (name) VALUES (?)", ["Alice"]);
+
+// Pagination helper
+const page = await connection.paginate("SELECT * FROM users ORDER BY id ASC", [], { page: 1, limit: 10 });
+
+// Safe Transactions
+await connection.transaction(async (tx) => {
+  const id = await tx.query("INSERT INTO users (name) VALUES (?)", ["Bob"]);
+  await tx.query("INSERT INTO profiles (user_id) VALUES (?)", [id]);
+});
 ```
 
 ## 11. Nginx Static Asset Caching

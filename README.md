@@ -59,10 +59,11 @@ npx blue-bird
 ```
 
 When run, the interactive CLI prompts for your preferred infrastructure configuration:
-- Database Selection: Choose between `none`, `mysql`, or `postgres`.
-- Credentials: Set your database name, user, password, and port (`3306` or `5432`).
+- Database Selection: Choose between `sqlite` (default), `mysql`, `postgres`, or `none`.
+- Credentials / Path: Set your SQLite database path (default `database/blue_bird.db`), or MySQL/PostgreSQL host, port, user, and password.
 
-The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DATABASE_URL`) to `.env` and installs the required database packages (`mysql2` or `pg`) automatically.
+The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.sqlite.yml`, `docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DB_FILE`, `DATABASE_URL`) to `.env` and installs the required database packages (`better-sqlite3`, `mysql2`, or `pg`) automatically.
+
 
 ### 3. Run Development Server / Modo Desarrollo
 
@@ -274,20 +275,29 @@ webRouter.use(App.helmet());
 
 ### 7. Database wrapper (`Database`)
 
-Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **MySQL** and **PostgreSQL** with automated connection retry loops, query formatting utilities, and Redis query caching.
+Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **SQLite** (default), **MySQL**, and **PostgreSQL** with automated connection retry loops, query formatting utilities, and Redis query caching.
 
 #### Driver Support
+- **Native SQLite (`better-sqlite3`) [Default]**: Embedded, ultra-fast zero-latency database. Automatically applies `PRAGMA journal_mode = WAL;`, `PRAGMA busy_timeout = 5000;`, `PRAGMA synchronous = NORMAL;`, and `PRAGMA foreign_keys = ON;` to eliminate locking errors and support concurrent reader and writer operations.
 - **Native MySQL (`mysql2/promise`)**: High-performance connection pool for MySQL 8.0+.
-- **Native PostgreSQL (`pg`)**: Connection pool for PostgreSQL 18+. When running standard queries with `connection.query(sql, params)`, the wrapper automatically converts `?` parameter placeholders into PostgreSQL `$1, $2, ...` syntax, allowing unified SQL query writing across both database engines.
+- **Native PostgreSQL (`pg`)**: Connection pool for PostgreSQL 18+. When running standard queries with `connection.query(sql, params)`, the wrapper automatically converts `?` parameter placeholders into PostgreSQL `$1, $2, ...` syntax, allowing unified SQL query writing across all database engines.
 - **No Database (`none`)**: If no database is configured, the wrapper is disabled gracefully without crashing the server.
 
 #### Standalone & Remote Database Configuration
-You can connect to any local or remote database instance (outside Docker, such as Supabase, Neon, AWS RDS, or local services) simply by defining the `DATABASE_URL` in your `.env` file:
+You can connect to any local or remote database instance (outside Docker, such as Supabase, Neon, AWS RDS, local SQLite files, or MySQL/Postgres services) simply by defining the `DATABASE_URL` or `DB_FILE` in your `.env` file:
 
 ```env
-DB_TYPE="postgres"
-DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=public"
-# OR for MySQL:
+# SQLite (Default)
+DB_TYPE="sqlite"
+DB_FILE="database/blue_bird.db"
+DATABASE_URL="sqlite:database/blue_bird.db"
+
+# PostgreSQL (Remote or local)
+# DB_TYPE="postgres"
+# DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=public"
+
+# MySQL (Remote or local)
+# DB_TYPE="mysql"
 # DATABASE_URL="mysql://root:password@localhost:3306/blue_bird"
 ```
 
@@ -296,16 +306,16 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=pub
 ```javascript
 import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
-// Instantiate the database connection pool with a connection limit (e.g., 20)
+// Instantiate the database connection pool or SQLite instance
 const connection = new Database(20);
 
-// 1. Basic SELECT query returning single row (Works for both MySQL and PostgreSQL using ? placeholders)
+// 1. Basic SELECT query returning single row (Works for SQLite, MySQL, and PostgreSQL using ? placeholders)
 const user = await connection.query("SELECT * FROM users WHERE email = ?", ["test@example.com"], "return_row");
 
 // 2. Fetch rows with 60 seconds Redis caching enabled
 const stats = await connection.query("SELECT COUNT(*) as count FROM access_logs", [], { cache: 60 });
 
-// 3. INSERT query (returns insertId for MySQL, or inserted row ID / rowCount for PostgreSQL)
+// 3. INSERT query (returns insertId / lastInsertRowid across SQLite, MySQL, and PostgreSQL)
 const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["John"]);
 
 // 4. Automatic SQL Query Pagination (Runs count query + LIMIT/OFFSET calculation)
@@ -315,10 +325,10 @@ const paginated = await connection.paginate(
   { page: 1, limit: 10, cache: 60 }
 );
 
-// 5. Atomic Database Transactions with Automatic Commit & Rollback
+// 5. Atomic Database Transactions with Automatic Commit & Rollback (uses BEGIN IMMEDIATE for SQLite)
 const txUserId = await connection.transaction(async (tx) => {
   const userId = await tx.query("INSERT INTO users (name, email) VALUES (?, ?)", ["Alice", "alice@example.com"]);
-  await tx.query("INSERT INTO profiles (user_id) VALUES (?)", [userId]);
+  await tx.query("INSERT INTO profiles (user_id) VALUES (?, ?)", [userId]);
   return userId;
 });
 ```
