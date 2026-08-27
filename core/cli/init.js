@@ -333,7 +333,10 @@ class ProjectInit {
         dev: "node --watch --env-file=.env backend/index.js",
         start: "node --env-file=.env backend/index.js",
         init: "blue-bird",
+        doctor: "blue-bird doctor",
         route: "blue-bird route",
+        migrate: "blue-bird migrate",
+        seed: "blue-bird seed",
         "swagger-install": "blue-bird swagger-install",
         docker: "blue-bird docker",
       };
