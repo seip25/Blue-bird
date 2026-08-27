@@ -59,6 +59,21 @@
             transform: translateY(-5px);
             transition: all 0.3s ease;
         }
+
+        /* Sleek sidebar scrollbar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 
@@ -202,58 +217,30 @@
                 <div class="flex flex-col lg:flex-row gap-12">
                     <!-- Sidebar Navigation -->
                     <aside class="lg:w-64 flex-shrink-0">
-                        <div class="sticky top-24 space-y-1">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 px-3">Core Modules
-                            </p>
-                            <a href="#doc-install"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Installation
-                                &amp; Setup</a>
-                            <a href="#doc-env"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Configuration
-                                (.env)</a>
-                            <a href="#doc-app"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Application
-                                (App &amp; Helpers)</a>
-                            <a href="#doc-router"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Routing</a>
-                            <a href="#doc-validator"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Validation</a>
-                            <a href="#doc-hash"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Password
-                                Hashing</a>
-                            <a href="#doc-auth"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Authentication
-                                (Auth)</a>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">
-                                Utilities</p>
-                            <a href="#doc-cache"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Cache
-                                (Memory &amp; Redis)</a>
-                            <a href="#doc-helmet"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Helmet
-                                Security</a>
-                            <a href="#doc-database"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Database
-                                (SQLite, MySQL, PG)</a>
-                            <a href="#doc-websockets"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">WebSockets
-                                Engine</a>
+                        <div class="sticky top-20 max-h-[calc(100vh-5.5rem)] overflow-y-auto pr-3 pb-8 space-y-1 sidebar-scroll">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-3">Core Modules</p>
+                            <a href="#doc-install" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Installation &amp; Setup</a>
+                            <a href="#doc-env" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Configuration (.env)</a>
+                            <a href="#doc-app" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Application (App &amp; Helpers)</a>
+                            <a href="#doc-router" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Routing &amp; Endpoints</a>
+                            <a href="#doc-validator" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Schema Validation</a>
+                            <a href="#doc-hash" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Password Hashing</a>
+                            <a href="#doc-auth" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Authentication (Auth)</a>
 
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4 px-3">Devops
-                                & Deployment</p>
-                            <a href="#doc-add"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Modular
-                                Add Packages</a>
-                            <a href="#doc-docker"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Docker
-                                CLI Wrapper</a>
-                            <a href="#doc-nginx-cache"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Nginx
-                                Caching</a>
-                            <a href="#doc-production"
-                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium">Production
-                                Setup</a>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-6 mb-3 px-3">Utilities &amp; Data</p>
+                            <a href="#doc-cache" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Cache (Memory &amp; Redis)</a>
+                            <a href="#doc-helmet" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Helmet Security</a>
+                            <a href="#doc-database" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Database (SQLite, MySQL, PG)</a>
+                            <a href="#doc-websockets" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">WebSockets Engine</a>
+                            <a href="#doc-queue" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Background Queue (Jobs)</a>
 
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-6 mb-3 px-3">DevOps &amp; Tooling</p>
+                            <a href="#doc-doctor" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Health Doctor &amp; Smoke Test</a>
+                            <a href="#doc-dev-tools" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">CLI Scaffolding &amp; Migrations</a>
+                            <a href="#doc-add" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Modular Add Packages</a>
+                            <a href="#doc-docker" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Docker CLI Wrapper</a>
+                            <a href="#doc-nginx-cache" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Nginx Caching &amp; Proxy</a>
+                            <a href="#doc-production" class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Production &amp; VPS Security</a>
                         </div>
                     </aside>
 
@@ -894,11 +881,33 @@ socket.addEventListener("message", (event) => {
 });</code></pre>
                             </article>
 
+                            <!-- Background Queue Section -->
+                            <article id="doc-queue" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                    Background Jobs &amp; Queue (Queue)
+                                </h3>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    Blue Bird features a lightweight background queue worker (<code>core/queue.js</code>) backed by Redis list storage with an automatic in-memory fallback for local development or architectures without Redis:
+                                </p>
+                                <pre><code class="language-javascript">import Queue from "@seip/blue-bird/core/queue.js";
+
+// 1. Register a background job processor
+Queue.process("sendWelcomeEmail", async (payload) => {
+  console.log(`Sending email to ${payload.email}...`);
+  // Handle async email or heavy work here
+});
+
+// 2. Dispatch a job from any route or controller
+await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });</code></pre>
+                            </article>
+
                             <!-- Modular Add Packages Section -->
                             <article id="doc-add" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                        class="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center text-sm font-bold">13</span>
                                     Modular Add Packages (CLI)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -929,7 +938,7 @@ npx blue-bird add swagger     # swagger-ui-express</code></pre>
                             <article id="doc-docker" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">13</span>
+                                        class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm font-bold">14</span>
                                     Docker CLI Command Wrapper
                                 </h3>
 
@@ -975,7 +984,12 @@ npx blue-bird docker pm2 status
 npx blue-bird docker pm2 monit
 npx blue-bird docker pm2 reload all
 
-# Run Interactive Shell or Smart SQL Queries Inside Database Container (mysql or psql)
+# Run Interactive Shell or Smart SQL Queries Inside Database Container (sqlite,mysql or psql)
+npx blue-bird docker db                               # Interactive SQLite shell
+npx blue-bird docker db users                         # Smart query: SELECT * FROM users;
+npx blue-bird docker db users --limit=10              # Smart query: SELECT * FROM users LIMIT 10;
+npx blue-bird docker db users --where="id > 5"      # Smart query: SELECT * FROM users WHERE id > 5;
+npx blue-bird docker db "SELECT count(*) FROM users" # Custom SQL query execution
 npx blue-bird docker mysql                            # Interactive MySQL shell
 npx blue-bird docker mysql users                      # Smart query: SELECT * FROM users;
 npx blue-bird docker mysql users --limit=10           # Smart query: SELECT * FROM users LIMIT 10;
@@ -1007,31 +1021,275 @@ npx blue-bird docker redis info                       # Get Redis server status 
 npx blue-bird docker prune</code></pre>
                             </article>
 
-                            <!-- Nginx Caching Section -->
+                            <!-- Nginx Caching & Auth Request Section -->
                             <article id="doc-nginx-cache" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">14</span>
-                                    Nginx Static Asset Caching
+                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">15</span>
+                                    Nginx Caching &amp; Protected Static Pages (auth_request)
                                 </h3>
 
-                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                <p class="text-slate-600 mb-4 leading-relaxed">
                                     In production, Nginx is configured to explicitly cache static assets
                                     (<code>.js</code>, <code>.css</code>, <code>.jpg</code>, <code>.png</code>, etc.) in
                                     the user's browser with the <code>Cache-Control</code> header (valid for 1 month).
                                 </p>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    HTML and API endpoints (<code>/api/*</code>) are not cached by Nginx to ensure they
+                                    HTML pages and API endpoints (<code>/api/*</code>) are strictly non-cached by Nginx to ensure they
                                     serve dynamic and up-to-date content, relying instead on the Node.js application and
                                     Redis for data-layer caching.
                                 </p>
+
+                                <!-- auth_request Guide Card -->
+                                <div class="my-8 p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <span class="text-xl">🛡️</span>
+                                        <h4 class="text-lg font-bold text-white">Protecting Private Static HTML (Nginx auth_request)</h4>
+                                    </div>
+                                    <p class="text-sm text-slate-300 mb-4 leading-relaxed">
+                                        By default, Nginx delivers HTML files directly from disk (e.g. <code>frontend/dashboard.html</code>) without invoking Node.js. If you want to protect private static pages (e.g. <code>/dashboard</code>, <code>/admin</code>) so unauthenticated users cannot even download the raw HTML, you can enable Nginx's built-in <code>auth_request</code> module.
+                                    </p>
+                                    <p class="text-sm text-slate-300 mb-6 leading-relaxed">
+                                        When enabled, Nginx sends an internal, lightweight subrequest to Express (<code>/api/auth/check</code>) <strong>before</strong> serving the file. If Express returns HTTP <code>200 OK</code>, Nginx serves the HTML. If Express returns HTTP <code>401 Unauthorized</code>, Nginx automatically intercepts the response and redirects the browser to <code>/login?redirect=$request_uri</code>.
+                                    </p>
+
+                                    <h5 class="text-sm font-bold text-teal-400 mb-2">Step 1: Uncomment the Protected Block in <code>docker/nginx.conf</code></h5>
+                                    <pre><code class="language-nginx"># Inside the server { ... } block in docker/nginx.conf:
+
+location ~ ^/(dashboard|admin|app|account) {
+    auth_request /api/auth/check;
+    error_page 401 = @login_redirect;
+    try_files $uri $uri.html /index.html =404;
+}
+
+location = /api/auth/check {
+    internal;
+    proxy_pass http://app:3000/api/auth/check;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+    proxy_set_header X-Original-URI $request_uri;
+}
+
+location @login_redirect {
+    return 302 /login?redirect=$request_uri;
+}</code></pre>
+
+                                    <h5 class="text-sm font-bold text-teal-400 mt-6 mb-2">Step 2: Add the Auth Check Endpoint in Express (<code>backend/routes/auth.js</code>)</h5>
+                                    <p class="text-xs text-slate-400 mb-3">
+                                        Create a lightweight endpoint in your Express application protected by Blue Bird's <code>Auth.protect()</code> middleware:
+                                    </p>
+                                    <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
+import Auth from "@seip/blue-bird/core/auth.js";
+
+const authRouter = new Router("/api/auth");
+
+/**
+ * GET /api/auth/check
+ * Called internally by Nginx auth_request before serving protected HTML
+ */
+authRouter.get("/check", Auth.protect(), (req, res) => {
+  // If Auth.protect() succeeds, req.user is verified. Return HTTP 200 to Nginx.
+  res.ok({ authenticated: true, user: req.user });
+});
+
+export default authRouter;</code></pre>
+
+                                    <h5 class="text-sm font-bold text-teal-400 mt-6 mb-2">Step 3: Restart Containers</h5>
+                                    <pre><code class="language-bash">npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</code></pre>
+                                </div>
+                            </article>
+
+                            <!-- System Diagnostics & Doctor Deep Dive Section -->
+                            <article id="doc-doctor" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">16</span>
+                                    System Diagnostics &amp; Health Auditing (Doctor)
+                                </h3>
+
+                                <p class="text-slate-600 mb-6 leading-relaxed">
+                                    Blue Bird includes a comprehensive diagnostic and live smoke testing suite (<code>npx blue-bird doctor</code>). It audits your environment configuration, directory hierarchy, filesystem permissions, port bindings, and runs end-to-end HTTP smoke tests against both Express and Nginx static delivery layers:
+                                </p>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+                                    <div class="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">1</span>
+                                            <h4 class="font-bold text-slate-900">Environment &amp; Secrets (.env)</h4>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">
+                                            Verifies <code>.env</code> presence, tests <code>JWT_SECRET</code> entropy (&ge; 16 chars), and audits Linux file permissions (flags warnings if not set to secure <code>chmod 600</code>).
+                                        </p>
+                                    </div>
+
+                                    <div class="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">2</span>
+                                            <h4 class="font-bold text-slate-900">FHS Hierarchy &amp; Assets</h4>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">
+                                            Warns if deployed inside <code>/home/user/</code> (which restricts Nginx path traversal), verifies <code>frontend/</code> exists, and checks for valid static assets.
+                                        </p>
+                                    </div>
+
+                                    <div class="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">3</span>
+                                            <h4 class="font-bold text-slate-900">Port Availability &amp; Conflict</h4>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">
+                                            Runs a pre-flight socket check to ensure the configured port (e.g. <code>PORT=3000</code>) is free to bind before launching new instances or containers.
+                                        </p>
+                                    </div>
+
+                                    <div class="p-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+                                        <div class="flex items-center gap-3 mb-3">
+                                            <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">4</span>
+                                            <h4 class="font-bold text-slate-900">Live HTTP Smoke Tests</h4>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">
+                                            Sends real HTTP GET requests to <code>/api/health</code> and sample assets (<code>/css/bluebird.css</code>). Automatically diagnoses <strong>403 Forbidden</strong> and <strong>404 Inode Desync</strong> with exact remediation commands.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-3">Running the Diagnostic Suite</h4>
+                                <pre><code class="language-bash"># Run system health diagnostics &amp; smoke tests
+npx blue-bird doctor
+
+# Or run via npm script
+npm run doctor</code></pre>
+
+                                <div class="my-6 p-6 bg-slate-900 text-white rounded-2xl shadow-xl font-mono text-xs leading-relaxed space-y-2">
+                                    <p class="text-slate-400">=============================================================</p>
+                                    <p class="text-cyan-400 font-bold">Blue Bird System &amp; Security Health Diagnostic (Doctor)</p>
+                                    <p class="text-slate-400">=============================================================</p>
+                                    <br>
+                                    <p class="text-slate-300 font-bold">[1/5] Environment &amp; Configuration (.env):</p>
+                                    <p class="text-emerald-400">  [PASS] .env file exists.</p>
+                                    <p class="text-emerald-400">  [PASS] JWT_SECRET is configured.</p>
+                                    <br>
+                                    <p class="text-slate-300 font-bold">[2/5] Filesystem Hierarchy Standard &amp; Static Asset Structure:</p>
+                                    <p class="text-emerald-400">  [PASS] 'frontend/' directory exists.</p>
+                                    <p class="text-emerald-400">  [PASS] Detected sample static asset: 'frontend/css/bluebird.css'</p>
+                                    <br>
+                                    <p class="text-slate-300 font-bold">[3/5] Port Availability &amp; Binding:</p>
+                                    <p class="text-emerald-400">  [INFO] Port 3000 is currently in use (application server or container is active).</p>
+                                    <br>
+                                    <p class="text-slate-300 font-bold">[4/5] Live HTTP Smoke Test (Health &amp; Static Delivery):</p>
+                                    <p class="text-emerald-400">  [PASS] API Health Endpoint returned HTTP 200 OK.</p>
+                                    <p class="text-emerald-400">  [PASS] Static Asset (/css/bluebird.css) returned HTTP 200 OK.</p>
+                                    <br>
+                                    <p class="text-slate-300 font-bold">[5/5] Database &amp; Cache Architecture:</p>
+                                    <p class="text-cyan-400">  [INFO] Database Type: SQLITE</p>
+                                    <p class="text-cyan-400">  [INFO] Cache Mode:    MEMORY</p>
+                                    <br>
+                                    <p class="text-slate-400">=============================================================</p>
+                                    <p class="text-emerald-400 font-bold">Diagnostic Summary: System is operational with 0 issue(s).</p>
+                                    <p class="text-slate-400">=============================================================</p>
+                                </div>
+                            </article>
+
+                            <!-- Developer Tooling, Migrations & Seeds -->
+                            <article id="doc-dev-tools" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold">17</span>
+                                    CLI Generators, Migrations &amp; Host Nginx
+                                </h3>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    Rapidly scaffold endpoints with cache invalidation, manage multi-database schema migrations, run seeds, and generate host reverse proxy configs:
+                                </p>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Rapid CRUD Route Scaffolding</h4>
+                                <p class="text-slate-600 mb-3 text-sm leading-relaxed">
+                                    Generates <code>backend/routes/&lt;name&gt;.js</code> with complete RESTful endpoints (<code>GET /</code>, <code>GET /:id</code>, <code>POST /</code>, <code>PUT /:id</code>, <code>DELETE /:id</code>), <code>Validator</code> schema, <code>Cache.middleware()</code>, and automatic <code>Cache.delete()</code> invalidation:
+                                </p>
+                                <pre><code class="language-bash"># Scaffold standard CRUD route
+npx blue-bird make:route products
+
+# Scaffold CRUD route protected by Auth.protect() middleware
+npx blue-bird make:route articles --auth</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Unified Database Migrations Engine</h4>
+                                <p class="text-slate-600 mb-3 text-sm leading-relaxed">
+                                    Blue Bird includes a native, zero-dependency database migration system supporting <strong>SQLite (WAL)</strong>, <strong>MySQL</strong>, and <strong>PostgreSQL</strong>. All migrations are tracked inside a dedicated <code>_bluebird_migrations</code> table with batch numbering and automatic transactional rollbacks on error.
+                                </p>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                                    <div class="p-4 bg-slate-100 rounded-xl border border-slate-200">
+                                        <p class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">SQL Migrations (.sql)</p>
+                                        <p class="text-xs text-slate-600 leading-relaxed">
+                                            Clean, portable SQL files. Statements are separated by semicolons and executed sequentially inside an isolated database transaction.
+                                        </p>
+                                    </div>
+                                    <div class="p-4 bg-slate-100 rounded-xl border border-slate-200">
+                                        <p class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">JavaScript Migrations (.js)</p>
+                                        <p class="text-xs text-slate-600 leading-relaxed">
+                                            Export an <code>async function up(db)</code> for complex data transformations, external API seeding, or dynamic schema alters.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <pre><code class="language-bash"># 1. Generate a new timestamped migration file
+npx blue-bird make:migration create_posts_table
+# Creates: database/migrations/20260827_120000_create_posts_table.sql
+
+# 2. Inspect migration status across all batches
+npx blue-bird migrate:status
+
+# 3. Execute all pending migrations in a new batch
+npx blue-bird migrate</code></pre>
+
+                                <div class="p-4 bg-slate-900 text-white rounded-xl font-mono text-xs my-4 space-y-1">
+                                    <p class="text-cyan-400 font-bold">Migration Status Output Demo:</p>
+                                    <p class="text-slate-400">=============================================================</p>
+                                    <p><span class="text-emerald-400 font-bold">[APPLIED]</span> 20260827_100000_create_users.sql  (Batch: 1, At: 2026-08-27 10:00:05)</p>
+                                    <p><span class="text-emerald-400 font-bold">[APPLIED]</span> 20260827_110000_create_roles.sql  (Batch: 1, At: 2026-08-27 10:00:06)</p>
+                                    <p><span class="text-amber-400 font-bold">[PENDING]</span> 20260827_120000_create_posts.sql</p>
+                                    <p class="text-slate-400">=============================================================</p>
+                                </div>
+
+                                <h4 class="font-bold text-slate-800 mt-8 mb-2">3. Database Seeding System (Seeds)</h4>
+                                <p class="text-slate-600 mb-3 text-sm leading-relaxed">
+                                    Easily populate initial lookup categories, default admin users, or testing fixtures in development and production environments:
+                                </p>
+                                <pre><code class="language-bash"># 1. Create a new seed file in database/seeds/
+npx blue-bird make:seed test_users
+# Creates: database/seeds/test_users.sql
+
+# 2. Run all seed scripts in database/seeds/
+npx blue-bird seed</code></pre>
+
+                                <div class="my-4">
+                                    <p class="text-xs text-slate-500 font-bold mb-2">Sample JavaScript Seed File (<code>database/seeds/admin_user.js</code>):</p>
+                                    <pre><code class="language-javascript">import Hash from "@seip/blue-bird/core/hash.js";
+
+/**
+ * Seed initial administrative credentials
+ * @param {object} tx - Active database transaction
+ */
+export async function seed(tx) {
+  const passwordHash = await Hash.make("SuperSecret123!");
+  await tx.query(
+    "INSERT INTO users (email, password, role) VALUES (?, ?, ?)",
+    ["admin@example.com", passwordHash, "admin"]
+  );
+}</code></pre>
+                                </div>
+
+                                <h4 class="font-bold text-slate-800 mt-8 mb-2">4. Host Nginx Reverse Proxy &amp; Let's Encrypt Automation</h4>
+                                <p class="text-slate-600 mb-3 text-sm leading-relaxed">
+                                    Outputs ready-to-paste reverse proxy block for your VPS host Nginx (<code>/etc/nginx/sites-available/&lt;domain&gt;</code>) with WebSocket support, proxy headers, and Certbot SSL installation steps:
+                                </p>
+                                <pre><code class="language-bash">npx blue-bird nginx:conf myapp.example.com 3000</code></pre>
                             </article>
 
                             <!-- Production Section -->
                             <article id="doc-production" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">12</span>
+                                        class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center text-sm font-bold">18</span>
                                     Production Setup &amp; VPS Security
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -1056,20 +1314,37 @@ npx blue-bird docker start prod</code></pre>
                                 <div class="my-8 p-6 bg-amber-50/60 border border-amber-200 rounded-2xl">
                                     <div class="flex items-center gap-3 mb-3">
                                         <span class="text-xl">🛡️</span>
-                                        <h4 class="text-lg font-bold text-amber-900">VPS Permissions &amp; Security Hardening</h4>
+                                        <h4 class="text-lg font-bold text-amber-900">VPS Permissions &amp; Security
+                                            Hardening</h4>
                                     </div>
                                     <p class="text-sm text-amber-800 mb-3 leading-relaxed">
-                                        Avoid deploying inside <code>/home/user/</code> due to parent directory traversal restrictions (<code>700</code>/<code>750</code>) and multi-user security risks. Deploy to standard FHS paths like <code>/var/www/&lt;project-name&gt;</code> or <code>/srv/&lt;project-name&gt;</code>.
+                                        Avoid deploying inside <code>/home/user/</code> due to parent directory
+                                        traversal restrictions (<code>700</code>/<code>750</code>) and multi-user
+                                        security risks. Deploy to standard FHS paths like
+                                        <code>/var/www/&lt;project-name&gt;</code> or
+                                        <code>/srv/&lt;project-name&gt;</code>.
                                     </p>
                                     <p class="text-sm text-amber-800 mb-4 leading-relaxed">
-                                        Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101). Static assets should be mounted as read-only (<code>./frontend:/app/frontend:ro</code>) in <code>docker-compose.yml</code> for container-level hardening.
+                                        Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101).
+                                        Static assets should be mounted as read-only
+                                        (<code>./frontend:/app/frontend:ro</code>) in <code>docker-compose.yml</code>
+                                        for container-level hardening.
                                     </p>
-                                    <div class="bg-white/80 rounded-xl p-4 border border-amber-200/80 mb-4 text-xs font-mono text-slate-800 space-y-1">
-                                        <p class="text-slate-500 font-sans font-bold mb-2">Recommended Permissions Matrix:</p>
-                                        <p><span class="font-bold text-indigo-600">/var/www/&lt;project&gt;</span> : <code>chmod 755</code> (Allows unprivileged Nginx container path traversal)</p>
-                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>755</code> (dirs) / <code>644</code> (files)</p>
-                                        <p><span class="font-bold text-indigo-600">node_modules/</span> : <code>755</code> (dirs) / <code>644</code> (files) &amp; <code>chmod -R +x node_modules/.bin</code></p>
-                                        <p><span class="font-bold text-red-600">.env</span> : <code>chmod 600</code> (Restricted private access - NEVER 777)</p>
+                                    <div
+                                        class="bg-white/80 rounded-xl p-4 border border-amber-200/80 mb-4 text-xs font-mono text-slate-800 space-y-1">
+                                        <p class="text-slate-500 font-sans font-bold mb-2">Recommended Permissions
+                                            Matrix:</p>
+                                        <p><span class="font-bold text-indigo-600">/var/www/&lt;project&gt;</span> :
+                                            <code>chmod 755</code> (Allows unprivileged Nginx container path traversal)
+                                        </p>
+                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>755</code>
+                                            (dirs) / <code>644</code> (files)</p>
+                                        <p><span class="font-bold text-indigo-600">node_modules/</span> :
+                                            <code>755</code> (dirs) / <code>644</code> (files) &amp;
+                                            <code>chmod -R +x node_modules/.bin</code>
+                                        </p>
+                                        <p><span class="font-bold text-red-600">.env</span> : <code>chmod 600</code>
+                                            (Restricted private access - NEVER 777)</p>
                                     </div>
                                     <pre><code class="language-bash"># 1. Set project ownership and standard directory traversal:
 sudo chown -R $(whoami):$(whoami) /var/www/my-project && cd /var/www/my-project
@@ -1092,28 +1367,52 @@ chmod 600 .env</code></pre>
                                 <div class="my-8 p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
                                     <div class="flex items-center gap-3 mb-4">
                                         <span class="text-xl">🔧</span>
-                                        <h4 class="text-lg font-bold text-white">VPS Troubleshooting Guide (Problems &amp; Solutions)</h4>
+                                        <h4 class="text-lg font-bold text-white">VPS Troubleshooting Guide (Problems
+                                            &amp; Solutions)</h4>
                                     </div>
                                     <div class="space-y-6 text-sm text-slate-300">
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-red-400 mb-1">❌ Problem 1: Static files return 404 / 403 (stat() failed 13: Permission denied)</p>
-                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent directories on host lack <code>+x</code> traversal permission or files lack <code>+r</code> read permission for unprivileged <code>nginx</code> worker.</p>
-                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod 755 /var/www/my-project &amp;&amp; find frontend -type d -exec chmod 755 {} + &amp;&amp; find frontend -type f -exec chmod 644 {} +</p>
+                                            <p class="font-bold text-red-400 mb-1">❌ Problem 1: Static files return 404
+                                                / 403 (stat() failed 13: Permission denied)</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent
+                                                directories on host lack <code>+x</code> traversal permission or files
+                                                lack <code>+r</code> read permission for unprivileged <code>nginx</code>
+                                                worker.</p>
+                                            <p
+                                                class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">
+                                                chmod 755 /var/www/my-project &amp;&amp; find frontend -type d -exec
+                                                chmod 755 {} + &amp;&amp; find frontend -type f -exec chmod 644 {} +</p>
                                         </div>
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-amber-400 mb-1">❌ Problem 2: <code>npx blue-bird</code> fails with <code>sh: 1: blue-bird: Permission denied</code></p>
-                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Blanket <code>chmod 644</code> stripped execute permissions from binary links in <code>node_modules/.bin/</code>.</p>
-                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod -R +x node_modules/.bin</p>
+                                            <p class="font-bold text-amber-400 mb-1">❌ Problem 2:
+                                                <code>npx blue-bird</code> fails with
+                                                <code>sh: 1: blue-bird: Permission denied</code>
+                                            </p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Blanket
+                                                <code>chmod 644</code> stripped execute permissions from binary links in
+                                                <code>node_modules/.bin/</code>.
+                                            </p>
+                                            <p
+                                                class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">
+                                                chmod -R +x node_modules/.bin</p>
                                         </div>
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or recreating project folder (<code>mv</code> / <code>rm -rf</code>)</p>
-                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Docker volume mounts bind to disk inodes. Recreating the folder desynchronizes active mounts.</p>
-                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</p>
+                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or
+                                                recreating project folder (<code>mv</code> / <code>rm -rf</code>)</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Docker volume
+                                                mounts bind to disk inodes. Recreating the folder desynchronizes active
+                                                mounts.</p>
+                                            <p
+                                                class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">
+                                                npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</p>
                                         </div>
                                         <div>
                                             <p class="font-bold text-indigo-400 mb-1">🔍 Diagnostic Commands</p>
-                                            <p class="text-xs text-slate-400 mb-2">Tail real-time Nginx logs or inspect path traversal:</p>
-                                            <p class="text-xs text-slate-300 font-mono bg-slate-800/80 p-2 rounded-lg">docker compose logs -f nginx<br>namei -l /var/www/my-project/frontend/css/bluebird.css</p>
+                                            <p class="text-xs text-slate-400 mb-2">Tail real-time Nginx logs or inspect
+                                                path traversal:</p>
+                                            <p class="text-xs text-slate-300 font-mono bg-slate-800/80 p-2 rounded-lg">
+                                                docker compose logs -f nginx<br>namei -l
+                                                /var/www/my-project/frontend/css/bluebird.css</p>
                                         </div>
                                     </div>
                                 </div>

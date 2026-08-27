@@ -32,7 +32,10 @@
     "dev": "node --watch --env-file=.env backend/index.js",
     "start": "node --env-file=.env backend/index.js",
     "init": "node core/cli/init.js",
+    "doctor": "node core/cli/init.js doctor",
     "route": "node core/cli/route.js",
+    "migrate": "node core/cli/init.js migrate",
+    "seed": "node core/cli/init.js seed",
     "swagger-install": "node core/cli/swagger.js",
     "docker": "node core/cli/init.js docker",
     "test": "node test/test_suite.js"

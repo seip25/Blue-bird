@@ -148,7 +148,14 @@ async function startCommand(service) {
     console.log(chalk.cyan("Starting production stack (DB + Redis + App + Nginx)..."));
     const code = await runCmd("docker", ["compose", "--profile", "prod", "up", "-d"]);
     if (code === 0) {
-      console.log(chalk.green("Production stack started."));
+      console.log(chalk.green("Production stack started successfully."));
+      console.log(chalk.cyan("\nRunning post-start health check (Doctor)...\n"));
+      try {
+        const { runDoctor } = await import("./doctor.js");
+        await runDoctor();
+      } catch (err) {
+        console.log(chalk.gray(`Health check skipped: ${err.message}`));
+      }
     } else {
       console.error(chalk.red("Error starting production stack."));
       process.exit(1);

@@ -190,5 +190,12 @@ export class Database {
   close(): Promise<void>;
 }
 
+export class Queue {
+  static process(jobName: string, handler: (payload: any) => Promise<any> | any): void;
+  static dispatch(jobName: string, payload?: any, options?: { delayMs?: number }): Promise<boolean>;
+  static loadJobs(jobsDir?: string): Promise<void>;
+}
+
 export default App;
+
 

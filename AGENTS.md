@@ -206,14 +206,51 @@ npx blue-bird docker prune          # Cleans unused volumes, dangling images, an
 
 The container names and virtual networks are namespaced by the `TITLE` environment variable parsed from `.env` to prevent resource collisions on VPS hosts. Alternatively, PM2 and other services can be run manually in standalone server environments by configuring `DATABASE_URL` inside `.env`.
 
-## 11. AI Development Guidelines
+## 11. Productivity & Developer Tooling CLI
+
+```bash
+# System Diagnostics & Smoke Test
+npx blue-bird doctor                # Audits .env, ports, permissions, and runs live HTTP smoke test
+
+# Route Scaffolding
+npx blue-bird make:route <name>     # Generates full CRUD route with Validation & Cache invalidation
+npx blue-bird make:route <name> -a  # Generates route with Auth.protect() middleware
+
+# Database Migrations & Seeds
+npx blue-bird make:migration <name> # Creates timestamped SQL migration in database/migrations/
+npx blue-bird migrate               # Executes pending migrations across SQLite, MySQL, or Postgres
+npx blue-bird migrate:status        # Displays applied and pending migration batches
+npx blue-bird make:seed <name>      # Creates SQL seed file in database/seeds/
+npx blue-bird seed                  # Executes seed files in database/seeds/
+
+# VPS Host Nginx & SSL Automation
+npx blue-bird nginx:conf <domain> [port] # Generates reverse proxy block & Certbot setup instructions
+```
+
+## 12. Background Jobs & Queue (Queue)
+
+Blue Bird includes a lightweight queue worker (`core/queue.js`) backed by Redis with an automatic in-memory fallback for local development or non-redis architectures.
+
+```javascript
+import Queue from "@seip/blue-bird/core/queue.js";
+
+// 1. Register job processor
+Queue.process("sendWelcomeEmail", async (payload) => {
+  console.log(`Sending email to ${payload.email}...`);
+});
+
+// 2. Dispatch job from route or service
+await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });
+```
+
+## 13. AI Development Guidelines
 
 1. **Frontend**: Static files are stored in `frontend/` (e.g. `frontend/css`, `frontend/js`). HTML files will be served without the `.html` extension (e.g. `login.html` is accessible as `/login`).
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
 4. **No inline comments**: Only use JSDoc for documentation.
 
-## 12. Database Module (database.js)
+## 14. Database Module (database.js)
 
 Blue Bird provides a unified wrapper class (`core/database.js`) supporting **SQLite (`better-sqlite3`)**, **MySQL (`mysql2/promise`)**, and **PostgreSQL (`pg`)**. It features connection pooling/reconnection, automatic retries on startup, query formatting, and built-in Redis query caching:
 
@@ -246,12 +283,12 @@ await connection.transaction(async (tx) => {
 });
 ```
 
-## 11. Nginx Static Asset Caching
+## 15. Nginx Static Asset Caching
 
 In production, Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.png`, etc.) in the user's browser with the `Cache-Control` header (valid for 1 month). 
 HTML and API endpoints (`/api/*`) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
 
-## 13. VPS Permissions & Security Hardening
+## 16. VPS Permissions & Security Hardening
 
 When deploying Blue Bird to Linux VPS servers using Docker Compose orchestration:
 

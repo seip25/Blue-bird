@@ -444,6 +444,49 @@ Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.
 
 ---
 
+## 🛠️ Developer Tooling & CLI Suite
+
+Blue Bird includes built-in developer productivity commands:
+
+```bash
+# System Diagnostics & Smoke Testing
+npx blue-bird doctor                 # Audits .env, ports, permissions, and runs live HTTP smoke test
+
+# Route Scaffolding
+npx blue-bird make:route <name>      # Generates full CRUD route with Validation & Cache invalidation
+npx blue-bird make:route <name> -a   # Generates route with Auth.protect() middleware
+
+# Database Migrations & Seeds
+npx blue-bird make:migration <name>  # Creates timestamped SQL migration in database/migrations/
+npx blue-bird migrate                # Executes pending migrations across SQLite, MySQL, or Postgres
+npx blue-bird migrate:status         # Displays applied and pending migration batches
+npx blue-bird make:seed <name>       # Creates SQL seed file in database/seeds/
+npx blue-bird seed                   # Executes seed files in database/seeds/
+
+# VPS Host Nginx & SSL Automation
+npx blue-bird nginx:conf <domain> [port]  # Generates reverse proxy block & Certbot setup instructions
+```
+
+---
+
+## 📬 Background Jobs & Queue (Queue)
+
+Blue Bird includes a lightweight queue worker (`core/queue.js`) backed by Redis with an automatic in-memory fallback for local development or non-redis architectures:
+
+```javascript
+import Queue from "@seip/blue-bird/core/queue.js";
+
+// 1. Register job processor
+Queue.process("sendWelcomeEmail", async (payload) => {
+  console.log(`Sending email to ${payload.email}...`);
+});
+
+// 2. Dispatch job from route or service
+await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });
+```
+
+---
+
 ## Docker CLI Workflow
 
 Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments across MySQL, PostgreSQL, or no-database architectures.
@@ -457,7 +500,7 @@ npx blue-bird docker <command> [options]
 ### Supported Actions:
 
 - **`npx blue-bird docker dev`**: Boots the development database and Redis containers. Run `npm run dev` locally on your host machine.
-- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + Database + Redis).
+- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + Database + Redis) and runs the automatic health smoke test.
 - **`npx blue-bird docker start db`** (or `postgres` / `mysql`): Boots the configured database container only (great for local development outside Docker).
 - **`npx blue-bird docker start redis`**: Boots the Redis container only.
 - **`npx blue-bird docker start dbs`**: Boots both database containers (configured DB + Redis).

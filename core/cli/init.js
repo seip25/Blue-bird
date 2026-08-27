@@ -452,9 +452,33 @@ const initializer = new ProjectInit();
 const args = process.argv.slice(2);
 const command = args[0];
 
-if (command === "route") import("./route.js");
-else if (command === "swagger-install") import("./swagger.js");
-else if (command === "docker") import("./docker.js");
-else if (command === "add") addCommand(args[1]);
-else initializer.run();
+if (command === "route" || command === "make:route") {
+  import("./route.js");
+} else if (command === "doctor") {
+  import("./doctor.js");
+} else if (
+  command === "nginx:conf" ||
+  command === "nginx:host" ||
+  command === "nginx"
+) {
+  import("./nginx.js");
+} else if (
+  command === "migrate" ||
+  command === "migrate:status" ||
+  command === "migrate:rollback" ||
+  command === "seed" ||
+  command === "make:migration" ||
+  command === "make:seed"
+) {
+  import("./migrate.js");
+} else if (command === "swagger-install") {
+  import("./swagger.js");
+} else if (command === "docker") {
+  import("./docker.js");
+} else if (command === "add") {
+  addCommand(args[1]);
+} else {
+  initializer.run();
+}
+
 
