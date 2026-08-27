@@ -6,103 +6,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blue Bird - About</title>
     <link rel="canonical" href="https://seip25.github.io/Blue-bird/" />
-    <meta name="description" content="Blue Bird is a fast, structured, and opinionated Express.js framework for developers who want
-                    visual elegance and performance with raw HTML and CSS.">
-    <meta name="keywords" content="">
+    <meta name="description"
+        content="Blue Bird is a fast, structured, and opinionated Express.js framework for developers who want visual elegance and performance with raw HTML and CSS.">
+    <meta name="keywords" content="Blue Bird, Express.js, About, Semantic CSS, Architecture">
     <meta name="author" content="Seip25">
     <link rel="icon" href="/images/favicon.ico" />
-    <script src="/js/tailwind.js"></script>
-    <script src="/js/utils.js"></script>
-    <style type="text/tailwindcss">
-        @custom-variant dark (&:where(.dark, .dark *));
-    </style>
+    <link rel="stylesheet" href="/css/bluebird.css" />
+    <script src="/js/bluebird.js"></script>
 </head>
 
-<body class="min-h-screen bg-slate-950 text-white font-sans antialiased selection:bg-blue-500 selection:text-white">
-    <header class="sticky top-0 z-50 px-4 py-3">
-        <div
-            class="max-w-7xl mx-auto flex items-center justify-between backdrop-blur-md bg-slate-900/60 border border-white/10 rounded-2xl px-6 py-3 shadow-lg">
-            <div class="flex items-center space-x-3">
-                <div
-                    class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                </div>
-                <span
-                    class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-200 to-white bg-clip-text text-transparent">Blue
-                    Bird</span>
-            </div>
-
-            <nav class="flex space-x-8 text-sm font-medium text-slate-300">
-                <a href="/" class="hover:text-blue-400 transition-colors">Home</a>
-                <a href="/about" class="hover:text-blue-400 transition-colors">About</a>
-            </nav>
-        </div>
+<body>
+    <header>
+        <nav>
+            <a href="/" class="flex items-center gap-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" class="text-blue">
+                    <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                <strong class="text-xl text-gradient-blue">Blue Bird</strong>
+            </a>
+        </nav>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 pt-12 pb-24">
+    <main>
+        <aside>
+            <h4>Menu</h4>
+            <a href="/">Home</a>
+            <a href="/about" class="active">About</a>
+            <a href="https://seip25.github.io/Blue-bird-css/" target="_blank">CSS Framework</a>
+            <a href="https://github.com/seip25/Blue-bird" target="_blank" role="button"
+                class="btn-sm outline">GitHub</a>
+        </aside>
 
-        <div
-            class="relative py-16 px-6 md:px-12 rounded-3xl overflow-hidden bg-gradient-to-b from-blue-900/20 to-slate-950 border border-white/5 shadow-2xl mb-12">
-            <div class="relative max-w-4xl mx-auto space-y-6 text-center">
-                <h1
-                    class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-300 to-white bg-clip-text text-transparent">
-                    About Blue Bird
-                </h1>
-                <p class="text-lg sm:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
-                    Built for performance, simplicity, and raw speed.
-                </p>
-            </div>
-        </div>
+        <div>
+            <section class="hero glass-card">
+                <h1 class="mt-3">About Blue Bird</h1>
+                <p class="lead">Built for performance, simplicity, and raw speed.</p>
+            </section>
 
-        <section class="max-w-4xl mx-auto space-y-12">
-            <article class="p-8 rounded-2xl bg-slate-900/40 border border-white/5 shadow-xl">
-                <h2 class="text-2xl font-bold text-white mb-4">Our Philosophy</h2>
-                <p class="text-slate-400 leading-relaxed mb-4">
+            <article class="mt-6 glass-card">
+                <header>
+                    <h2>Our Philosophy</h2>
+                </header>
+                <p>
                     Blue Bird was born out of a desire for a clean, performance-first approach to web development. We
                     believe in harnessing the raw power of Express.js and Nginx, stripping away unnecessary bloat, and
                     providing developers with a robust foundation that just works.
                 </p>
-                <p class="text-slate-400 leading-relaxed">
+                <p>
                     By separating the static frontend delivery (handled blazingly fast by Nginx) from the dynamic API
                     layer (powered by Express and Redis), Blue Bird achieves unparalleled performance out of the box.
                 </p>
             </article>
 
-            <article class="p-8 rounded-2xl bg-slate-900/40 border border-white/5 shadow-xl">
-                <h2 class="text-2xl font-bold text-white mb-4">Why Blue Bird?</h2>
-                <ul class="space-y-3 text-slate-400">
-                    <li class="flex items-start">
-                        <span class="text-blue-500 mr-2">✓</span>
-                        <span><strong>Zero Config Docker:</strong> Go from development to production seamlessly.</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-500 mr-2">✓</span>
-                        <span><strong>Military Grade Security:</strong> Built-in AES-256-GCM JWT encryption.</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-500 mr-2">✓</span>
-                        <span><strong>High Performance:</strong> Redis caching for the data layer and Nginx static
-                            delivery.</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-500 mr-2">✓</span>
-                        <span><strong>Pure HTML/CSS:</strong> No bloated frontend frameworks. Write code close to the
-                            metal.</span>
-                    </li>
-                </ul>
+            <article class="glass-card">
+                <header>
+                    <h2>Why Blue Bird?</h2>
+                </header>
+                <div class="grid cols-2 gap-4">
+                    <div>
+                        <details open>
+                            <summary>Zero Config Docker</summary>
+                            <p>Go from development to production seamlessly with ready-to-use Docker orchestration for
+                                SQLite, MySQL, PostgreSQL, and Redis.</p>
+                        </details>
+                        <details open>
+                            <summary>Military Grade Security</summary>
+                            <p>Built-in AES-256-GCM JWT encryption, secure HttpOnly cookie sessions, helmet headers, and
+                                route rate limiting.</p>
+                        </details>
+                    </div>
+                    <div>
+                        <details open>
+                            <summary>High Performance Layer</summary>
+                            <p>Redis caching for the data layer and Nginx static delivery with 1-month browser asset
+                                caching.</p>
+                        </details>
+                        <details open>
+                            <summary>Pure Semantic HTML &amp; CSS</summary>
+                            <p>No bloated frontend frameworks or heavy node compile steps. Write clean, accessible code
+                                close to the metal.</p>
+                        </details>
+                    </div>
+                </div>
             </article>
-        </section>
+
+            <article class="glass-card">
+                <header>
+                    <h2>Core Architecture Summary</h2>
+                </header>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Technology</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Frontend</strong></td>
+                            <td>Pure Semantic HTML5 + <a href="https://seip25.github.io/Blue-bird-css/"
+                                    target="_blank">Blue Bird CSS</a></td>
+                            <td>Static rendering served directly via Nginx</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Backend</strong></td>
+                            <td>Node.js + Express + PM2</td>
+                            <td>High-performance REST API services</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache</strong></td>
+                            <td>Redis / In-Memory RAM</td>
+                            <td>Sub-millisecond route &amp; query caching</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database</strong></td>
+                            <td>SQLite (WAL) / PostgreSQL / MySQL</td>
+                            <td>Unified driver with connection pooling</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </article>
+
+            <article class="mt-6">
+                <h5 class="text-lg">🎨 Powered by Blue Bird CSS</h5>
+                <p class="text-secondary">
+                    This project uses <a href="https://seip25.github.io/Blue-bird-css/"
+                        target="_blank"><strong>Blue-bird-css</strong></a>: A lightweight, semantic, modern CSS
+                    framework built with clean design principles and Tailwind utility power.
+                </p>
+            </article>
+        </div>
     </main>
 
-    <footer class="border-t border-white/5 py-8 bg-slate-950 mt-16">
-        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
-            <p>Powered by Blue Bird Framework. All rights reserved.</p>
+    <footer>
+        <div class="footer-content">
+            <p>Powered by <strong>Blue Bird Framework</strong> &amp; <a href="https://seip25.github.io/Blue-bird-css/"
+                    target="_blank">Blue Bird CSS</a>.</p>
+            <div class="lang-switcher">
+                <a href="/" class="lang-link">Home</a>
+                <a href="/about" class="lang-link">About</a>
+                <a href="https://seip25.github.io/Blue-bird-css/" target="_blank" class="lang-link">CSS Docs</a>
+                <a href="https://github.com/seip25/Blue-bird" target="_blank" class="github-star mt-2">&#9733; GitHub</a>
+            </div>
         </div>
     </footer>
-
 </body>
 
 </html>
