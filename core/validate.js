@@ -148,19 +148,20 @@ class Validator {
    * const result = await loginValidator.validate(req);
    */
   async validate(req) {
+    const isExpressReq = req && (req.body !== undefined || req.headers !== undefined);
     let lang =
       req?.body?.lang ||
       req?.query?.lang ||
       req?.params?.lang ||
       req?.cookies?.lang ||
-      req?.headers["accept-language"]?.split(",")[0]?.split("-")[0] ||
+      req?.headers?.["accept-language"]?.split(",")[0]?.split("-")[0] ||
       req?.session?.lang ||
       this.lang_default ||
       "es";
     const msg = this.messages[lang] || this.messages.es;
     const errors = [];
     const messages = [];
-    const body = req.body || {};
+    const body = isExpressReq ? (req.body || {}) : (req || {});
 
     for (const [field, config] of Object.entries(this.schema)) {
       let value = body[field];
