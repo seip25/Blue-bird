@@ -118,6 +118,8 @@ class ProjectInit {
       "docker",
       ".env_example",
       "AGENTS.md",
+      "jsconfig.json",
+      ".vscode",
     ];
 
     try {

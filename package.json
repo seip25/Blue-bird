@@ -50,7 +50,9 @@
     "docker",
     "docker-compose.yml",
     "AGENTS.md",
-    ".env_example"
+    ".env_example",
+    "jsconfig.json",
+    ".vscode"
   ],
   "dependencies": {
     "better-sqlite3": "^13.0.3",

@@ -469,6 +469,17 @@ npx blue-bird nginx:conf [domain] [port]
 
 ---
 
+## ✨ IDE Autocompletion & Developer Experience (CSS & JS)
+
+When initializing a project with `npx blue-bird`, the CLI generates `jsconfig.json`, `.vscode/settings.json`, `.vscode/extensions.json`, and `frontend/js/bluebird.d.ts` for zero-configuration IntelliSense:
+
+- **HTML & CSS Class IntelliSense:** Autocompletes all `bluebird.css` utilities and component classes in HTML attributes (`class="..."`). Recommended extensions:
+  - [HTML CSS Class Completion (Open VSX)](https://open-vsx.org/vscode/item?itemName=Zignd.html-css-class-completion) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Zignd.html-css-class-completion)
+  - [CSS Peek (Open VSX)](https://open-vsx.org/vscode/item?itemName=pranaygp.vscode-css-peek) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pranaygp.vscode-css-peek)
+- **JavaScript Tooltips & Autocomplete:** Built-in typed definitions (`bluebird.d.ts`) provide hover tooltips, options autocomplete, and inline code examples for `bluebird('toast', {...})`, `bluebird('snackbar', {...})`, `bluebird('drawer', {...})`, and other UI helpers.
+
+---
+
 ## 📬 Background Jobs & Queue (Queue)
 
 Blue Bird includes a lightweight queue worker (`core/queue.js`) backed by Redis with an automatic in-memory fallback for local development or non-redis architectures:

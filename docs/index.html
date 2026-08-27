@@ -346,6 +346,34 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- IDE Autocompletion Card -->
+                            <div class="my-8 p-6 bg-gradient-to-br from-indigo-50/70 to-brand-50/70 border border-indigo-100 rounded-2xl">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <span class="text-xl">✨</span>
+                                    <h4 class="text-lg font-bold text-slate-900">IDE Autocompletion &amp; Developer Experience (CSS &amp; JS)</h4>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                                    When you run <code>npx blue-bird</code>, the CLI automatically generates <code>jsconfig.json</code>, <code>.vscode/settings.json</code>, <code>.vscode/extensions.json</code>, and <code>frontend/js/bluebird.d.ts</code> so your IDE immediately provides instant IntelliSense for both CSS classes and JavaScript helpers.
+                                </p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                    <div class="p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
+                                        <p class="font-bold text-indigo-900 mb-1">🎨 HTML &amp; CSS Class IntelliSense</p>
+                                        <p class="text-slate-500 mb-2 leading-relaxed">Auto-completes all <code>bluebird.css</code> utilities and components when writing <code>class="..."</code> in HTML.</p>
+                                        <div class="flex flex-wrap gap-2 pt-1 font-sans">
+                                            <a href="https://open-vsx.org/vscode/item?itemName=Zignd.html-css-class-completion" target="_blank" rel="noopener" class="text-brand-600 hover:underline font-semibold">HTML CSS Class Completion (Open VSX)</a>
+                                            <span class="text-slate-300">|</span>
+                                            <a href="https://open-vsx.org/vscode/item?itemName=pranaygp.vscode-css-peek" target="_blank" rel="noopener" class="text-brand-600 hover:underline font-semibold">CSS Peek (Open VSX)</a>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
+                                        <p class="font-bold text-indigo-900 mb-1">⚡ JavaScript Helpers &amp; Tooltips</p>
+                                        <p class="text-slate-500 mb-2 leading-relaxed">Typed definitions in <code>bluebird.d.ts</code> give hover tooltips, options autocomplete, and inline code examples for <code>bluebird('toast', {...})</code>.</p>
+                                        <p class="text-emerald-600 font-semibold font-mono">Zero config required (built-in jsconfig.json)</p>
+                                    </div>
+                                </div>
+                            </div>
                         </article>
 
                         <!-- Config Section -->
