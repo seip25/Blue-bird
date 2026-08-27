@@ -5,42 +5,66 @@ import path from "node:path";
 import chalk from "chalk";
 
 /**
- * Parses .env file to extract default PORT.
- * @returns {number}
+ * Parses .env file to extract APP_URL and PORT.
+ * @returns {{ domain: string, port: number, appUrl: string }}
  */
-function getPortFromEnv() {
+function getEnvConfig() {
+  const env = { ...process.env };
   const envPath = path.resolve(process.cwd(), ".env");
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, "utf-8");
-    const portMatch = content.match(/^PORT\s*=\s*(\d+)/m);
-    if (portMatch) {
-      return parseInt(portMatch[1], 10);
+    content.split(/\r?\n/).forEach((line) => {
+      line = line.trim();
+      if (line && !line.startsWith("#") && line.includes("=")) {
+        const idx = line.indexOf("=");
+        const key = line.substring(0, idx).trim();
+        const value = line.substring(idx + 1).trim().replace(/^['"]|['"]$/g, "");
+        env[key] = value;
+      }
+    });
+  }
+
+  let domain = "";
+  if (env.APP_URL) {
+    try {
+      const parsedUrl = new URL(env.APP_URL.includes("://") ? env.APP_URL : `http://${env.APP_URL}`);
+      domain = parsedUrl.hostname;
+    } catch {
+      domain = env.APP_URL.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "").trim();
     }
   }
-  return 3000;
+
+  const port = parseInt(env.PORT || "3000", 10);
+  return { domain, port, appUrl: env.APP_URL || "" };
 }
 
 /**
  * Generates Host Nginx reverse proxy configuration snippet.
  */
 function generateNginxConfig() {
-  const args = process.argv.slice(2);
-  let domain = args[1];
-  let port = args[2] ? parseInt(args[2], 10) : getPortFromEnv();
+  const rawArgs = process.argv.slice(2);
+  const filteredArgs = rawArgs.filter(
+    (a) => a !== "nginx:conf" && a !== "nginx:host" && a !== "nginx" && !a.endsWith("nginx.js") && !a.endsWith("init.js")
+  );
 
-  if (!domain || domain.startsWith("-")) {
-    console.log(chalk.red("[ERROR] Missing domain parameter."));
-    console.log("");
-    console.log("Usage:");
-    console.log("  npx blue-bird nginx:conf <domain> [port]");
-    console.log("");
-    console.log("Example:");
-    console.log("  npx blue-bird nginx:conf myapp.example.com 3000");
-    process.exit(1);
+  const envConfig = getEnvConfig();
+
+  let domainArg = filteredArgs.find((a) => !a.startsWith("-") && isNaN(Number(a)));
+  let portArg = filteredArgs.find((a) => !isNaN(Number(a)));
+
+  let domain = domainArg || envConfig.domain;
+  let port = portArg ? parseInt(portArg, 10) : envConfig.port;
+
+  if (!domain) {
+    domain = "example.com";
+    console.log(chalk.yellow("[INFO] No domain provided and APP_URL is not configured in .env. Defaulting to 'example.com'."));
+  } else if (!domainArg && envConfig.domain) {
+    console.log(chalk.cyan(`[INFO] Using domain '${domain}' and port ${port} resolved from .env (APP_URL / PORT).`));
+    console.log(chalk.gray(`       (You can override via: npx blue-bird nginx:conf <domain> [port])\n`));
   }
 
-  // Clean domain name
-  domain = domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
+  // Clean domain name (strip protocol, path, port)
+  domain = domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "").trim();
 
   const nginxSnippet = `# =============================================================
 # Blue Bird Host Nginx Reverse Proxy Configuration
@@ -108,7 +132,7 @@ server {
   console.log(chalk.yellow("6. Provision free SSL certificate with Certbot (Let's Encrypt):"));
   console.log(chalk.green(`   sudo certbot --nginx -d ${domain}`));
   console.log("");
-  console.log(chalk.cyan("============================================================="));
+  console.log(chalk.bold.cyan("============================================================="));
 }
 
 generateNginxConfig();

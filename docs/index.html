@@ -1280,9 +1280,13 @@ export async function seed(tx) {
 
                                 <h4 class="font-bold text-slate-800 mt-8 mb-2">4. Host Nginx Reverse Proxy &amp; Let's Encrypt Automation</h4>
                                 <p class="text-slate-600 mb-3 text-sm leading-relaxed">
-                                    Outputs ready-to-paste reverse proxy block for your VPS host Nginx (<code>/etc/nginx/sites-available/&lt;domain&gt;</code>) with WebSocket support, proxy headers, and Certbot SSL installation steps:
+                                    Outputs a ready-to-paste reverse proxy block for your VPS host Nginx (<code>/etc/nginx/sites-available/&lt;domain&gt;</code>) with WebSocket support, proxy headers, and Certbot SSL installation steps. Automatically resolves domain and port from <code>APP_URL</code> and <code>PORT</code> in <code>.env</code> if omitted:
                                 </p>
-                                <pre><code class="language-bash">npx blue-bird nginx:conf myapp.example.com 3000</code></pre>
+                                <pre><code class="language-bash"># Auto-resolves domain and port from .env (APP_URL and PORT)
+npx blue-bird nginx:conf
+
+# Or specify custom domain and port explicitly
+npx blue-bird nginx:conf myapp.example.com 3000</code></pre>
                             </article>
 
                             <!-- Production Section -->

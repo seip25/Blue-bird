@@ -223,8 +223,8 @@ npx blue-bird migrate:status        # Displays applied and pending migration bat
 npx blue-bird make:seed <name>      # Creates SQL seed file in database/seeds/
 npx blue-bird seed                  # Executes seed files in database/seeds/
 
-# VPS Host Nginx & SSL Automation
-npx blue-bird nginx:conf <domain> [port] # Generates reverse proxy block & Certbot setup instructions
+# VPS Host Nginx & SSL Automation (Auto-resolves APP_URL & PORT from .env if omitted)
+npx blue-bird nginx:conf [domain] [port]
 ```
 
 ## 12. Background Jobs & Queue (Queue)
