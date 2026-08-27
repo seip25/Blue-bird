@@ -4,63 +4,63 @@
  * @param {object} [options] - Component configuration options
  */
 function bluebird(component, options) {
-    if (typeof component === 'object') {
-        options = component;
-        component = 'snackbar';
+  if (typeof component === 'object') {
+    options = component;
+    component = 'snackbar';
+  }
+
+  // --- SNACKBAR COMPONENT ---
+  if (component === 'snackbar') {
+    let snackbarEl = document.getElementById('snackbar');
+
+    if (!snackbarEl) {
+      snackbarEl = document.createElement('div');
+      snackbarEl.id = 'snackbar';
+      document.body.appendChild(snackbarEl);
     }
 
-    // --- SNACKBAR COMPONENT ---
-    if (component === 'snackbar') {
-        let snackbarEl = document.getElementById('snackbar');
+    snackbarEl.className = 'show';
 
-        if (!snackbarEl) {
-            snackbarEl = document.createElement('div');
-            snackbarEl.id = 'snackbar';
-            document.body.appendChild(snackbarEl);
-        }
-
-        snackbarEl.className = 'show';
-
-        if (options && options.type) {
-            snackbarEl.classList.add(options.type);
-        } else {
-            snackbarEl.classList.add('info');
-        }
-
-        snackbarEl.textContent = (options && options.message) || '';
-        setTimeout(() => {
-            snackbarEl.classList.add('show');
-        }, 10);
-
-        const duration = (options && options.duration) || 3000;
-        if (snackbarEl.timeoutId) {
-            clearTimeout(snackbarEl.timeoutId);
-        }
-
-        snackbarEl.timeoutId = setTimeout(function () {
-            snackbarEl.className = '';
-        }, duration);
+    if (options && options.type) {
+      snackbarEl.classList.add(options.type);
+    } else {
+      snackbarEl.classList.add('info');
     }
 
-    // --- MULTI-TOAST SYSTEM ---
-    if (component === 'toast') {
-        const position = (options && options.position) || 'bottom-right';
-        let container = document.querySelector(`.toast-container.${position}`);
+    snackbarEl.textContent = (options && options.message) || '';
+    setTimeout(() => {
+      snackbarEl.classList.add('show');
+    }, 10);
 
-        if (!container) {
-            container = document.createElement('div');
-            container.className = `toast-container ${position}`;
-            document.body.appendChild(container);
-        }
+    const duration = (options && options.duration) || 3000;
+    if (snackbarEl.timeoutId) {
+      clearTimeout(snackbarEl.timeoutId);
+    }
 
-        const toastEl = document.createElement('div');
-        const typeClass = (options && options.type) ? `toast-${options.type}` : 'toast-info';
-        toastEl.className = `toast ${typeClass}`;
+    snackbarEl.timeoutId = setTimeout(function () {
+      snackbarEl.className = '';
+    }, duration);
+  }
 
-        const title = (options && options.title) ? `<div class="toast-title">${options.title}</div>` : '';
-        const desc = (options && options.description) ? `<div class="toast-description">${options.description}</div>` : '';
+  // --- MULTI-TOAST SYSTEM ---
+  if (component === 'toast') {
+    const position = (options && options.position) || 'bottom-right';
+    let container = document.querySelector(`.toast-container.${position}`);
 
-        toastEl.innerHTML = `
+    if (!container) {
+      container = document.createElement('div');
+      container.className = `toast-container ${position}`;
+      document.body.appendChild(container);
+    }
+
+    const toastEl = document.createElement('div');
+    const typeClass = (options && options.type) ? `toast-${options.type}` : 'toast-info';
+    toastEl.className = `toast ${typeClass}`;
+
+    const title = (options && options.title) ? `<div class="toast-title">${options.title}</div>` : '';
+    const desc = (options && options.description) ? `<div class="toast-description">${options.description}</div>` : '';
+
+    toastEl.innerHTML = `
       <div class="toast-content">
         ${title}
         ${desc}
@@ -68,137 +68,137 @@ function bluebird(component, options) {
       <button class="toast-close" aria-label="Dismiss">&times;</button>
     `;
 
-        const closeBtn = toastEl.querySelector('.toast-close');
-        closeBtn.addEventListener('click', () => dismissToast(toastEl));
+    const closeBtn = toastEl.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => dismissToast(toastEl));
 
-        container.appendChild(toastEl);
+    container.appendChild(toastEl);
 
-        const duration = (options && options.duration) !== undefined ? options.duration : 4000;
-        if (duration > 0) {
-            setTimeout(() => dismissToast(toastEl), duration);
-        }
+    const duration = (options && options.duration) !== undefined ? options.duration : 4000;
+    if (duration > 0) {
+      setTimeout(() => dismissToast(toastEl), duration);
+    }
+  }
+
+  // --- TABS COMPONENT ---
+  if (component === 'tab') {
+    const targetId = options && options.id;
+    if (!targetId) return;
+
+    const targetContent = document.getElementById(targetId);
+    if (!targetContent) return;
+
+    const tabsContainer = targetContent.closest('.tabs');
+    if (!tabsContainer) return;
+
+    const allTriggers = tabsContainer.querySelectorAll('.tab-trigger');
+    const allContents = tabsContainer.querySelectorAll('.tab-content');
+
+    allContents.forEach(c => c.classList.remove('active'));
+    allTriggers.forEach(t => t.classList.remove('active'));
+
+    targetContent.classList.add('active');
+
+    const matchingTrigger = Array.from(allTriggers).find(t =>
+      t.getAttribute('data-tab-target') === targetId || t.getAttribute('href') === `#${targetId}`
+    );
+
+    if (matchingTrigger) {
+      matchingTrigger.classList.add('active');
+    }
+  }
+
+  // --- COMMAND PALETTE MODAL ---
+  if (component === 'command') {
+    const action = (options && options.action) || 'toggle';
+    let backdrop = document.querySelector('.command-backdrop');
+
+    if (!backdrop) {
+      backdrop = createCommandPaletteModal();
     }
 
-    // --- TABS COMPONENT ---
-    if (component === 'tab') {
-        const targetId = options && options.id;
-        if (!targetId) return;
+    const isOpen = backdrop.classList.contains('open');
 
-        const targetContent = document.getElementById(targetId);
-        if (!targetContent) return;
+    if (action === 'open' || (action === 'toggle' && !isOpen)) {
+      backdrop.classList.add('open');
+      const input = backdrop.querySelector('.command-input');
+      if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 50);
+      }
+    } else if (action === 'close' || (action === 'toggle' && isOpen)) {
+      backdrop.classList.remove('open');
+    }
+  }
 
-        const tabsContainer = targetContent.closest('.tabs');
-        if (!tabsContainer) return;
+  // --- POPOVER COMPONENT ---
+  if (component === 'popover') {
+    const id = options && options.id;
+    const action = (options && options.action) || 'toggle';
+    if (!id) return;
 
-        const allTriggers = tabsContainer.querySelectorAll('.tab-trigger');
-        const allContents = tabsContainer.querySelectorAll('.tab-content');
+    const popoverEl = document.getElementById(id) || document.querySelector(`[data-popover-id="${id}"]`);
+    if (!popoverEl) return;
 
-        allContents.forEach(c => c.classList.remove('active'));
-        allTriggers.forEach(t => t.classList.remove('active'));
+    const isOpen = popoverEl.classList.contains('open');
+    if (action === 'open' || (action === 'toggle' && !isOpen)) {
+      popoverEl.classList.add('open');
+    } else {
+      popoverEl.classList.remove('open');
+    }
+  }
 
-        targetContent.classList.add('active');
+  // --- STANDALONE DRAWER COMPONENT ---
+  if (component === 'drawer') {
+    cleanupOrphanedBackdrops();
 
-        const matchingTrigger = Array.from(allTriggers).find(t =>
-            t.getAttribute('data-tab-target') === targetId || t.getAttribute('href') === `#${targetId}`
-        );
+    const id = options && options.id;
+    const action = (options && options.action) || 'toggle';
+    if (!id) return;
 
-        if (matchingTrigger) {
-            matchingTrigger.classList.add('active');
-        }
+    const drawerEl = document.getElementById(id);
+    if (!drawerEl) return;
+
+    let overlay = document.querySelector(`.drawer-backdrop[data-for="${id}"]`);
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'drawer-backdrop';
+      overlay.setAttribute('data-for', id);
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', () => {
+        bluebird('drawer', { id, action: 'close' });
+      });
     }
 
-    // --- COMMAND PALETTE MODAL ---
-    if (component === 'command') {
-        const action = (options && options.action) || 'toggle';
-        let backdrop = document.querySelector('.command-backdrop');
+    const isOpen = drawerEl.classList.contains('open') || drawerEl.classList.contains('active');
 
-        if (!backdrop) {
-            backdrop = createCommandPaletteModal();
+    if (action === 'open' || (action === 'toggle' && !isOpen)) {
+      drawerEl.classList.add('open');
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    } else if (action === 'close' || (action === 'toggle' && isOpen)) {
+      drawerEl.classList.remove('open');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        if (overlay && overlay.parentNode && !drawerEl.classList.contains('open')) {
+          overlay.remove();
         }
-
-        const isOpen = backdrop.classList.contains('open');
-
-        if (action === 'open' || (action === 'toggle' && !isOpen)) {
-            backdrop.classList.add('open');
-            const input = backdrop.querySelector('.command-input');
-            if (input) {
-                input.value = '';
-                setTimeout(() => input.focus(), 50);
-            }
-        } else if (action === 'close' || (action === 'toggle' && isOpen)) {
-            backdrop.classList.remove('open');
-        }
+      }, 300);
     }
+  }
 
-    // --- POPOVER COMPONENT ---
-    if (component === 'popover') {
-        const id = options && options.id;
-        const action = (options && options.action) || 'toggle';
-        if (!id) return;
+  // --- CAROUSEL COMPONENT ---
+  if (component === 'carousel') {
+    const selector = (options && options.selector) || '.carousel';
+    const carousels = document.querySelectorAll(selector);
+    carousels.forEach(carousel => initSingleCarousel(carousel, options));
+  }
 
-        const popoverEl = document.getElementById(id) || document.querySelector(`[data-popover-id="${id}"]`);
-        if (!popoverEl) return;
-
-        const isOpen = popoverEl.classList.contains('open');
-        if (action === 'open' || (action === 'toggle' && !isOpen)) {
-            popoverEl.classList.add('open');
-        } else {
-            popoverEl.classList.remove('open');
-        }
-    }
-
-    // --- STANDALONE DRAWER COMPONENT ---
-    if (component === 'drawer') {
-        cleanupOrphanedBackdrops();
-
-        const id = options && options.id;
-        const action = (options && options.action) || 'toggle';
-        if (!id) return;
-
-        const drawerEl = document.getElementById(id);
-        if (!drawerEl) return;
-
-        let overlay = document.querySelector(`.drawer-backdrop[data-for="${id}"]`);
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.className = 'drawer-backdrop';
-            overlay.setAttribute('data-for', id);
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', () => {
-                bluebird('drawer', { id, action: 'close' });
-            });
-        }
-
-        const isOpen = drawerEl.classList.contains('open') || drawerEl.classList.contains('active');
-
-        if (action === 'open' || (action === 'toggle' && !isOpen)) {
-            drawerEl.classList.add('open');
-            overlay.classList.add('open');
-            document.body.style.overflow = 'hidden';
-        } else if (action === 'close' || (action === 'toggle' && isOpen)) {
-            drawerEl.classList.remove('open');
-            overlay.classList.remove('open');
-            document.body.style.overflow = '';
-            setTimeout(() => {
-                if (overlay && overlay.parentNode && !drawerEl.classList.contains('open')) {
-                    overlay.remove();
-                }
-            }, 300);
-        }
-    }
-
-    // --- CAROUSEL COMPONENT ---
-    if (component === 'carousel') {
-        const selector = (options && options.selector) || '.carousel';
-        const carousels = document.querySelectorAll(selector);
-        carousels.forEach(carousel => initSingleCarousel(carousel, options));
-    }
-
-    // --- RESPONSIVE DATATABLE COMPONENT ---
-    if (component === 'datatable' || component === 'table') {
-        const containerId = (options && (options.container || options.id)) || 'datatable';
-        return new ResponsiveDataTable(containerId, options);
-    }
+  // --- RESPONSIVE DATATABLE COMPONENT ---
+  if (component === 'datatable' || component === 'table') {
+    const containerId = (options && (options.container || options.id)) || 'datatable';
+    return new ResponsiveDataTable(containerId, options);
+  }
 }
 
 /**
@@ -206,7 +206,7 @@ function bluebird(component, options) {
  * @param {object} options - Snackbar configuration options
  */
 function snackbar(options) {
-    bluebird('snackbar', options);
+  bluebird('snackbar', options);
 }
 
 /**
@@ -214,28 +214,28 @@ function snackbar(options) {
  * @param {object} options - Toast configuration options
  */
 function toast(options) {
-    bluebird('toast', options);
+  bluebird('toast', options);
 }
 
 function dismissToast(toastEl) {
-    if (!toastEl || toastEl.isDismissing) return;
-    toastEl.isDismissing = true;
-    toastEl.style.opacity = '0';
-    toastEl.style.transform = 'translateY(-10px) scale(0.95)';
-    setTimeout(() => {
-        if (toastEl.parentNode) {
-            toastEl.remove();
-        }
-    }, 200);
+  if (!toastEl || toastEl.isDismissing) return;
+  toastEl.isDismissing = true;
+  toastEl.style.opacity = '0';
+  toastEl.style.transform = 'translateY(-10px) scale(0.95)';
+  setTimeout(() => {
+    if (toastEl.parentNode) {
+      toastEl.remove();
+    }
+  }, 200);
 }
 
 /**
  * Create default command palette DOM modal
  */
 function createCommandPaletteModal() {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'command-backdrop';
-    backdrop.innerHTML = `
+  const backdrop = document.createElement('div');
+  backdrop.className = 'command-backdrop';
+  backdrop.innerHTML = `
     <div class="command-dialog">
       <div class="command-input-wrapper">
         <span>🔍</span>
@@ -260,646 +260,646 @@ function createCommandPaletteModal() {
     </div>
   `;
 
-    document.body.appendChild(backdrop);
+  document.body.appendChild(backdrop);
 
-    backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
-            bluebird('command', { action: 'close' });
-        }
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) {
+      bluebird('command', { action: 'close' });
+    }
+  });
+
+  const input = backdrop.querySelector('.command-input');
+  input.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const items = backdrop.querySelectorAll('.command-item');
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = text.includes(query) ? 'flex' : 'none';
     });
+  });
 
-    const input = backdrop.querySelector('.command-input');
-    input.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const items = backdrop.querySelectorAll('.command-item');
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(query) ? 'flex' : 'none';
-        });
-    });
+  backdrop.addEventListener('click', (e) => {
+    const item = e.target.closest('.command-item');
+    if (item && item.getAttribute('data-navigate')) {
+      window.location.hash = item.getAttribute('data-navigate');
+      bluebird('command', { action: 'close' });
+    }
+  });
 
-    backdrop.addEventListener('click', (e) => {
-        const item = e.target.closest('.command-item');
-        if (item && item.getAttribute('data-navigate')) {
-            window.location.hash = item.getAttribute('data-navigate');
-            bluebird('command', { action: 'close' });
-        }
-    });
-
-    return backdrop;
+  return backdrop;
 }
 
 /**
  * Remove backdrops whose target drawer no longer exists in DOM
  */
 function cleanupOrphanedBackdrops() {
-    document.querySelectorAll('.drawer-backdrop[data-for]').forEach(backdrop => {
-        const targetId = backdrop.getAttribute('data-for');
-        if (!document.getElementById(targetId)) {
-            backdrop.remove();
-        }
-    });
+  document.querySelectorAll('.drawer-backdrop[data-for]').forEach(backdrop => {
+    const targetId = backdrop.getAttribute('data-for');
+    if (!document.getElementById(targetId)) {
+      backdrop.remove();
+    }
+  });
 }
 
 function initMobileDrawer() {
-    const mainEl = document.querySelector('main');
-    const aside = mainEl ? mainEl.querySelector(':scope > aside') : null;
-    if (!aside) return;
+  const mainEl = document.querySelector('main');
+  const aside = mainEl ? mainEl.querySelector(':scope > aside') : null;
+  if (!aside) return;
 
-    let overlay = document.querySelector('.bluebird-drawer-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.className = 'bluebird-drawer-overlay';
-        document.body.appendChild(overlay);
+  let overlay = document.querySelector('.bluebird-drawer-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'bluebird-drawer-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  let drawer = document.querySelector('.bluebird-drawer');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.className = 'bluebird-drawer';
+    document.body.appendChild(drawer);
+  }
+
+  drawer.innerHTML = aside.innerHTML;
+
+  let toggle = document.querySelector('.bluebird-drawer-toggle');
+  if (!toggle) {
+    toggle = document.createElement('button');
+    toggle.className = 'bluebird-drawer-toggle';
+    toggle.innerHTML = '☰';
+    toggle.setAttribute('aria-label', 'Toggle navigation menu');
+
+    const header = document.querySelector('header');
+    if (header) {
+      const nav = header.querySelector('nav');
+      if (nav) {
+        nav.insertBefore(toggle, nav.firstChild);
+      } else {
+        header.prepend(toggle);
+      }
+    } else {
+      document.body.prepend(toggle);
     }
-
-    let drawer = document.querySelector('.bluebird-drawer');
-    if (!drawer) {
-        drawer = document.createElement('div');
-        drawer.className = 'bluebird-drawer';
-        document.body.appendChild(drawer);
-    }
-
-    drawer.innerHTML = aside.innerHTML;
-
-    let toggle = document.querySelector('.bluebird-drawer-toggle');
-    if (!toggle) {
-        toggle = document.createElement('button');
-        toggle.className = 'bluebird-drawer-toggle';
-        toggle.innerHTML = '☰';
-        toggle.setAttribute('aria-label', 'Toggle navigation menu');
-
-        const header = document.querySelector('header');
-        if (header) {
-            const nav = header.querySelector('nav');
-            if (nav) {
-                nav.insertBefore(toggle, nav.firstChild);
-            } else {
-                header.prepend(toggle);
-            }
-        } else {
-            document.body.prepend(toggle);
-        }
-    }
+  }
 }
 
 // Global keyboard listener for Ctrl+K / Cmd+K Command Palette shortcut & ESC key
 document.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        bluebird('command', { action: 'toggle' });
-    }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    bluebird('command', { action: 'toggle' });
+  }
 
-    if (e.key === 'Escape') {
-        const commandBackdrop = document.querySelector('.command-backdrop.open');
-        if (commandBackdrop) {
-            bluebird('command', { action: 'close' });
-        }
+  if (e.key === 'Escape') {
+    const commandBackdrop = document.querySelector('.command-backdrop.open');
+    if (commandBackdrop) {
+      bluebird('command', { action: 'close' });
     }
+  }
 });
 
 // Global click listener for Material Ripples, Mobile Navigation Drawer, Tabs, Popovers & Declarative Data Attributes
 document.addEventListener('click', function (e) {
-    // 1. Declarative Tab Trigger Click
-    const tabTrigger = e.target.closest('[data-tab-target], .tab-trigger');
-    if (tabTrigger) {
-        const targetId = tabTrigger.getAttribute('data-tab-target') || (tabTrigger.getAttribute('href') || '').replace('#', '');
-        if (targetId) {
-            e.preventDefault();
-            bluebird('tab', { id: targetId });
-        }
+  // 1. Declarative Tab Trigger Click
+  const tabTrigger = e.target.closest('[data-tab-target], .tab-trigger');
+  if (tabTrigger) {
+    const targetId = tabTrigger.getAttribute('data-tab-target') || (tabTrigger.getAttribute('href') || '').replace('#', '');
+    if (targetId) {
+      e.preventDefault();
+      bluebird('tab', { id: targetId });
     }
+  }
 
-    // 2. Declarative Popover Trigger Click
-    const popoverTrigger = e.target.closest('[data-popover-target]');
-    if (popoverTrigger) {
-        const popoverId = popoverTrigger.getAttribute('data-popover-target');
-        bluebird('popover', { id: popoverId, action: 'toggle' });
-    }
+  // 2. Declarative Popover Trigger Click
+  const popoverTrigger = e.target.closest('[data-popover-target]');
+  if (popoverTrigger) {
+    const popoverId = popoverTrigger.getAttribute('data-popover-target');
+    bluebird('popover', { id: popoverId, action: 'toggle' });
+  }
 
-    // Close open popovers when clicking outside
-    if (!e.target.closest('.popover') && !e.target.closest('[data-popover-target]')) {
-        document.querySelectorAll('.popover.open').forEach(p => p.classList.remove('open'));
-    }
+  // Close open popovers when clicking outside
+  if (!e.target.closest('.popover') && !e.target.closest('[data-popover-target]')) {
+    document.querySelectorAll('.popover.open').forEach(p => p.classList.remove('open'));
+  }
 
-    // 3. Mobile Navigation Toggle Button Click
-    const mobileToggle = e.target.closest('.bluebird-drawer-toggle');
-    if (mobileToggle) {
-        e.preventDefault();
-        e.stopPropagation();
-        initMobileDrawer();
-        const drawer = document.querySelector('.bluebird-drawer');
-        const overlay = document.querySelector('.bluebird-drawer-overlay');
-        if (drawer && overlay) {
-            const isOpen = drawer.classList.contains('open');
-            if (isOpen) {
-                drawer.classList.remove('open');
-                overlay.classList.remove('open');
-                document.body.style.overflow = '';
-            } else {
-                drawer.classList.add('open');
-                overlay.classList.add('open');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-        return;
-    }
-
-    // 4. Mobile Navigation Overlay Click
-    if (e.target.closest('.bluebird-drawer-overlay')) {
-        const drawer = document.querySelector('.bluebird-drawer');
-        const overlay = document.querySelector('.bluebird-drawer-overlay');
-        if (drawer) drawer.classList.remove('open');
-        if (overlay) overlay.classList.remove('open');
+  // 3. Mobile Navigation Toggle Button Click
+  const mobileToggle = e.target.closest('.bluebird-drawer-toggle');
+  if (mobileToggle) {
+    e.preventDefault();
+    e.stopPropagation();
+    initMobileDrawer();
+    const drawer = document.querySelector('.bluebird-drawer');
+    const overlay = document.querySelector('.bluebird-drawer-overlay');
+    if (drawer && overlay) {
+      const isOpen = drawer.classList.contains('open');
+      if (isOpen) {
+        drawer.classList.remove('open');
+        overlay.classList.remove('open');
         document.body.style.overflow = '';
-        return;
+      } else {
+        drawer.classList.add('open');
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
     }
+    return;
+  }
 
-    // 5. Mobile Navigation Drawer Link Click
-    if (e.target.closest('.bluebird-drawer a')) {
-        const drawer = document.querySelector('.bluebird-drawer');
-        const overlay = document.querySelector('.bluebird-drawer-overlay');
-        if (drawer) drawer.classList.remove('open');
-        if (overlay) overlay.classList.remove('open');
-        document.body.style.overflow = '';
+  // 4. Mobile Navigation Overlay Click
+  if (e.target.closest('.bluebird-drawer-overlay')) {
+    const drawer = document.querySelector('.bluebird-drawer');
+    const overlay = document.querySelector('.bluebird-drawer-overlay');
+    if (drawer) drawer.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    return;
+  }
+
+  // 5. Mobile Navigation Drawer Link Click
+  if (e.target.closest('.bluebird-drawer a')) {
+    const drawer = document.querySelector('.bluebird-drawer');
+    const overlay = document.querySelector('.bluebird-drawer-overlay');
+    if (drawer) drawer.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Material Ripple Effect
+  const btn = e.target.closest("button, a[role='button']");
+  if (btn && !btn.classList.contains('fab') && !btn.classList.contains('carousel-nav') && !btn.classList.contains('bluebird-drawer-toggle')) {
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  }
+
+  // Declarative Standalone Drawer Triggers
+  const drawerTrigger = e.target.closest('[data-drawer-target]');
+  if (drawerTrigger) {
+    const id = drawerTrigger.getAttribute('data-drawer-target');
+    bluebird('drawer', { id, action: 'toggle' });
+  }
+
+  const drawerClose = e.target.closest('[data-drawer-close]');
+  if (drawerClose) {
+    const drawerEl = drawerClose.closest('.drawer');
+    if (drawerEl && drawerEl.id) {
+      bluebird('drawer', { id: drawerEl.id, action: 'close' });
     }
-
-    // Material Ripple Effect
-    const btn = e.target.closest("button, a[role='button']");
-    if (btn && !btn.classList.contains('fab') && !btn.classList.contains('carousel-nav') && !btn.classList.contains('bluebird-drawer-toggle')) {
-        const rect = btn.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-
-        const ripple = document.createElement('span');
-        ripple.className = 'ripple';
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-
-        btn.appendChild(ripple);
-        ripple.addEventListener('animationend', () => ripple.remove());
-    }
-
-    // Declarative Standalone Drawer Triggers
-    const drawerTrigger = e.target.closest('[data-drawer-target]');
-    if (drawerTrigger) {
-        const id = drawerTrigger.getAttribute('data-drawer-target');
-        bluebird('drawer', { id, action: 'toggle' });
-    }
-
-    const drawerClose = e.target.closest('[data-drawer-close]');
-    if (drawerClose) {
-        const drawerEl = drawerClose.closest('.drawer');
-        if (drawerEl && drawerEl.id) {
-            bluebird('drawer', { id: drawerEl.id, action: 'close' });
-        }
-    }
+  }
 });
 
 /**
  * Single Carousel Initialization logic with Touch/Swipe, Drag & Arrow Controls
  */
 function initSingleCarousel(carousel, opts = {}) {
-    if (carousel._bb_initialized) return;
-    carousel._bb_initialized = true;
+  if (carousel._bb_initialized) return;
+  carousel._bb_initialized = true;
 
-    const track = carousel.querySelector('.carousel-track');
-    if (!track) return;
+  const track = carousel.querySelector('.carousel-track');
+  if (!track) return;
 
-    const items = Array.from(track.querySelectorAll('.carousel-item, .carousel-card'));
-    if (items.length === 0) return;
+  const items = Array.from(track.querySelectorAll('.carousel-item, .carousel-card'));
+  if (items.length === 0) return;
 
-    const prevBtn = carousel.querySelector('.carousel-prev');
-    const nextBtn = carousel.querySelector('.carousel-next');
-    let indicatorsContainer = carousel.querySelector('.carousel-indicators');
+  const prevBtn = carousel.querySelector('.carousel-prev');
+  const nextBtn = carousel.querySelector('.carousel-next');
+  let indicatorsContainer = carousel.querySelector('.carousel-indicators');
 
-    let currentSlideIndex = 0;
+  let currentSlideIndex = 0;
 
-    if (indicatorsContainer && indicatorsContainer.children.length === 0) {
-        items.forEach((_, idx) => {
-            const dot = document.createElement('button');
-            dot.className = `carousel-dot ${idx === 0 ? 'active' : ''}`;
-            dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
-            dot.addEventListener('click', (e) => {
-                e.preventDefault();
-                scrollToSlide(idx);
-            });
-            indicatorsContainer.appendChild(dot);
-        });
+  if (indicatorsContainer && indicatorsContainer.children.length === 0) {
+    items.forEach((_, idx) => {
+      const dot = document.createElement('button');
+      dot.className = `carousel-dot ${idx === 0 ? 'active' : ''}`;
+      dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+      dot.addEventListener('click', (e) => {
+        e.preventDefault();
+        scrollToSlide(idx);
+      });
+      indicatorsContainer.appendChild(dot);
+    });
+  }
+
+  function scrollToSlide(index) {
+    if (index < 0) index = 0;
+    if (index >= items.length) index = items.length - 1;
+    currentSlideIndex = index;
+    const targetItem = items[index];
+    if (targetItem) {
+      track.scrollTo({
+        left: targetItem.offsetLeft - track.offsetLeft,
+        behavior: 'smooth'
+      });
+      updateIndicators(index);
     }
+  }
 
-    function scrollToSlide(index) {
-        if (index < 0) index = 0;
-        if (index >= items.length) index = items.length - 1;
-        currentSlideIndex = index;
-        const targetItem = items[index];
-        if (targetItem) {
-            track.scrollTo({
-                left: targetItem.offsetLeft - track.offsetLeft,
-                behavior: 'smooth'
-            });
-            updateIndicators(index);
+  function updateIndicators(activeIndex) {
+    if (!indicatorsContainer) return;
+    const dots = Array.from(indicatorsContainer.children);
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === activeIndex);
+    });
+  }
+
+  let scrollTimeout;
+  track.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const trackLeft = track.scrollLeft;
+      let closestIndex = 0;
+      let minDistance = Infinity;
+
+      items.forEach((item, idx) => {
+        const distance = Math.abs(item.offsetLeft - track.offsetLeft - trackLeft);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = idx;
         }
-    }
+      });
 
-    function updateIndicators(activeIndex) {
-        if (!indicatorsContainer) return;
-        const dots = Array.from(indicatorsContainer.children);
-        dots.forEach((dot, idx) => {
-            dot.classList.toggle('active', idx === activeIndex);
-        });
-    }
+      currentSlideIndex = closestIndex;
+      updateIndicators(closestIndex);
+    }, 40);
+  });
 
-    let scrollTimeout;
-    track.addEventListener('scroll', () => {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-            const trackLeft = track.scrollLeft;
-            let closestIndex = 0;
-            let minDistance = Infinity;
-
-            items.forEach((item, idx) => {
-                const distance = Math.abs(item.offsetLeft - track.offsetLeft - trackLeft);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestIndex = idx;
-                }
-            });
-
-            currentSlideIndex = closestIndex;
-            updateIndicators(closestIndex);
-        }, 40);
+  if (prevBtn) {
+    prevBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollToSlide(currentSlideIndex - 1);
     });
+  }
 
-    if (prevBtn) {
-        prevBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            scrollToSlide(currentSlideIndex - 1);
-        });
+  if (nextBtn) {
+    nextBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollToSlide(currentSlideIndex + 1);
+    });
+  }
+
+  // Mobile Touch Swipe & Desktop Mouse Drag
+  let startX = 0;
+  let isDragging = false;
+
+  track.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+  }, { passive: true });
+
+  track.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const endX = e.changedTouches[0].clientX;
+    const diffX = startX - endX;
+
+    if (Math.abs(diffX) > 35) {
+      if (diffX > 0) {
+        scrollToSlide(currentSlideIndex + 1);
+      } else {
+        scrollToSlide(currentSlideIndex - 1);
+      }
     }
+  });
 
-    if (nextBtn) {
-        nextBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            scrollToSlide(currentSlideIndex + 1);
-        });
+  track.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    isDragging = true;
+    track.style.cursor = 'grabbing';
+  });
+
+  track.addEventListener('mouseleave', () => {
+    isDragging = false;
+    track.style.cursor = 'grab';
+  });
+
+  track.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    track.style.cursor = 'grab';
+    const endX = e.clientX;
+    const diffX = startX - endX;
+
+    if (Math.abs(diffX) > 35) {
+      if (diffX > 0) {
+        scrollToSlide(currentSlideIndex + 1);
+      } else {
+        scrollToSlide(currentSlideIndex - 1);
+      }
     }
+  });
 
-    // Mobile Touch Swipe & Desktop Mouse Drag
-    let startX = 0;
-    let isDragging = false;
+  const isAutoplay = (opts && opts.autoplay) || carousel.getAttribute('data-autoplay') === 'true';
+  const intervalTime = parseInt((opts && opts.interval) || carousel.getAttribute('data-interval') || 3500, 10);
 
-    track.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        isDragging = true;
-    }, { passive: true });
+  if (isAutoplay) {
+    let autoInterval = setInterval(() => {
+      const nextIdx = (currentSlideIndex + 1) % items.length;
+      scrollToSlide(nextIdx);
+    }, intervalTime);
 
-    track.addEventListener('touchend', (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        const endX = e.changedTouches[0].clientX;
-        const diffX = startX - endX;
-
-        if (Math.abs(diffX) > 35) {
-            if (diffX > 0) {
-                scrollToSlide(currentSlideIndex + 1);
-            } else {
-                scrollToSlide(currentSlideIndex - 1);
-            }
-        }
+    carousel.addEventListener('mouseenter', () => clearInterval(autoInterval));
+    carousel.addEventListener('mouseleave', () => {
+      autoInterval = setInterval(() => {
+        const nextIdx = (currentSlideIndex + 1) % items.length;
+        scrollToSlide(nextIdx);
+      }, intervalTime);
     });
-
-    track.addEventListener('mousedown', (e) => {
-        startX = e.clientX;
-        isDragging = true;
-        track.style.cursor = 'grabbing';
-    });
-
-    track.addEventListener('mouseleave', () => {
-        isDragging = false;
-        track.style.cursor = 'grab';
-    });
-
-    track.addEventListener('mouseup', (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        track.style.cursor = 'grab';
-        const endX = e.clientX;
-        const diffX = startX - endX;
-
-        if (Math.abs(diffX) > 35) {
-            if (diffX > 0) {
-                scrollToSlide(currentSlideIndex + 1);
-            } else {
-                scrollToSlide(currentSlideIndex - 1);
-            }
-        }
-    });
-
-    const isAutoplay = (opts && opts.autoplay) || carousel.getAttribute('data-autoplay') === 'true';
-    const intervalTime = parseInt((opts && opts.interval) || carousel.getAttribute('data-interval') || 3500, 10);
-
-    if (isAutoplay) {
-        let autoInterval = setInterval(() => {
-            const nextIdx = (currentSlideIndex + 1) % items.length;
-            scrollToSlide(nextIdx);
-        }, intervalTime);
-
-        carousel.addEventListener('mouseenter', () => clearInterval(autoInterval));
-        carousel.addEventListener('mouseleave', () => {
-            autoInterval = setInterval(() => {
-                const nextIdx = (currentSlideIndex + 1) % items.length;
-                scrollToSlide(nextIdx);
-            }, intervalTime);
-        });
-    }
+  }
 }
 
 // --- DECLARATIVE DATA ATTRIBUTES & GLOBAL EVENT DELEGATION ---
 (function setupDeclarativeListeners() {
-    // Click Delegations
-    document.addEventListener('click', (e) => {
-        // 1. Data-Copy
-        const copyTrigger = e.target.closest('[data-copy]');
-        if (copyTrigger) {
-            e.preventDefault();
-            const targetAttr = copyTrigger.getAttribute('data-copy');
-            let textToCopy = targetAttr;
+  // Click Delegations
+  document.addEventListener('click', (e) => {
+    // 1. Data-Copy
+    const copyTrigger = e.target.closest('[data-copy]');
+    if (copyTrigger) {
+      e.preventDefault();
+      const targetAttr = copyTrigger.getAttribute('data-copy');
+      let textToCopy = targetAttr;
 
-            if (targetAttr && (targetAttr.startsWith('#') || targetAttr.startsWith('.'))) {
-                const targetEl = document.querySelector(targetAttr);
-                if (targetEl) {
-                    textToCopy = targetEl.value !== undefined ? targetEl.value : (targetEl.innerText || targetEl.textContent);
-                }
-            }
-
-            if (textToCopy) {
-                navigator.clipboard.writeText(textToCopy.trim()).then(() => {
-                    copyTrigger.classList.add('copied');
-                    if (typeof bluebird === 'function') {
-                        bluebird('toast', {
-                            title: 'Copied to clipboard',
-                            description: textToCopy.length > 50 ? textToCopy.substring(0, 50) + '...' : textToCopy,
-                            type: 'success',
-                            duration: 2500
-                        });
-                    }
-                    setTimeout(() => copyTrigger.classList.remove('copied'), 2000);
-                });
-            }
-            return;
+      if (targetAttr && (targetAttr.startsWith('#') || targetAttr.startsWith('.'))) {
+        const targetEl = document.querySelector(targetAttr);
+        if (targetEl) {
+          textToCopy = targetEl.value !== undefined ? targetEl.value : (targetEl.innerText || targetEl.textContent);
         }
+      }
 
-        // 2. Data-Confirm (Prompt verification before action)
-        const confirmTrigger = e.target.closest('[data-confirm]');
-        if (confirmTrigger) {
-            const msg = confirmTrigger.getAttribute('data-confirm') || 'Are you sure?';
-            if (!window.confirm(msg)) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                return;
-            }
-        }
-
-        // 3. Data-Scroll-To (Smooth scroll with header compensation)
-        const scrollTrigger = e.target.closest('[data-scroll-to]');
-        if (scrollTrigger) {
-            e.preventDefault();
-            const targetId = scrollTrigger.getAttribute('data-scroll-to');
-            const targetEl = document.querySelector(targetId);
-            if (targetEl) {
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-            return;
-        }
-
-        // 4. Data-Password-Toggle (Toggle password unmask)
-        const passToggle = e.target.closest('[data-password-toggle]');
-        if (passToggle) {
-            e.preventDefault();
-            const targetSelector = passToggle.getAttribute('data-password-toggle');
-            const input = targetSelector
-                ? document.querySelector(targetSelector)
-                : (passToggle.closest('.input-group, .form-input-group, div')?.querySelector('input') || passToggle.previousElementSibling);
-
-            if (input && (input.type === 'password' || input.type === 'text')) {
-                const isPassword = input.type === 'password';
-                input.type = isPassword ? 'text' : 'password';
-                passToggle.classList.toggle('showing', isPassword);
-                passToggle.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-            }
-            return;
-        }
-
-        // 5. Data-Step-Up / Data-Step-Down (Number Steppers)
-        const stepUp = e.target.closest('[data-step-up]');
-        if (stepUp) {
-            e.preventDefault();
-            const targetInput = document.querySelector(stepUp.getAttribute('data-step-up')) ||
-                stepUp.closest('.stepper')?.querySelector('input[type="number"]');
-            if (targetInput && typeof targetInput.stepUp === 'function') {
-                targetInput.stepUp();
-                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            return;
-        }
-
-        const stepDown = e.target.closest('[data-step-down]');
-        if (stepDown) {
-            e.preventDefault();
-            const targetInput = document.querySelector(stepDown.getAttribute('data-step-down')) ||
-                stepDown.closest('.stepper')?.querySelector('input[type="number"]');
-            if (targetInput && typeof targetInput.stepDown === 'function') {
-                targetInput.stepDown();
-                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            return;
-        }
-
-        // 6. Data-Select-Value (ComboBox / Select2 item selection)
-        const selectItem = e.target.closest('[data-select-value]');
-        if (selectItem) {
-            const val = selectItem.getAttribute('data-select-value');
-            const targetSelector = selectItem.getAttribute('data-select-target') ||
-                selectItem.closest('[data-select-container]')?.getAttribute('data-select-target');
-            if (targetSelector) {
-                const targetEl = document.querySelector(targetSelector);
-                if (targetEl) {
-                    if (targetEl.tagName === 'INPUT' || targetEl.tagName === 'SELECT') {
-                        targetEl.value = val;
-                        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
-                        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    } else {
-                        targetEl.textContent = selectItem.textContent.trim();
-                    }
-                }
-            }
-            // Close dropdown if inside one
-            const parentDropdown = selectItem.closest('.dropdown-content, .popover-content');
-            if (parentDropdown) {
-                parentDropdown.classList.remove('open');
-            }
-        }
-
-        // 7. Data-Toggle / Modal Trigger
-        const modalTrigger = e.target.closest('[data-toggle="modal"], [data-modal-target], [data-dialog-target]');
-        if (modalTrigger) {
-            e.preventDefault();
-            const targetSelector = modalTrigger.getAttribute('data-modal-target') ||
-                modalTrigger.getAttribute('data-dialog-target') ||
-                modalTrigger.getAttribute('data-target') ||
-                modalTrigger.getAttribute('href');
-            if (targetSelector) {
-                const dialog = document.querySelector(targetSelector);
-                if (dialog && typeof dialog.showModal === 'function') {
-                    dialog.showModal();
-                }
-            }
-            return;
-        }
-
-        // 8. Data-Dismiss / Modal Close
-        const dismissTrigger = e.target.closest('[data-dismiss="modal"], [data-close-dialog], [data-close-modal]');
-        if (dismissTrigger) {
-            e.preventDefault();
-            const dialog = dismissTrigger.closest('dialog') ||
-                document.querySelector(dismissTrigger.getAttribute('data-target') || '');
-            if (dialog && typeof dialog.close === 'function') {
-                dialog.close();
-            }
-            return;
-        }
-
-        // 9. Data-Toggle Theme
-        const themeTrigger = e.target.closest('[data-toggle="theme"]');
-        if (themeTrigger) {
-            e.preventDefault();
-            const html = document.documentElement;
-            const current = html.getAttribute('data-theme') || 'light';
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            try {
-                localStorage.setItem('bluebird-theme', next);
-            } catch (err) { }
-            return;
-        }
-
-        // 10. Data-Toast Trigger
-        const toastTrigger = e.target.closest('[data-toast]');
-        if (toastTrigger) {
-            e.preventDefault();
-            const desc = toastTrigger.getAttribute('data-toast') || '';
-            const title = toastTrigger.getAttribute('data-toast-title') || '';
-            const type = toastTrigger.getAttribute('data-toast-type') || 'info';
-            if (typeof bluebird === 'function') {
-                bluebird('toast', { title, description: desc, type });
-            }
-            return;
-        }
-
-        // 11. Data-Snackbar Trigger
-        const snackbarTrigger = e.target.closest('[data-snackbar]');
-        if (snackbarTrigger) {
-            e.preventDefault();
-            const message = snackbarTrigger.getAttribute('data-snackbar') || '';
-            const type = snackbarTrigger.getAttribute('data-snackbar-type') || 'info';
-            if (typeof bluebird === 'function') {
-                bluebird('snackbar', { message, type });
-            }
-            return;
-        }
-
-        // 12. Click outside dropdown / popover auto-close
-        if (!e.target.closest('.dropdown') && !e.target.closest('.popover')) {
-            document.querySelectorAll('.dropdown-content.open, .popover-content.open').forEach(el => {
-                el.classList.remove('open');
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy.trim()).then(() => {
+          copyTrigger.classList.add('copied');
+          if (typeof bluebird === 'function') {
+            bluebird('toast', {
+              title: 'Copied to clipboard',
+              description: textToCopy.length > 50 ? textToCopy.substring(0, 50) + '...' : textToCopy,
+              type: 'success',
+              duration: 2500
             });
+          }
+          setTimeout(() => copyTrigger.classList.remove('copied'), 2000);
+        });
+      }
+      return;
+    }
+
+    // 2. Data-Confirm (Prompt verification before action)
+    const confirmTrigger = e.target.closest('[data-confirm]');
+    if (confirmTrigger) {
+      const msg = confirmTrigger.getAttribute('data-confirm') || 'Are you sure?';
+      if (!window.confirm(msg)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+    }
+
+    // 3. Data-Scroll-To (Smooth scroll with header compensation)
+    const scrollTrigger = e.target.closest('[data-scroll-to]');
+    if (scrollTrigger) {
+      e.preventDefault();
+      const targetId = scrollTrigger.getAttribute('data-scroll-to');
+      const targetEl = document.querySelector(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    // 4. Data-Password-Toggle (Toggle password unmask)
+    const passToggle = e.target.closest('[data-password-toggle]');
+    if (passToggle) {
+      e.preventDefault();
+      const targetSelector = passToggle.getAttribute('data-password-toggle');
+      const input = targetSelector
+        ? document.querySelector(targetSelector)
+        : (passToggle.closest('.input-group, .form-input-group, div')?.querySelector('input') || passToggle.previousElementSibling);
+
+      if (input && (input.type === 'password' || input.type === 'text')) {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        passToggle.classList.toggle('showing', isPassword);
+        passToggle.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+      }
+      return;
+    }
+
+    // 5. Data-Step-Up / Data-Step-Down (Number Steppers)
+    const stepUp = e.target.closest('[data-step-up]');
+    if (stepUp) {
+      e.preventDefault();
+      const targetInput = document.querySelector(stepUp.getAttribute('data-step-up')) ||
+        stepUp.closest('.stepper')?.querySelector('input[type="number"]');
+      if (targetInput && typeof targetInput.stepUp === 'function') {
+        targetInput.stepUp();
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return;
+    }
+
+    const stepDown = e.target.closest('[data-step-down]');
+    if (stepDown) {
+      e.preventDefault();
+      const targetInput = document.querySelector(stepDown.getAttribute('data-step-down')) ||
+        stepDown.closest('.stepper')?.querySelector('input[type="number"]');
+      if (targetInput && typeof targetInput.stepDown === 'function') {
+        targetInput.stepDown();
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return;
+    }
+
+    // 6. Data-Select-Value (ComboBox / Select2 item selection)
+    const selectItem = e.target.closest('[data-select-value]');
+    if (selectItem) {
+      const val = selectItem.getAttribute('data-select-value');
+      const targetSelector = selectItem.getAttribute('data-select-target') ||
+        selectItem.closest('[data-select-container]')?.getAttribute('data-select-target');
+      if (targetSelector) {
+        const targetEl = document.querySelector(targetSelector);
+        if (targetEl) {
+          if (targetEl.tagName === 'INPUT' || targetEl.tagName === 'SELECT') {
+            targetEl.value = val;
+            targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+            targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+          } else {
+            targetEl.textContent = selectItem.textContent.trim();
+          }
         }
-    });
+      }
+      // Close dropdown if inside one
+      const parentDropdown = selectItem.closest('.dropdown-content, .popover-content');
+      if (parentDropdown) {
+        parentDropdown.classList.remove('open');
+      }
+    }
 
-    // Live Input Event Delegations (Filter Target & Auto-Resize Textarea)
-    document.addEventListener('input', (e) => {
-        // A. Real-time List/Table/ComboBox Filtering (data-filter-target="#lista")
-        const filterInput = e.target.closest('[data-filter-target]');
-        if (filterInput) {
-            const targetSelector = filterInput.getAttribute('data-filter-target');
-            const targetContainer = document.querySelector(targetSelector);
-            if (targetContainer) {
-                const query = filterInput.value.toLowerCase().trim();
-                const items = targetContainer.querySelectorAll('[data-filter-item], li, tr, .card, .dropdown-item, .item');
-                let visibleCount = 0;
-
-                items.forEach(item => {
-                    const text = item.textContent.toLowerCase();
-                    const matches = text.includes(query);
-                    item.style.display = matches ? '' : 'none';
-                    if (matches) visibleCount++;
-                });
-
-                const emptyMsg = targetContainer.querySelector('.no-filter-results');
-                if (emptyMsg) {
-                    emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
-                }
-            }
+    // 7. Data-Toggle / Modal Trigger
+    const modalTrigger = e.target.closest('[data-toggle="modal"], [data-modal-target], [data-dialog-target]');
+    if (modalTrigger) {
+      e.preventDefault();
+      const targetSelector = modalTrigger.getAttribute('data-modal-target') ||
+        modalTrigger.getAttribute('data-dialog-target') ||
+        modalTrigger.getAttribute('data-target') ||
+        modalTrigger.getAttribute('href');
+      if (targetSelector) {
+        const dialog = document.querySelector(targetSelector);
+        if (dialog && typeof dialog.showModal === 'function') {
+          dialog.showModal();
         }
+      }
+      return;
+    }
 
-        // B. Auto-Resize Textarea (data-auto-resize)
-        if (e.target.matches('textarea[data-auto-resize]')) {
-            const textarea = e.target;
-            textarea.style.height = 'auto';
-            textarea.style.height = (textarea.scrollHeight + 2) + 'px';
-        }
-    });
+    // 8. Data-Dismiss / Modal Close
+    const dismissTrigger = e.target.closest('[data-dismiss="modal"], [data-close-dialog], [data-close-modal]');
+    if (dismissTrigger) {
+      e.preventDefault();
+      const dialog = dismissTrigger.closest('dialog') ||
+        document.querySelector(dismissTrigger.getAttribute('data-target') || '');
+      if (dialog && typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      return;
+    }
 
-    // Global Ctrl+K / Cmd+K listener
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            if (typeof bluebird === 'function') {
-                bluebird('command', { action: 'toggle' });
-            }
-        } else if (e.key === 'Escape') {
-            const openCommand = document.querySelector('.command-backdrop.open');
-            if (openCommand && typeof bluebird === 'function') {
-                bluebird('command', { action: 'close' });
-            }
+    // 9. Data-Toggle Theme
+    const themeTrigger = e.target.closest('[data-toggle="theme"]');
+    if (themeTrigger) {
+      e.preventDefault();
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('bluebird-theme', next);
+      } catch (err) { }
+      return;
+    }
+
+    // 10. Data-Toast Trigger
+    const toastTrigger = e.target.closest('[data-toast]');
+    if (toastTrigger) {
+      e.preventDefault();
+      const desc = toastTrigger.getAttribute('data-toast') || '';
+      const title = toastTrigger.getAttribute('data-toast-title') || '';
+      const type = toastTrigger.getAttribute('data-toast-type') || 'info';
+      if (typeof bluebird === 'function') {
+        bluebird('toast', { title, description: desc, type });
+      }
+      return;
+    }
+
+    // 11. Data-Snackbar Trigger
+    const snackbarTrigger = e.target.closest('[data-snackbar]');
+    if (snackbarTrigger) {
+      e.preventDefault();
+      const message = snackbarTrigger.getAttribute('data-snackbar') || '';
+      const type = snackbarTrigger.getAttribute('data-snackbar-type') || 'info';
+      if (typeof bluebird === 'function') {
+        bluebird('snackbar', { message, type });
+      }
+      return;
+    }
+
+    // 12. Click outside dropdown / popover auto-close
+    if (!e.target.closest('.dropdown') && !e.target.closest('.popover')) {
+      document.querySelectorAll('.dropdown-content.open, .popover-content.open').forEach(el => {
+        el.classList.remove('open');
+      });
+    }
+  });
+
+  // Live Input Event Delegations (Filter Target & Auto-Resize Textarea)
+  document.addEventListener('input', (e) => {
+    // A. Real-time List/Table/ComboBox Filtering (data-filter-target="#lista")
+    const filterInput = e.target.closest('[data-filter-target]');
+    if (filterInput) {
+      const targetSelector = filterInput.getAttribute('data-filter-target');
+      const targetContainer = document.querySelector(targetSelector);
+      if (targetContainer) {
+        const query = filterInput.value.toLowerCase().trim();
+        const items = targetContainer.querySelectorAll('[data-filter-item], li, tr, .card, .dropdown-item, .item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          const matches = text.includes(query);
+          item.style.display = matches ? '' : 'none';
+          if (matches) visibleCount++;
+        });
+
+        const emptyMsg = targetContainer.querySelector('.no-filter-results');
+        if (emptyMsg) {
+          emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
         }
-    });
+      }
+    }
+
+    // B. Auto-Resize Textarea (data-auto-resize)
+    if (e.target.matches('textarea[data-auto-resize]')) {
+      const textarea = e.target;
+      textarea.style.height = 'auto';
+      textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+    }
+  });
+
+  // Global Ctrl+K / Cmd+K listener
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (typeof bluebird === 'function') {
+        bluebird('command', { action: 'toggle' });
+      }
+    } else if (e.key === 'Escape') {
+      const openCommand = document.querySelector('.command-backdrop.open');
+      if (openCommand && typeof bluebird === 'function') {
+        bluebird('command', { action: 'close' });
+      }
+    }
+  });
 })();
 
 // Auto Setup Helper Elements on DOMReady
 (function () {
-    function init() {
-        cleanupOrphanedBackdrops();
-        initMobileDrawer();
-        document.querySelectorAll('.carousel').forEach(c => initSingleCarousel(c));
+  function init() {
+    cleanupOrphanedBackdrops();
+    initMobileDrawer();
+    document.querySelectorAll('.carousel').forEach(c => initSingleCarousel(c));
 
-        // Auto resize textareas on init
-        document.querySelectorAll('textarea[data-auto-resize]').forEach(t => {
-            t.style.height = 'auto';
-            t.style.height = (t.scrollHeight + 2) + 'px';
-        });
+    // Auto resize textareas on init
+    document.querySelectorAll('textarea[data-auto-resize]').forEach(t => {
+      t.style.height = 'auto';
+      t.style.height = (t.scrollHeight + 2) + 'px';
+    });
 
-        // Restore saved theme if available
-        try {
-            const savedTheme = localStorage.getItem('bluebird-theme');
-            if (savedTheme) {
-                document.documentElement.setAttribute('data-theme', savedTheme);
-            }
-        } catch (e) { }
-    }
+    // Restore saved theme if available
+    try {
+      const savedTheme = localStorage.getItem('bluebird-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    } catch (e) { }
+  }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 100));
-    } else {
-        setTimeout(init, 100);
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(init, 100));
+  } else {
+    setTimeout(init, 100);
+  }
 })();
 
 /**
@@ -1018,16 +1018,16 @@ class ResponsiveDataTable {
     this.container.innerHTML = `
       <section class="w-full">
         ${this.options.search
-        ? `<div class="mb-6 flex items-center justify-between"><input type="search" class="datatable-search-input w-full max-w-xs px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-800 dark:text-slate-100" placeholder="${lang() ? "Buscar..." : "Search..."}" aria-label="Search"/></div>`
+        ? `<div class="mb-4 flex items-center justify-between"><input type="search" class="datatable-search-input outline" placeholder="${lang() ? "Buscar..." : "Search..."}" aria-label="Search"/></div>`
         : ""
       }
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800/80">
-          <table class="datatable-table min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm hidden"></table>
+        <div class="overflow-x-auto">
+          <table class="datatable-table hidden"></table>
           <div class="datatable-mobile"></div>
         </div>
 
-        ${this.options.pagination ? `<nav class="datatable-pagination mt-6 flex items-center justify-center gap-1.5" aria-label="Pagination"></nav>` : ""}
+        ${this.options.pagination ? `<nav class="datatable-pagination mt-4 flex items-center justify-center gap-1" aria-label="Pagination"></nav>` : ""}
       </section>`;
   }
 
@@ -1052,13 +1052,11 @@ class ResponsiveDataTable {
       <thead>
         <tr class="datatable-header"></tr>
       </thead>
-      <tbody class="datatable-body divide-y divide-slate-100 dark:divide-slate-800"></tbody>`;
+      <tbody class="datatable-body"></tbody>`;
     const headerRow = table.querySelector("thead tr");
     this.options.columns.forEach((column) => {
       const th = document.createElement("th");
       th.scope = "col";
-      th.className =
-        "px-6 py-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800";
       th.textContent =
         this.options.headerTitles[column.key] || column.title || column.key;
       headerRow.appendChild(th);
@@ -1066,8 +1064,6 @@ class ResponsiveDataTable {
     if (this.options.edit || this.options.delete) {
       const th = document.createElement("th");
       th.scope = "col";
-      th.className =
-        "px-6 py-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800";
       th.textContent = lang() ? "Acciones" : "Actions";
       headerRow.appendChild(th);
     }
@@ -1077,12 +1073,8 @@ class ResponsiveDataTable {
     const tbody = table.querySelector("tbody");
     paginatedData.forEach((item) => {
       const row = document.createElement("tr");
-      row.className =
-        "hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors";
       this.options.columns.forEach((column) => {
         const td = document.createElement("td");
-        td.className =
-          "px-6 py-4 text-slate-700 dark:text-slate-300 whitespace-nowrap align-middle font-medium";
         const value = item[column.key];
         if (
           value &&
@@ -1097,21 +1089,18 @@ class ResponsiveDataTable {
       });
       if (this.options.edit || this.options.delete) {
         const td = document.createElement("td");
-        td.className = "px-6 py-4 whitespace-nowrap align-middle";
         const actionsDiv = document.createElement("div");
         actionsDiv.className = "flex items-center gap-2";
         if (this.options.edit) {
           const btn = document.createElement("button");
-          btn.className =
-            "px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-600 hover:text-white rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer";
+          btn.className = "outline";
           btn.textContent = lang() ? "Editar" : "Edit";
           btn.onclick = (e) => this.handleAction("edit", e, item);
           actionsDiv.appendChild(btn);
         }
         if (this.options.delete) {
           const btn = document.createElement("button");
-          btn.className =
-            "px-3 py-1.5 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold border border-transparent transition-all cursor-pointer";
+          btn.className = "destructive";
           btn.textContent = lang() ? "Eliminar" : "Delete";
           btn.onclick = (e) => this.handleAction("delete", e, item);
           actionsDiv.appendChild(btn);
@@ -1131,11 +1120,10 @@ class ResponsiveDataTable {
     const paginatedData = this.filteredData.slice(startIndex, endIndex);
     paginatedData.forEach((item) => {
       const card = document.createElement("article");
-      card.className =
-        "mb-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4";
+      card.className = "card mb-4";
       const summary = document.createElement("h3");
       summary.className =
-        "text-base font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 mb-2 flex items-center justify-between";
+        "flex items-center justify-between font-bold mb-2 pb-2";
       this.options.summaryFields.forEach((fieldKey) => {
         const value = item[fieldKey];
         summary.innerHTML += `<span>${value !== undefined && value !== null ? value : "-"}</span>`;
@@ -1143,17 +1131,17 @@ class ResponsiveDataTable {
       card.appendChild(summary);
       const details = document.createElement("dl");
       details.className =
-        "grid grid-cols-1 gap-x-4 gap-y-2.5 text-xs pb-2 border-b border-slate-200 dark:border-slate-800 mb-2";
+        "grid cols-1 gap-2 mb-2 pb-2";
       this.options.columns.forEach((column) => {
         if (this.options.summaryFields.includes(column.key)) return;
         const dt = document.createElement("dt");
         dt.className =
-          "font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider";
+          "font-bold text-muted";
         dt.textContent =
           this.options.headerTitles[column.key] || column.title || column.key;
         const dd = document.createElement("dd");
         dd.className =
-          "text-slate-700 dark:text-slate-300 font-semibold text-left break-all";
+          "text-left";
         const cellValue = item[column.key];
         if (
           cellValue &&
@@ -1173,16 +1161,14 @@ class ResponsiveDataTable {
         actions.className = "flex items-center gap-2 justify-end";
         if (this.options.edit) {
           const btn = document.createElement("button");
-          btn.className =
-            "px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-600 hover:text-white rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer";
+          btn.className = "outline";
           btn.textContent = lang() ? "Editar" : "Edit";
           btn.onclick = (e) => this.handleAction("edit", e, item);
           actions.appendChild(btn);
         }
         if (this.options.delete) {
           const btn = document.createElement("button");
-          btn.className =
-            "px-3 py-1.5 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold border border-transparent transition-all cursor-pointer";
+          btn.className = "destructive";
           btn.textContent = lang() ? "Eliminar" : "Delete";
           btn.onclick = (e) => this.handleAction("delete", e, item);
           actions.appendChild(btn);
@@ -1201,25 +1187,17 @@ class ResponsiveDataTable {
       this.filteredData.length / this.options.rowsPerPage,
     );
     if (pageCount <= 1) return;
-    const btnClass =
-      "px-3 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer ";
-    const activeBtnClass =
-      btnClass +
-      "bg-brand-600 border-brand-600 text-white shadow-sm";
-    const inactiveBtnClass =
-      btnClass +
-      "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800";
-    const disabledBtnClass =
-      btnClass +
-      "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-600 opacity-50 cursor-not-allowed";
+
+    const baseClass = "px-3 py-2 outline";
+    const activeClass = "px-3 py-2";
 
     const prevButton = document.createElement("button");
     prevButton.textContent = "«";
-    prevButton.className =
-      this.currentPage === 1 ? disabledBtnClass : inactiveBtnClass;
+    prevButton.className = baseClass;
     prevButton.disabled = this.currentPage === 1;
     prevButton.onclick = () => this.changePage(this.currentPage - 1);
     pagination.appendChild(prevButton);
+
     const maxVisible = 5;
     let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
     let end = start + maxVisible - 1;
@@ -1229,7 +1207,7 @@ class ResponsiveDataTable {
     }
     if (start > 1) {
       const firstButton = document.createElement("button");
-      firstButton.className = inactiveBtnClass;
+      firstButton.className = baseClass;
       firstButton.textContent = "1";
       firstButton.onclick = () => this.changePage(1);
       pagination.appendChild(firstButton);
@@ -1238,7 +1216,7 @@ class ResponsiveDataTable {
     for (let i = start; i <= end; i++) {
       const button = document.createElement("button");
       button.className =
-        i === this.currentPage ? activeBtnClass : inactiveBtnClass;
+        i === this.currentPage ? activeClass : baseClass;
       button.textContent = i;
       button.onclick = () => this.changePage(i);
       pagination.appendChild(button);
@@ -1246,14 +1224,13 @@ class ResponsiveDataTable {
     if (end < pageCount) {
       if (end < pageCount - 1) pagination.appendChild(this.createEllipsis());
       const lastButton = document.createElement("button");
-      lastButton.className = inactiveBtnClass;
+      lastButton.className = baseClass;
       lastButton.textContent = pageCount;
       lastButton.onclick = () => this.changePage(pageCount);
       pagination.appendChild(lastButton);
     }
     const nextButton = document.createElement("button");
-    nextButton.className =
-      this.currentPage === pageCount ? disabledBtnClass : inactiveBtnClass;
+    nextButton.className = baseClass;
     nextButton.textContent = "»";
     nextButton.disabled = this.currentPage === pageCount;
     nextButton.onclick = () => this.changePage(this.currentPage + 1);
@@ -1262,7 +1239,7 @@ class ResponsiveDataTable {
 
   createEllipsis() {
     const span = document.createElement("span");
-    span.className = "text-slate-400 px-1";
+    span.className = "px-2 text-muted";
     span.textContent = "...";
     return span;
   }
@@ -1315,7 +1292,6 @@ class ResponsiveDataTable {
     this.updateTable();
   }
 }
-
 if (typeof window !== "undefined") {
   window.ResponsiveDataTable = ResponsiveDataTable;
   window.Http = Http;
@@ -1323,4 +1299,4 @@ if (typeof window !== "undefined") {
   window.snackbar = snackbar;
   window.toast = toast;
   window.bluebird = bluebird;
-}
+}
