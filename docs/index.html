@@ -1058,21 +1058,33 @@ npx blue-bird docker start prod</code></pre>
                                         <span class="text-xl">🛡️</span>
                                         <h4 class="text-lg font-bold text-amber-900">VPS Permissions &amp; Security Hardening</h4>
                                     </div>
+                                    <p class="text-sm text-amber-800 mb-3 leading-relaxed">
+                                        Avoid deploying inside <code>/home/user/</code> due to parent directory traversal restrictions (<code>700</code>/<code>750</code>) and multi-user security risks. Deploy to standard FHS paths like <code>/var/www/&lt;project-name&gt;</code> or <code>/srv/&lt;project-name&gt;</code>.
+                                    </p>
                                     <p class="text-sm text-amber-800 mb-4 leading-relaxed">
-                                        Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101). To ensure static assets can be read without exposing your server to vulnerabilities:
+                                        Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101). Static assets should be mounted as read-only (<code>./frontend:/app/frontend:ro</code>) in <code>docker-compose.yml</code> for container-level hardening.
                                     </p>
                                     <div class="bg-white/80 rounded-xl p-4 border border-amber-200/80 mb-4 text-xs font-mono text-slate-800 space-y-1">
                                         <p class="text-slate-500 font-sans font-bold mb-2">Recommended Permissions Matrix:</p>
-                                        <p><span class="font-bold text-indigo-600">/home/user</span> : <code>chmod 755</code> (Allows unprivileged container path traversal)</p>
-                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>chmod -R 755</code> (dirs) / <code>644</code> (files)</p>
-                                        <p><span class="font-bold text-indigo-600">node_modules/</span> : <code>chmod -R 755</code> (Preserves binary execution bits in .bin)</p>
+                                        <p><span class="font-bold text-indigo-600">/var/www/&lt;project&gt;</span> : <code>chmod 755</code> (Allows unprivileged Nginx container path traversal)</p>
+                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>755</code> (dirs) / <code>644</code> (files)</p>
+                                        <p><span class="font-bold text-indigo-600">node_modules/</span> : <code>755</code> (dirs) / <code>644</code> (files) &amp; <code>chmod -R +x node_modules/.bin</code></p>
                                         <p><span class="font-bold text-red-600">.env</span> : <code>chmod 600</code> (Restricted private access - NEVER 777)</p>
                                     </div>
-                                    <pre><code class="language-bash"># Apply safe permissions on your Linux VPS:
-chmod 755 /home/$(whoami)
-chmod 755 /home/$(whoami)/projects
-chmod -R 755 frontend && find frontend -type f -exec chmod 644 {} +
-chmod -R 755 node_modules
+                                    <pre><code class="language-bash"># 1. Set project ownership and standard directory traversal:
+sudo chown -R $(whoami):$(whoami) /var/www/my-project && cd /var/www/my-project
+chmod 755 /var /var/www /var/www/my-project
+
+# 2. Set directory (755) and file (644) permissions for static assets:
+find frontend -type d -exec chmod 755 {} +
+find frontend -type f -exec chmod 644 {} +
+
+# 3. Secure node_modules while preserving execution bits in .bin:
+find node_modules -type d -exec chmod 755 {} +
+find node_modules -type f -exec chmod 644 {} +
+chmod -R +x node_modules/.bin 2>/dev/null || true
+
+# 4. Restrict private credentials:
 chmod 600 .env</code></pre>
                                 </div>
 
@@ -1085,18 +1097,23 @@ chmod 600 .env</code></pre>
                                     <div class="space-y-6 text-sm text-slate-300">
                                         <div class="border-b border-slate-800 pb-4">
                                             <p class="font-bold text-red-400 mb-1">❌ Problem 1: Static files return 404 / 403 (stat() failed 13: Permission denied)</p>
-                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent directories on host (e.g. <code>/home/user/</code>) lack <code>+x</code> traversal permission for unprivileged <code>nginx</code> worker.</p>
-                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod 755 /home/$(whoami) &amp;&amp; chmod 755 /home/$(whoami)/projects &amp;&amp; chmod -R 755 frontend</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent directories on host lack <code>+x</code> traversal permission or files lack <code>+r</code> read permission for unprivileged <code>nginx</code> worker.</p>
+                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod 755 /var/www/my-project &amp;&amp; find frontend -type d -exec chmod 755 {} + &amp;&amp; find frontend -type f -exec chmod 644 {} +</p>
                                         </div>
                                         <div class="border-b border-slate-800 pb-4">
                                             <p class="font-bold text-amber-400 mb-1">❌ Problem 2: <code>npx blue-bird</code> fails with <code>sh: 1: blue-bird: Permission denied</code></p>
-                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Global <code>chmod 644</code> stripped execute permissions from binary links in <code>node_modules/.bin/</code>.</p>
-                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod -R 755 node_modules</p>
+                                            <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Blanket <code>chmod 644</code> stripped execute permissions from binary links in <code>node_modules/.bin/</code>.</p>
+                                            <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">chmod -R +x node_modules/.bin</p>
                                         </div>
-                                        <div>
-                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or recreating project folder (<code>mv</code> / <code>rm -r</code>)</p>
+                                        <div class="border-b border-slate-800 pb-4">
+                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or recreating project folder (<code>mv</code> / <code>rm -rf</code>)</p>
                                             <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Docker volume mounts bind to disk inodes. Recreating the folder desynchronizes active mounts.</p>
                                             <p class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-indigo-400 mb-1">🔍 Diagnostic Commands</p>
+                                            <p class="text-xs text-slate-400 mb-2">Tail real-time Nginx logs or inspect path traversal:</p>
+                                            <p class="text-xs text-slate-300 font-mono bg-slate-800/80 p-2 rounded-lg">docker compose logs -f nginx<br>namei -l /var/www/my-project/frontend/css/bluebird.css</p>
                                         </div>
                                     </div>
                                 </div>

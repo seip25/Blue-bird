@@ -506,45 +506,74 @@ To deploy via Docker:
 
 ---
 
-### 🛡️ Production VPS Security & Permissions Guide
+### 🛡️ Production VPS Security & Permissions Hardening Guide
 
-When deploying to a Linux VPS (Ubuntu, Debian, CentOS), file permissions must balance **security** (preventing unauthorized read/write access to sensitive files) with **accessibility** (allowing unprivileged container users like `nginx` to read static assets).
+When deploying Blue Bird to a Linux VPS (Ubuntu, Debian, AlmaLinux, Rocky Linux), file permissions must strictly balance **least-privilege security** (preventing unauthorized read/write access to sensitive files) with **container accessibility** (allowing unprivileged container users like `nginx` to read static assets).
 
 > [!CAUTION]
 > **Never use `chmod -R 777` in production!** Giving full write permissions to all users creates severe security vulnerabilities, allowing compromised processes or unauthorized local users to modify application code, inject backdoors, or tamper with `.env` secrets.
 
-#### Recommended Permissions Matrix
+#### 1. Deployment Directory (Filesystem Hierarchy Standard)
 
-| Target Directory / File | Recommended Mode | Description & Rationale |
-|---|---|---|
-| **Parent User Dirs** (`/home/user`, `/home/user/projects`) | `755` (`rwxr-xr-x`) | Allows unprivileged container processes (`nginx` UID 101) to traverse down to the project folder. |
-| **Project Root & Subdirectories** | `755` (`rwxr-xr-x`) | Standard directory permissions (read, write, execute for owner; read, execute for others). |
-| **Static Frontend** (`frontend/`) | `755` (dirs) / `644` (files) | Read-only access for web server worker processes. Mounted as `:ro` in Docker. |
-| **Node Binaries** (`node_modules/`) | `755` (`rwxr-xr-x`) | Preserves execution bits for CLI scripts in `node_modules/.bin/` (e.g. `npx blue-bird`). |
-| **Environment File** (`.env`) | `600` (`rw-------`) | Restricts database passwords, JWT secrets, and API keys exclusively to the owning user. |
-| **Database Directory** (`database/` for SQLite) | `755` (dir) / `644` (file) | Allows the Node.js application process inside the container to read and write WAL files. |
+* ❌ **Avoid deploying inside `/home/user/`**: Deploying in home directories introduces security risks in multi-user environments and frequently causes `403 Forbidden` / `stat() failed (13: Permission denied)` errors due to restrictive default parent directory permissions (`700`/`750`). Recklessly loosening `/home/user/` exposes user SSH keys and profile data.
+* ✅ **Recommended Production Standard**: Deploy in dedicated Filesystem Hierarchy Standard (FHS) system directories:
+  * `/var/www/<project-name>` (Standard for web applications and static content)
+  * `/srv/<project-name>` (Alternative standard for site-specific payloads)
 
-#### Applying Secure Permissions on VPS
+#### 2. Recommended Permissions & Ownership Matrix
 
-Run the following commands inside your VPS project directory:
+| Target Directory / File | Mode | Ownership | Description & Security Rationale |
+|---|---|---|---|
+| **Project Root** (`/var/www/<project-name>`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Allows unprivileged container processes (`nginx` UID 101) to traverse down to the project tree. |
+| **Static Frontend Dirs** (`frontend/`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Grants traversal and read access for Nginx static serving. |
+| **Static Frontend Files** (`frontend/**/*`) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Read-only access for web server worker processes. |
+| **Node Module Dirs** (`node_modules/`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Standard directory access. Avoid blanket `chmod -R 755`. |
+| **Node Module Files** (`node_modules/**/*`) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Standard read-only permissions for non-binary dependencies. |
+| **Executable Binaries** (`node_modules/.bin/`) | `+x` (`chmod -R +x`) | `$(whoami):$(whoami)` | Grants execution bit exclusively to CLI wrapper symlinks (`npx blue-bird`). |
+| **Environment File** (`.env`) | `600` (`-rw-------`) | `$(whoami):$(whoami)` | Restricts database passwords, JWT secrets, and API keys exclusively to the owning user. Never `644` or `777`. |
+| **Database Directory** (`database/` for SQLite) | `755` (dir) / `644` (file) | `$(whoami):$(whoami)` | Allows the Node.js application process inside the container to read and write WAL journal files. |
+
+#### 3. Container-Level Hardening (Docker)
+
+To enforce the principle of least privilege at the container boundary, explicitly mount static frontend assets in **read-only mode (`:ro`)** inside `docker-compose.yml` for the Nginx service:
+
+```yaml
+services:
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/app/frontend:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+```
+
+This guarantees that even in the event of an Nginx worker compromise, static web assets cannot be overwritten or modified from within the container.
+
+#### 4. Applying Secure Permissions on VPS
+
+Run the following chained commands inside your VPS project directory:
 
 ```bash
-# 1. Ensure parent user directories allow traversal (execute permission)
-chmod 755 /home/$(whoami)
-chmod 755 /home/$(whoami)/projects
+# 1. Set project ownership to current deploy user
+sudo chown -R $(whoami):$(whoami) /var/www/<project-name>
+cd /var/www/<project-name>
 
-# 2. Set directory permissions (755) and file permissions (644) safely for frontend
-chmod -R 755 frontend
+# 2. Ensure parent directory traversal permissions
+chmod 755 /var /var/www /var/www/<project-name>
+
+# 3. Apply safe permissions for static frontend assets
+find frontend -type d -exec chmod 755 {} +
 find frontend -type f -exec chmod 644 {} +
 
-# 3. Ensure node_modules executables retain execution permissions
-chmod -R 755 node_modules
+# 4. Secure node_modules while preserving executable bits in .bin
+find node_modules -type d -exec chmod 755 {} +
+find node_modules -type f -exec chmod 644 {} +
+chmod -R +x node_modules/.bin 2>/dev/null || true
 
-# 4. Protect private environment credentials
+# 5. Lock down environment credentials
 chmod 600 .env
 
-# 5. Set database permissions (for SQLite)
-chmod 755 database
+# 6. Set database directory permissions (for SQLite)
+chmod 755 database 2>/dev/null || true
 chmod 644 database/*.db 2>/dev/null || true
 ```
 
@@ -553,32 +582,32 @@ chmod 644 database/*.db 2>/dev/null || true
 ### 🔧 VPS Production Troubleshooting (Problems & Solutions)
 
 #### 1. Static Assets Return 404 / 403 (`Permission denied`)
-* **Symptom:** Opening pages returns 404 or missing CSS/JS (e.g. `/js/tailwind.js`, `/favicon.ico`), and `docker compose logs -f nginx` reports:
+* **Symptom:** Opening pages returns 404 or missing CSS/JS (e.g. `/css/bluebird.css`, `/favicon.ico`), and `docker compose logs -f nginx` reports:
   ```text
-  [crit] stat() "/app/frontend/js/tailwind.js" failed (13: Permission denied)
+  [crit] stat() "/app/frontend/css/bluebird.css" failed (13: Permission denied)
   ```
-* **Cause:** The Nginx container runs as an unprivileged user (`nginx`, UID 101 on Alpine). If the host project is inside `/home/username/` and the user's home directory permissions are restrictive (`700` or `750`), Nginx is blocked from traversing into `/app/frontend`.
+* **Cause:** The Nginx container runs as an unprivileged user (`nginx`, UID 101 on Alpine). If parent directories lack traversal (`+x`) permissions, or files lack read (`+r`) permissions, Nginx is blocked from reading `/app/frontend`.
 * **Solution:**
   ```bash
-  # Grant traversal permissions to parent directories:
-  chmod 755 /home/$(whoami)
-  chmod 755 /home/$(whoami)/projects
-  chmod -R 755 frontend
+  # Grant traversal and read permissions:
+  chmod 755 /var/www/<project-name>
+  find frontend -type d -exec chmod 755 {} +
+  find frontend -type f -exec chmod 644 {} +
   ```
 
 #### 2. `npx blue-bird` fails with `sh: 1: blue-bird: Permission denied`
 * **Symptom:** Running CLI commands like `npx blue-bird docker stop` or `npx blue-bird docker start prod` fails with permission errors.
-* **Cause:** Running a blanket `find . -type f -exec chmod 644` stripped execution permissions from files inside `node_modules/.bin/` or their source targets.
+* **Cause:** An overly aggressive global `find . -type f -exec chmod 644` stripped execution permissions from binary wrappers and symlinks in `node_modules/.bin/`.
 * **Solution:**
   ```bash
-  chmod -R 755 node_modules
-  # Or rebuild binaries:
+  chmod -R +x node_modules/.bin
+  # Or rebuild native binaries:
   npm rebuild
   ```
 
-#### 3. 404 Not Found after Folder Renaming or Moving
-* **Symptom:** Moving or recreating the project folder (e.g. `mv project_old project`) while Docker containers were running leads to persistent 404 errors even though files exist on disk.
-* **Cause:** Linux file descriptors and Docker volume mounts bind to disk inodes. When a folder is deleted and recreated, Docker mounts point to the old/stale inode until the containers are recreated.
+#### 3. 404 Not Found after Folder Renaming or Moving (Docker Inode Desync)
+* **Symptom:** Moving, replacing, or recreating the project folder (e.g. `mv project_old project` or `git clone` / `rm -rf`) while Docker containers were running leads to persistent 404 errors even though files exist on disk.
+* **Cause:** Linux file descriptors and Docker volume mounts bind to disk **inodes**. When a directory is deleted and recreated, Docker mounts remain attached to the stale/dead inode until the container stack is restarted.
 * **Solution:**
   ```bash
   docker compose down
@@ -593,13 +622,13 @@ chmod 644 database/*.db 2>/dev/null || true
   ```bash
   docker compose logs -f nginx
   ```
-* **Test file visibility as the Nginx container user:**
+* **Test file visibility directly as the Nginx container user:**
   ```bash
-  docker exec -it <container_name>-nginx su -s /bin/sh nginx -c "ls -la /app/frontend/js/tailwind.js"
+  docker exec -it <container_name>-nginx su -s /bin/sh nginx -c "ls -la /app/frontend/css/bluebird.css"
   ```
 * **Inspect path traversal permissions on host:**
   ```bash
-  namei -l /home/$(whoami)/projects/$(basename $PWD)/frontend/js/tailwind.js
+  namei -l /var/www/<project-name>/frontend/css/bluebird.css
   ```
 
 ---

@@ -23,7 +23,7 @@
                     stroke-linecap="round" stroke-linejoin="round" class="text-blue">
                     <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                <strong class="text-xl text-gradient-blue">Blue Bird</strong>
+                <strong class="text-xl text-gradient">Blue Bird</strong>
             </a>
         </nav>
     </header>
@@ -31,16 +31,16 @@
     <main>
         <aside>
             <h4>Menu</h4>
-            <a href="/" class="active">Home</a>
+            <a href="/" class="active badge badge-glow px-3 py-3">Home</a>
             <a href="/about">About</a>
-            <a href="https://seip25.github.io/Blue-bird-css/" target="_blank">CSS Framework</a>
+            <a href="https://seip25.github.io/Blue-bird-css/" target="_blank">Blue Bird CSS</a>
             <a href="https://github.com/seip25/Blue-bird" target="_blank" role="button"
                 class="btn-sm outline">GitHub</a>
         </aside>
 
         <div>
-            <section class="hero glass-card">
-                <h1 class="mt-3">Hello, Developer! Welcome to the next level.</h1>
+            <section class="hero ">
+                <h1 class="mt-3 text-gradient font-bold">Hello, Developer!</h1>
                 <p class="lead">
                     Blue Bird is a fast, structured, and opinionated Express.js framework for developers who want
                     visual elegance and performance with raw HTML and CSS.
@@ -54,88 +54,87 @@
                 </div>
             </section>
 
-            <section class="mt-8">
+            <div class="mt-8">
                 <div class="grid cols-3 gap-4">
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">Rendering</span>
-                            <h3>⚡ Ultra-Fast HTML Render</h3>
+                            <h3 class="text-gradient-blue">Ultra-Fast HTML Render</h3>
                         </header>
-                        <p>Direct static HTML rendering using high-speed string placeholder replacement, bypassing heavy
+                        <p>Direct static HTML rendering using high-speed string placeholder
+                            replacement, bypassing heavy
                             parsing engines completely.</p>
                     </article>
 
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">Performance</span>
-                            <h3>🧠 In-Memory Caching</h3>
+                            <h3 class="text-gradient-blue">In-Memory Caching</h3>
                         </header>
-                        <p>Configurable time-to-live caching. Rendered pages are stored in RAM for instant,
+                        <p>Configurable time-to-live caching. Rendered pages are stored in RAM for
+                            instant,
                             sub-millisecond
                             delivery in production.</p>
                     </article>
 
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">Security</span>
-                            <h3>🛡️ JWT &amp; Route Security</h3>
+                            <h3 class="text-gradient-blue">JWT &amp; Route Security</h3>
                         </header>
-                        <p>Secure cookie management, GCM-encrypted JWT tokens, custom helmet configurations, and route
+                        <p>Secure cookie management, GCM-encrypted JWT tokens, custom helmet
+                            configurations, and route
                             rate
                             limiting built-in.</p>
                     </article>
 
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">Database</span>
-                            <h3>🗄️ Unified DB Layer</h3>
+                            <h3 class="text-gradient-blue">Unified DB Layer</h3>
                         </header>
-                        <p>Built-in support for SQLite (WAL mode), MySQL, and PostgreSQL with connection pooling,
+                        <p>Built-in support for SQLite (WAL mode), MySQL, and PostgreSQL with
+                            connection pooling,
                             retries,
                             and Redis query caching.</p>
                     </article>
 
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">DevOps</span>
-                            <h3>🐳 Zero-Config Docker</h3>
+                            <h3 class="text-gradient-blue">Zero-Config Docker</h3>
                         </header>
-                        <p>Containerized development &amp; production orchestration with Nginx static delivery and Redis
+                        <p>Containerized development &amp; production orchestration with Nginx
+                            static delivery and Redis
                             caching out of the box.</p>
                     </article>
 
-                    <article class="hover-glow glass-card">
+                    <article class="hover-glow ">
                         <header>
                             <span class="badge badge-primary mb-2">Design</span>
-                            <h3>💎 Pure Semantic CSS</h3>
+                            <h3 class="text-gradient-blue">Pure Semantic CSS</h3>
                         </header>
                         <p>Clean semantic markup styled by <a href="https://seip25.github.io/Blue-bird-css/"
-                                target="_blank">Blue Bird CSS</a> with zero JavaScript framework bloat or compile steps.
+                                target="_blank">Blue Bird CSS</a> with
+                            zero JavaScript framework bloat or compile steps.
                         </p>
                     </article>
                 </div>
-            </section>
-
-            <article class="mt-6">
-                <h5 class="text-lg">🎨 Powered by Blue Bird CSS</h5>
-                <p class="text-secondary">
-                    This project uses <a href="https://seip25.github.io/Blue-bird-css/"
-                        target="_blank"><strong>Blue-bird-css</strong></a>: A lightweight, semantic, modern CSS
-                    framework
-                    built with clean design principles and Tailwind utility power.
-                </p>
-            </article>
+            </div>
         </div>
     </main>
 
     <footer>
         <div class="footer-content">
-            <p>Powered by <strong>Blue Bird Framework</strong> &amp; <a href="https://seip25.github.io/Blue-bird-css/"
-                    target="_blank">Blue Bird CSS</a>.</p>
+            <p>Powered by <strong class="text-gradient">Blue Bird Framework</strong> &amp;
+                <strong class="text-gradient-blue">
+                    <a href="https://seip25.github.io/Blue-bird-css/" target="_blank">Blue Bird
+                        CSS</a>
+                </strong>.
+            </p>
             <div class="lang-switcher">
                 <a href="/" class="lang-link">Home</a>
                 <a href="/about" class="lang-link">About</a>
-                <a href="https://seip25.github.io/Blue-bird-css/" target="_blank" class="lang-link">CSS Docs</a>
                 <a href="https://github.com/seip25/Blue-bird" target="_blank" class="github-star mt-2">&#9733;
                     GitHub</a>
             </div>
