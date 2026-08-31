@@ -3,7 +3,45 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { getRedisClient } from "./cache.js";
 
-let DB_TYPE = (process.env.DB_TYPE || "").toLowerCase();
+const rawDbType = (process.env.DB_TYPE || "").toLowerCase().trim();
+let DB_TYPE = "";
+
+if (
+  rawDbType === "sqlite" ||
+  rawDbType === "sqlite3" ||
+  rawDbType === "sql" ||
+  rawDbType === "better-sqlite3" ||
+  rawDbType === "better-sqlite" ||
+  rawDbType === "lite"
+) {
+  DB_TYPE = "sqlite";
+} else if (
+  rawDbType === "postgres" ||
+  rawDbType === "postgresql" ||
+  rawDbType === "pg" ||
+  rawDbType === "psql" ||
+  rawDbType === "pgsql" ||
+  rawDbType === "postgre" ||
+  rawDbType === "postgr" ||
+  rawDbType === "psgr"
+) {
+  DB_TYPE = "postgres";
+} else if (
+  rawDbType === "mysql" ||
+  rawDbType === "mariadb" ||
+  rawDbType === "maria" ||
+  rawDbType === "my"
+) {
+  DB_TYPE = "mysql";
+} else if (
+  rawDbType === "none" ||
+  rawDbType === "no" ||
+  rawDbType === "false" ||
+  rawDbType === "null" ||
+  rawDbType === "0"
+) {
+  DB_TYPE = "none";
+}
 
 if (
   !DB_TYPE &&

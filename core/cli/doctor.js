@@ -268,7 +268,17 @@ export async function runDoctor() {
   // 5. Database & Cache Driver Status
   // -------------------------------------------------------------
   console.log(chalk.bold("[5/5] Database & Cache Architecture:"));
-  const dbType = (env.DB_TYPE || "sqlite").toLowerCase();
+  const rawDbType = (env.DB_TYPE || "").toLowerCase().trim();
+  let dbType = "sqlite";
+  if (["sqlite", "sqlite3", "sql", "better-sqlite3", "better-sqlite", "lite"].includes(rawDbType)) {
+    dbType = "sqlite";
+  } else if (["postgres", "postgresql", "pg", "psql", "pgsql", "postgre", "postgr", "psgr"].includes(rawDbType)) {
+    dbType = "postgres";
+  } else if (["mysql", "mariadb", "maria", "my"].includes(rawDbType)) {
+    dbType = "mysql";
+  } else if (["none", "no", "false", "null", "0"].includes(rawDbType)) {
+    dbType = "none";
+  }
   console.log(chalk.green(`  [INFO] Database Type: ${dbType.toUpperCase()}`));
   const cacheMode = (env.CACHE_MODE || "memory").toLowerCase();
   console.log(chalk.green(`  [INFO] Cache Mode:    ${cacheMode.toUpperCase()}`));

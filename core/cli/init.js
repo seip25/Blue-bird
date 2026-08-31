@@ -62,21 +62,47 @@ class ProjectInit {
       const cleanDbTypeAns = dbTypeAns.toLowerCase().trim();
       if (
         cleanDbTypeAns === "sqlite" ||
+        cleanDbTypeAns === "sqlite3" ||
         cleanDbTypeAns === "sql" ||
-        cleanDbTypeAns === "sqlite3"
+        cleanDbTypeAns === "better-sqlite3" ||
+        cleanDbTypeAns === "better-sqlite" ||
+        cleanDbTypeAns === "lite"
       ) {
         dbType = "sqlite";
       } else if (
         cleanDbTypeAns === "postgres" ||
         cleanDbTypeAns === "postgresql" ||
         cleanDbTypeAns === "pg" ||
-        cleanDbTypeAns === "postgr"
+        cleanDbTypeAns === "psql" ||
+        cleanDbTypeAns === "pgsql" ||
+        cleanDbTypeAns === "postgre" ||
+        cleanDbTypeAns === "postgr" ||
+        cleanDbTypeAns === "psgr"
       ) {
         dbType = "postgres";
-      } else if (cleanDbTypeAns === "mysql") {
+      } else if (
+        cleanDbTypeAns === "mysql" ||
+        cleanDbTypeAns === "mariadb" ||
+        cleanDbTypeAns === "maria" ||
+        cleanDbTypeAns === "my"
+      ) {
         dbType = "mysql";
-      } else {
+      } else if (
+        cleanDbTypeAns === "none" ||
+        cleanDbTypeAns === "no" ||
+        cleanDbTypeAns === "null" ||
+        cleanDbTypeAns === "false" ||
+        cleanDbTypeAns === "0" ||
+        cleanDbTypeAns === "n"
+      ) {
         dbType = "none";
+      } else {
+        console.log(
+          chalk.yellow(
+            `[WARN] Unknown database '${dbTypeAns}'. Defaulting to 'sqlite'.`,
+          ),
+        );
+        dbType = "sqlite";
       }
 
       if (dbType === "sqlite") {
@@ -87,14 +113,21 @@ class ProjectInit {
         if (!fs.existsSync(dbDir)) {
           fs.mkdirSync(dbDir, { recursive: true });
         }
-      } else if (dbType !== "none") {
+      } else if (dbType === "mysql") {
         dbName = await ask("Database Name", dbName);
-        dbUser = await ask(
-          "Database User",
-          dbType === "postgres" ? "postgres" : "root",
-        );
-        dbPassword = await ask("Database Password", dbPassword);
-        const defaultDbPort = dbType === "postgres" ? 5432 : 3306;
+        dbUser = await ask("Database User", "root");
+        dbPassword = await ask("Database Password", "root");
+        const defaultDbPort = 3306;
+        const dbPortInput = await ask("Database Port", defaultDbPort);
+        dbPort = parseInt(dbPortInput, 10);
+        if (Number.isNaN(dbPort)) {
+          dbPort = defaultDbPort;
+        }
+      } else if (dbType === "postgres") {
+        dbName = await ask("Database Name", dbName);
+        dbUser = await ask("Database User", "postgres");
+        dbPassword = await ask("Database Password", "root");
+        const defaultDbPort = 5432;
         const dbPortInput = await ask("Database Port", defaultDbPort);
         dbPort = parseInt(dbPortInput, 10);
         if (Number.isNaN(dbPort)) {
@@ -176,106 +209,70 @@ class ProjectInit {
       );
       const composeDest = path.join(this.appDir, "docker-compose.yml");
       if (fs.existsSync(composeSrc)) {
-        if (!fs.existsSync(composeDest)) {
-          fs.copyFileSync(composeSrc, composeDest);
-          console.log(
-            chalk.green(`[OK] Created docker-compose.yml (${dbType} mode).`),
-          );
-        } else {
-          console.log(
-            chalk.yellow(`[SKIP] docker-compose.yml already exists, skipping.`),
-          );
-        }
+        fs.copyFileSync(composeSrc, composeDest);
+        console.log(
+          chalk.green(`[OK] Created docker-compose.yml (${dbType} mode).`),
+        );
       } else {
         const fallbackSrc = path.join(this.sourceDir, "docker-compose.yml");
-        if (fs.existsSync(fallbackSrc) && !fs.existsSync(composeDest)) {
+        if (fs.existsSync(fallbackSrc)) {
           fs.copyFileSync(fallbackSrc, composeDest);
           console.log(chalk.green(`[OK] Created docker-compose.yml.`));
         }
       }
 
       const envPath = path.join(this.appDir, ".env");
-      const envExamplePath = path.join(this.appDir, ".env_example");
+      const jwtSecret = crypto.randomBytes(32).toString("hex");
+      const composeProjectName =
+        title
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9_-]/g, "") || "blue-bird";
 
-      if (fs.existsSync(envExamplePath)) {
-        let envContent = fs.readFileSync(envExamplePath, "utf-8");
-
-        const jwtSecret = crypto.randomBytes(32).toString("hex");
-        const composeProjectName =
-          title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-z0-9_-]/g, "") || "blue-bird";
-
-        const updates = {
-          COMPOSE_PROJECT_NAME: composeProjectName,
-          TITLE: title,
-          PORT: port,
-          APP_URL: appUrl,
-          JWT_SECRET: jwtSecret,
-          DB_TYPE: dbType,
-        };
-
-        if (dbType === "sqlite") {
-          updates.DB_TYPE = "sqlite";
-          updates.DB_FILE = dbFile;
-          updates.DATABASE_URL = `sqlite:${dbFile}`;
-        } else if (dbType === "mysql") {
-          updates.DB_TYPE = "mysql";
-          updates.DB_NAME = dbName;
-          updates.DB_USER = dbUser;
-          updates.DB_PASSWORD = dbPassword;
-          updates.DB_PORT = dbPort;
-          updates.DATABASE_URL = `mysql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}`;
-        } else if (dbType === "postgres") {
-          updates.DB_TYPE = "postgres";
-          updates.DB_NAME = dbName;
-          updates.DB_USER = dbUser;
-          updates.DB_PASSWORD = dbPassword;
-          updates.DB_PORT = dbPort;
-          updates.DATABASE_URL = `postgresql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}?schema=public`;
-        }
-
-        const lines = envContent.split(/\r?\n/);
-        let foundComposeProjectName = false;
-        const updatedLines = lines.map((line) => {
-          const match = line.match(/^([A-Z_]+)=(.+)/);
-          if (match) {
-            const key = match[1];
-            if (key === "COMPOSE_PROJECT_NAME") {
-              foundComposeProjectName = true;
-            }
-            if (updates[key] !== undefined) {
-              const value = updates[key];
-              if (typeof value === "string" && !value.startsWith('"')) {
-                return `${key}="${value}"`;
-              }
-              return `${key}=${value}`;
-            }
-          }
-          return line;
-        });
-
-        if (!foundComposeProjectName && updates.COMPOSE_PROJECT_NAME) {
-          const titleIdx = updatedLines.findIndex((l) => l.startsWith("TITLE="));
-          if (titleIdx !== -1) {
-            updatedLines.splice(
-              titleIdx,
-              0,
-              `COMPOSE_PROJECT_NAME="${updates.COMPOSE_PROJECT_NAME}"`,
-            );
-          } else {
-            updatedLines.push(
-              `COMPOSE_PROJECT_NAME="${updates.COMPOSE_PROJECT_NAME}"`,
-            );
-          }
-        }
-        envContent = updatedLines.join("\n");
-
-        fs.writeFileSync(envPath, envContent, "utf-8");
-        console.log(chalk.green("[OK] Created and configured .env file."));
+      let dbEnvBlock = "";
+      if (dbType === "sqlite") {
+        dbEnvBlock = `# Database Configuration\n# SQLite (Default - uses WAL mode and busy timeout automatically)\nDB_TYPE="sqlite"\nDB_FILE="${dbFile}"\nDATABASE_URL="sqlite:${dbFile}"`;
+      } else if (dbType === "mysql") {
+        dbEnvBlock = `# Database Configuration\n# MySQL\nDB_TYPE="mysql"\nDB_HOST="localhost"\nDB_PORT=${dbPort}\nDB_NAME="${dbName}"\nDB_USER="${dbUser}"\nDB_PASSWORD="${dbPassword}"\nDATABASE_URL="mysql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}"`;
+      } else if (dbType === "postgres") {
+        dbEnvBlock = `# Database Configuration\n# PostgreSQL\nDB_TYPE="postgres"\nDB_HOST="localhost"\nDB_PORT=${dbPort}\nDB_NAME="${dbName}"\nDB_USER="${dbUser}"\nDB_PASSWORD="${dbPassword}"\nDATABASE_URL="postgresql://${dbUser}:${dbPassword}@localhost:${dbPort}/${dbName}?schema=public"`;
+      } else {
+        dbEnvBlock = `# Database Configuration\n# None\nDB_TYPE="none"`;
       }
+
+      const envContent = `# Server and Application Configuration
+DEBUG=true
+PORT=${port}
+HOST="localhost"
+APP_URL="${appUrl}"
+VERSION="1.0.0"
+
+# Docker / Swagger Config
+COMPOSE_PROJECT_NAME="${composeProjectName}"
+TITLE="${title}"
+DESCRIPTION="Description project"
+
+# Security Configuration
+JWT_SECRET="${jwtSecret}"
+
+# Cache Configuration
+# Options: "memory" (Fast in-memory RAM), "redis" (Distributed container cache), "none" (Disabled)
+CACHE_MODE="memory"
+
+# Redis Configuration (Used when CACHE_MODE="redis")
+REDIS_HOST="localhost"
+REDIS_PORT=6379
+REDIS_PASSWORD=""
+
+# PM2 Clustering Instances (integer or 'max')
+PM2_INSTANCES=1
+
+${dbEnvBlock}
+`;
+
+      fs.writeFileSync(envPath, envContent, "utf-8");
+      console.log(chalk.green("[OK] Created and configured .env file."));
 
       this.updatePackageJson();
 
@@ -289,7 +286,7 @@ class ProjectInit {
             packagesToInstall.push("better-sqlite3");
           } else if (dbType === "postgres") {
             packagesToInstall.push("pg");
-          } else {
+          } else if (dbType === "mysql") {
             packagesToInstall.push("mysql2");
           }
           execSync(`npm install ${packagesToInstall.join(" ")}`, {
@@ -426,9 +423,16 @@ function addCommand(feature) {
     "better-sqlite3": "better-sqlite3",
     mysql: "mysql2",
     mysql2: "mysql2",
+    mariadb: "mysql2",
+    maria: "mysql2",
     postgres: "pg",
     postgresql: "pg",
     pg: "pg",
+    psql: "pg",
+    pgsql: "pg",
+    psgr: "pg",
+    postgre: "pg",
+    postgr: "pg",
     bcrypt: "bcrypt",
     swagger: "swagger-ui-express",
   };

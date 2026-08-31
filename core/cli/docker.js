@@ -33,16 +33,44 @@ function getEnvVars() {
  * @returns {string} 'sqlite', 'postgres', 'mysql', or 'none'.
  */
 function getDbType(env = getEnvVars()) {
-  if (env.DB_TYPE && (env.DB_TYPE.toLowerCase() === "sqlite" || env.DB_TYPE.toLowerCase() === "sqlite3")) {
+  const dbTypeRaw = (env.DB_TYPE || "").toLowerCase().trim();
+  if (
+    dbTypeRaw === "sqlite" ||
+    dbTypeRaw === "sqlite3" ||
+    dbTypeRaw === "sql" ||
+    dbTypeRaw === "better-sqlite3" ||
+    dbTypeRaw === "better-sqlite" ||
+    dbTypeRaw === "lite"
+  ) {
     return "sqlite";
   }
-  if (env.DB_TYPE && (env.DB_TYPE.toLowerCase() === "postgres" || env.DB_TYPE.toLowerCase() === "postgresql" || env.DB_TYPE.toLowerCase() === "pg")) {
+  if (
+    dbTypeRaw === "postgres" ||
+    dbTypeRaw === "postgresql" ||
+    dbTypeRaw === "pg" ||
+    dbTypeRaw === "psql" ||
+    dbTypeRaw === "pgsql" ||
+    dbTypeRaw === "postgre" ||
+    dbTypeRaw === "postgr" ||
+    dbTypeRaw === "psgr"
+  ) {
     return "postgres";
   }
-  if (env.DB_TYPE && env.DB_TYPE.toLowerCase() === "mysql") {
+  if (
+    dbTypeRaw === "mysql" ||
+    dbTypeRaw === "mariadb" ||
+    dbTypeRaw === "maria" ||
+    dbTypeRaw === "my"
+  ) {
     return "mysql";
   }
-  if (env.DB_TYPE && env.DB_TYPE.toLowerCase() === "none") {
+  if (
+    dbTypeRaw === "none" ||
+    dbTypeRaw === "no" ||
+    dbTypeRaw === "false" ||
+    dbTypeRaw === "null" ||
+    dbTypeRaw === "0"
+  ) {
     return "none";
   }
   if (env.DATABASE_URL && !env.DATABASE_URL.startsWith("#")) {
