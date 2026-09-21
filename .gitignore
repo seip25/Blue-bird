@@ -9,3 +9,5 @@ package-lock.json
 backups/*.sql
 
 database/migrations
+
+test/
