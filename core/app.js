@@ -2,11 +2,8 @@ import http from "node:http";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import fs from "node:fs";
 import chalk from "chalk";
-import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 import compression from "compression";
 import Config from "./config.js";
 import Logger from "./logger.js";
@@ -17,46 +14,51 @@ const __dirname = Config.dirname();
 const props = Config.props();
 
 /**
+ * Generates a middleware that applies security response headers without external dependencies.
+ * Covers X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy,
+ * and Permissions-Policy. Content-Security-Policy is opt-in via options.
+ * @param {Object} [options={}] - Options to override header values.
+ * @param {string|false} [options.csp=false] - Content-Security-Policy header value. Set to false to disable.
+ * @returns {Function} Express middleware.
+ */
+function securityHeaders(options = {}) {
+  return (req, res, next) => {
+    res.setHeader("X-Frame-Options", options.frameOptions ?? "SAMEORIGIN");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", options.referrerPolicy ?? "strict-origin-when-cross-origin");
+    res.setHeader(
+      "Permissions-Policy",
+      options.permissionsPolicy ?? "camera=(), microphone=(), geolocation=()"
+    );
+    if (options.csp) {
+      res.setHeader("Content-Security-Policy", options.csp);
+    }
+    next();
+  };
+}
+
+/**
  * Main Application class to manage Express server, routes, and middlewares.
  */
 class App {
   /**
    * Initializes the App instance with the provided options.
-   * @param {Object} [options] - Configuration options for the application.
-   * @param {Array<{path: string, router: import('express').Router}>} [options.routes=[]] - Array of route objects containing path and router components.
+   * @param {Object} [options={}] - Configuration options for the application.
+   * @param {Array<{path: string, router: import('express').Router}>} [options.routes=[]] - Route objects.
    * @param {Object} [options.cors={}] - CORS configuration options.
-   * @param {Array<Function>} [options.middlewares=[]] - Array of middleware functions to be applied.
+   * @param {Array<Function>} [options.middlewares=[]] - Global middleware functions.
    * @param {number|string} [options.port=3000] - Server port.
    * @param {string} [options.host="http://localhost"] - Server host URL.
-   * @param {boolean} [options.logger=true] - Whether to enable the request logger.
+   * @param {boolean} [options.logger=false] - Whether to enable the request logger.
    * @param {boolean} [options.notFound=true] - Whether to enable the default 404 handler.
    * @param {boolean} [options.json=true] - Whether to enable JSON body parsing.
    * @param {boolean} [options.urlencoded=true] - Whether to enable URL-encoded body parsing.
-   * @param {Object} [options.static={path: null, options: {}}] - Static file configuration.
+   * @param {Object} [options.static] - Static file configuration for public/ directory.
    * @param {boolean} [options.cookieParser=true] - Whether to enable cookie parsing.
-   * @param {boolean|Object} [options.rateLimit=false] - Enable global rate limiting.
-   * @param {boolean|Object} [options.swagger=false] - Enable swagger.
-   * @param {boolean} [options.compression=true] - Enable compression.
-   * @example
-   * const app = new App({
-   *     routes: [],
-   *     cors: {},
-   *     middlewares: [],
-   *     port: 3000,
-   *     host: "http://localhost",
-   *     logger: true,
-   *     notFound: true,
-   *     json: true,
-   *     urlencoded: true,
-   *     static: { path: "public", options: {} },
-   *     cookieParser: true,
-   *     rateLimit: { windowMs: 10 * 60 * 1000, max: 50 },
-   *     swagger: {
-   *         info: { title: "Blue Bird API", version: "1.0.0", description: "API Documentation" },
-   *         url: "http://localhost:8000"
-   *     },
-   *     compression:true
-   * });
+   * @param {boolean} [options.swagger=false] - Enable Swagger documentation.
+   * @param {boolean} [options.compression=true] - Enable gzip/brotli compression.
+   * @param {boolean|Object} [options.security=true] - Enable built-in security headers middleware.
    */
   constructor(options = {}) {
     this.app = express();
@@ -74,9 +76,9 @@ class App {
     this.urlencoded = options.urlencoded ?? true;
     this.static = options.static || props.static;
     this.cookieParser = options.cookieParser ?? true;
-    this.rateLimit = options.rateLimit ?? false;
     this.swagger = options.swagger ?? false;
     this.compression = options.compression ?? true;
+    this.security = options.security ?? true;
     this.loggerInstance = new Logger();
     /** @type {Set<import('http').ServerResponse>} */
     this._hotReloadClients = new Set();
@@ -85,12 +87,7 @@ class App {
 
   /**
    * Registers a custom middleware or module in the Express application.
-   * @param {Function|import('express').Router} record - The middleware function or Express router to register.
-   * @example
-   * app.use((req, res, next) => {
-   *     console.log("Middleware");
-   *     next();
-   * });
+   * @param {Function|import('express').Router} record - Middleware function or Express router.
    */
   use(record) {
     this.app.use(record);
@@ -98,8 +95,8 @@ class App {
 
   /**
    * Sets a configuration value in the Express application.
-   * @param {string} key - The configuration key.
-   * @param {*} value - The value to set for the configuration key.
+   * @param {string} key - Configuration key.
+   * @param {*} value - Configuration value.
    */
   set(key, value) {
     this.app.set(key, value);
@@ -114,79 +111,50 @@ class App {
     if (this.json) this.app.use(express.json());
     if (this.urlencoded) this.app.use(express.urlencoded({ extended: true }));
     if (this.cookieParser) this.app.use(cookieParser());
+    if (this.security) {
+      this.app.use(securityHeaders(typeof this.security === "object" ? this.security : {}));
+    }
+
+    this.app.use(cors(this.cors));
 
     this.app.use((req, res, next) => {
       req.lang = req.query?.lang || req.body?.lang || req.cookies?.lang || "en";
       res.locals.lang = req.lang;
 
-      res.success = (data = null, message = "Success", statusCode = 200) => {
-        return res.status(statusCode).json({
-          status: "success",
-          message,
-          data,
-        });
-      };
+      res.success = (data = null, message = "Success", statusCode = 200) =>
+        res.status(statusCode).json({ status: "success", message, data });
 
-      res.error = (message = "Error", statusCode = 400, errors = []) => {
-        return res.status(statusCode).json({
-          status: "error",
-          message,
-          errors,
-        });
-      };
+      res.error = (message = "Error", statusCode = 400, errors = []) =>
+        res.status(statusCode).json({ status: "error", message, errors });
 
-      res.ok = (data = null, message = "Success") => {
-        return res.success(data, message, 200);
-      };
+      res.ok = (data = null, message = "Success") => res.success(data, message, 200);
 
-      res.created = (data = null, message = "Created") => {
-        return res.success(data, message, 201);
-      };
+      res.created = (data = null, message = "Created") => res.success(data, message, 201);
 
-      res.badRequest = (message = "Bad Request", errors = []) => {
-        return res.error(message, 400, errors);
-      };
+      res.badRequest = (message = "Bad Request", errors = []) => res.error(message, 400, errors);
 
-      res.unauthorized = (message = "Unauthorized") => {
-        return res.error(message, 401);
-      };
+      res.unauthorized = (message = "Unauthorized") => res.error(message, 401);
 
-      res.forbidden = (message = "Forbidden") => {
-        return res.error(message, 403);
-      };
+      res.forbidden = (message = "Forbidden") => res.error(message, 403);
 
-      res.notFound = (message = "Not Found") => {
-        return res.error(message, 404);
-      };
+      res.notFound = (message = "Not Found") => res.error(message, 404);
 
-      res.serverError = (message = "Internal Server Error", errors = []) => {
-        return res.error(message, 500, errors);
-      };
+      res.serverError = (message = "Internal Server Error", errors = []) => res.error(message, 500, errors);
 
       res.paginate = (data = [], pagination = {}, message = "Success") => {
         const page = Number(pagination.page) || 1;
         const limit = Number(pagination.limit) || data.length;
         const total = Number(pagination.total) || data.length;
         const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
-
-        return res.status(200).json({
-          status: "success",
-          message,
-          data,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages,
-          },
-        });
+        return res.status(200).json({ status: "success", message, data, pagination: { page, limit, total, totalPages } });
       };
 
+      res.setHeader("X-Powered-By", "Blue Bird");
       next();
     });
 
-    this.app.get("/api/health", (req, res) => {
-      return res.json({
+    this.app.get("/api/health", (req, res) =>
+      res.json({
         status: "ok",
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
@@ -195,63 +163,31 @@ class App {
           rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
           heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
         },
-      });
-    });
+      })
+    );
 
+    const staticPath = this.static?.path || "public";
+    const staticOptions = this.static?.options || {};
+    const isDebug = props.debug;
 
-    if (this.static.path || props.debug)
-      this.app.use(
-        express.static(path.join(__dirname, this.static.path || "frontend"), {
-          extensions: ["html"],
-          ...this.static.options,
-          setHeaders: (res) => {
-            res.setHeader("X-Powered-By", "Blue Bird");
-            res.setHeader(
-              "Cache-Control",
-              props.debug ? "no-cache" : "public, max-age=31536000, immutable",
-            );
-          },
-        }),
-      );
-
-    this.app.use(cors(this.cors));
-    if (this.rateLimit) {
-      if (!this.app.get("trust proxy")) {
-        this.app.set("trust proxy", 1);
-      }
-      const defaultRateLimit = {
-        windowMs: 15 * 60 * 1000,
-        max: 500,
-        standardHeaders: true,
-        legacyHeaders: false,
-        message: {
-          success: false,
-          message: "Too many requests, please try again later.",
+    this.app.use(
+      express.static(path.join(__dirname, staticPath), {
+        ...staticOptions,
+        setHeaders: (res) => {
+          res.setHeader("X-Powered-By", "Blue Bird");
+          res.setHeader(
+            "Cache-Control",
+            isDebug ? "no-cache" : "public, max-age=2592000, immutable"
+          );
         },
-      };
-      const optionsRateLimiter = {
-        ...defaultRateLimit,
-        ...(typeof this.rateLimit === "object" ? this.rateLimit : {}),
-      };
-
-      if (props.debug) {
-        optionsRateLimiter.skip = (req) => req.path.startsWith("/debug");
-      }
-
-      const limiter = rateLimit(optionsRateLimiter);
-      this.app.use(limiter);
-    }
+      })
+    );
 
     this.middlewares.forEach((middleware) => {
       this.app.use(middleware);
     });
 
     if (this.logger || props.debug) this._middlewareLogger(this.logger);
-
-    this.app.use((req, res, next) => {
-      res.setHeader("X-Powered-By", "Blue Bird");
-      next();
-    });
 
     if (props.debug) {
       Debug.middlewareMetrics(this.app);
@@ -260,25 +196,17 @@ class App {
     if (this.swagger) {
       const { default: Swagger } = await import("./swagger.js");
       const defaultSwaggerOptions = {
-        info: {
-          title: "Blue Bird API",
-          version: "1.0.0",
-          description: "Blue Bird Framework API Documentation",
-        },
+        info: { title: "Blue Bird API", version: "1.0.0", description: "Blue Bird Framework API Documentation" },
         url: this.appUrl ? this.appUrl : `${this.host}:${this.port}`,
         route: "/docs",
       };
-
-      const swaggerOptions = {
+      Swagger.init(this.app, {
         ...defaultSwaggerOptions,
         ...(typeof this.swagger === "object" ? this.swagger : {}),
-      };
-
-      Swagger.init(this.app, swaggerOptions);
+      });
     }
 
     this._dispatchRoutes();
-
 
     if (this.notFound) this._notFoundDefault();
 
@@ -286,23 +214,16 @@ class App {
   }
 
   /**
-   * Middleware that logs incoming HTTP requests to the console and to a log file.
+   * Middleware that logs incoming HTTP requests.
    * @private
    * @param {boolean} [logger=false]
    */
   _middlewareLogger(logger = false) {
     this.app.use((req, res, next) => {
       const method = req.method;
-      const url = req.url.replace(
-        /(password|token|authorization)=([^&]+)/gi,
-        "$1=***",
-      );
-      if (url.includes("chrome")) return;
-      const params =
-        Object.keys(req.params).length > 0
-          ? ` ${JSON.stringify(req.params)}`
-          : "";
-
+      const url = req.url.replace(/(password|token|authorization)=([^&]+)/gi, "$1=***");
+      if (url.includes("chrome")) return next();
+      const params = Object.keys(req.params).length > 0 ? ` ${JSON.stringify(req.params)}` : "";
       const ip = req.ip;
       const now = new Date().toISOString();
       const time = `${now.split("T")[0]} ${now.split("T")[1].split(".")[0]}`;
@@ -330,22 +251,20 @@ class App {
 
       this.loggerInstance.error(`[${statusCode}] ${message} - ${err.stack}`);
 
-      const responsePayload = {
+      const payload = {
         status: "error",
         message: statusCode === 500 && !props.debug ? "Internal Server Error" : message,
         errors,
       };
 
-      if (props.debug && err.stack) {
-        responsePayload.stack = err.stack;
-      }
+      if (props.debug && err.stack) payload.stack = err.stack;
 
-      return res.status(statusCode).json(responsePayload);
+      return res.status(statusCode).json(payload);
     });
   }
 
   /**
-   * Iterates through the stored routes and attaches them to the Express application instance.
+   * Attaches all registered routes to the Express application.
    * @private
    */
   _dispatchRoutes() {
@@ -365,14 +284,15 @@ class App {
    */
   _notFoundDefault() {
     this.app.use((req, res) => {
+      const expectsHtml = req.headers.accept?.includes("text/html") && !req.path.startsWith("/api");
+      if (expectsHtml) return res.status(404).send("<h1>404 Not Found</h1>");
       return res.status(404).json({ message: "Not Found" });
     });
   }
 
   /**
-   * Starts the HTTP server and begins listening for incoming connections.
+   * Starts the HTTP server and listens for incoming connections.
    */
-
   run() {
     this._ready
       .then(() => {
@@ -386,28 +306,34 @@ class App {
             chalk.green(`${this.host}:${this.port}`) +
             "\n" +
             (props.debug ? chalk.bold.magenta("Hot Reload: enabled\n") : "") +
-            chalk.gray("────────────────────────────────"),
+            chalk.gray("────────────────────────────────")
           );
         });
       })
       .catch((err) => {
-        console.error(
-          chalk.bold.red("Failed to start Blue Bird:"),
-          err.message,
-        );
+        console.error(chalk.bold.red("Failed to start Blue Bird:"), err.message);
         process.exit(1);
       });
   }
 
   /**
-   * Initializes and returns the WebSocket manager attached to the Express HTTP server instance.
-   * @param {Function|Object} [options] - Connection callback handler: (ws, req) => {} or options object.
+   * Closes the running HTTP server.
+   * @returns {Promise<void>}
+   */
+  close() {
+    return new Promise((resolve, reject) => {
+      if (this.server) {
+        this.server.close((err) => (err ? reject(err) : resolve()));
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Initializes and returns the WebSocket manager attached to the HTTP server.
+   * @param {Function|Object} [options] - Connection callback or options object.
    * @returns {WebSocketManager}
-   * @example
-   * app.websocket((ws, req) => {
-   *   ws.join("chat");
-   *   ws.sendJSON({ message: "Welcome to Blue Bird WebSockets" });
-   * });
    */
   websocket(options = {}) {
     const handler = typeof options === "function" ? options : null;
@@ -424,18 +350,27 @@ class App {
 
   /**
    * Returns a pre-configured Helmet middleware for use on specific routers.
-   * @param {Object} [options={}] - Helmet options to override defaults.
-   * @returns {Function} Helmet middleware function.
-   * @example
-   * const router = new Router("/web");
-   * router.use(App.helmet({ contentSecurityPolicy: false }));
+   * Requires helmet to be installed: npx blue-bird add helmet
+   * @param {Object} [options={}] - Helmet options.
+   * @returns {Function} Helmet middleware.
    */
-  static helmet(options = {}) {
-    const defaultOptions = {
-      contentSecurityPolicy: props.debug ? false : undefined,
-      hidePoweredBy: false,
-    };
-    return helmet({ ...defaultOptions, ...options });
+  static async helmet(options = {}) {
+    try {
+      const { default: helmet } = await import("helmet");
+      const defaultOptions = { contentSecurityPolicy: props.debug ? false : undefined, hidePoweredBy: false };
+      return helmet({ ...defaultOptions, ...options });
+    } catch {
+      throw new Error("[APP] helmet is not installed. Run: npx blue-bird add helmet");
+    }
+  }
+
+  /**
+   * Returns the built-in security headers middleware without requiring helmet.
+   * @param {Object} [options={}] - Options for header values.
+   * @returns {Function} Express middleware.
+   */
+  static securityHeaders(options = {}) {
+    return securityHeaders(options);
   }
 }
 
@@ -445,9 +380,9 @@ class App {
 export class AppError extends Error {
   /**
    * Creates an AppError instance.
-   * @param {string} message - Error message description.
+   * @param {string} message - Error message.
    * @param {number} [statusCode=500] - HTTP status code.
-   * @param {Array|Object} [errors=[]] - Array or object of detailed errors.
+   * @param {Array|Object} [errors=[]] - Detailed error list.
    */
   constructor(message, statusCode = 500, errors = []) {
     super(message);

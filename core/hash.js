@@ -3,9 +3,7 @@ import crypto from "node:crypto";
 let bcryptModule = null;
 try {
   bcryptModule = (await import("bcrypt")).default || (await import("bcrypt"));
-} catch {
-  // bcrypt not installed, scrypt native is used
-}
+} catch {}
 
 /**
  * High-performance Password Hashing class.
@@ -25,7 +23,6 @@ class Hash {
    * @returns {Promise<string>} Formatted password hash string.
    * @example
    * const hash = await Hash.make("mySecretPassword");
-   * // Using bcrypt:
    * const bcryptHash = await Hash.make("mySecretPassword", { driver: "bcrypt" });
    */
   static async make(password, options = {}) {
@@ -44,8 +41,6 @@ class Hash {
       const rounds = options.rounds || 10;
       return bcryptModule.hash(password, rounds);
     }
-
-    // Default: native scrypt with random salt
     const N = options.N || 16384;
     const r = options.r || 8;
     const p = options.p || 1;
@@ -98,7 +93,6 @@ class Hash {
       return false;
     }
 
-    // 1. Detect bcrypt hash format ($2a$, $2b$, $2y$)
     if (/^\$2[aby]\$\d{2}\$/.test(hash)) {
       if (!bcryptModule) {
         console.error(
@@ -113,10 +107,8 @@ class Hash {
       }
     }
 
-    // 2. Detect native scrypt format ($scrypt$N=...,r=...,p=...$salt$hash)
     if (hash.startsWith("$scrypt$")) {
       const parts = hash.split("$");
-      // Format: ["", "scrypt", "N=16384,r=8,p=1", "saltHex", "hashHex"]
       if (parts.length !== 5) return false;
 
       const paramsStr = parts[2];

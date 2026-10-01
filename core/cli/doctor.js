@@ -52,39 +52,35 @@ function isPortAvailable(port) {
 }
 
 /**
- * Finds a representative static file in frontend/ directory.
- * @returns {string|null} Relative path like 'css/bluebird.css' or 'index.html'
+ * Finds a representative static file in public/ directory.
+ * @returns {string|null}
  */
 function findSampleStaticAsset() {
-  const frontendDir = path.resolve(process.cwd(), "frontend");
-  if (!fs.existsSync(frontendDir)) return null;
+  const publicDir = path.resolve(process.cwd(), "public");
+  if (!fs.existsSync(publicDir)) return null;
 
   const candidates = [
-    "css/bluebird.css",
     "css/style.css",
-    "js/bluebird.js",
     "js/index.js",
-    "index.html",
     "favicon.ico",
+    "images/logo.png",
   ];
 
   for (const candidate of candidates) {
-    if (fs.existsSync(path.join(frontendDir, candidate))) {
+    if (fs.existsSync(path.join(publicDir, candidate))) {
       return candidate;
     }
   }
 
   try {
-    const files = fs.readdirSync(frontendDir, { recursive: true });
+    const files = fs.readdirSync(publicDir, { recursive: true });
     for (const f of files) {
-      const full = path.join(frontendDir, f);
+      const full = path.join(publicDir, f);
       if (fs.statSync(full).isFile()) {
         return f.replace(/\\/g, "/");
       }
     }
-  } catch {
-    // fallback
-  }
+  } catch {}
 
   return null;
 }
@@ -128,9 +124,6 @@ export async function runDoctor() {
   let issuesFound = 0;
   let warningsFound = 0;
 
-  // -------------------------------------------------------------
-  // 1. Environment & Secrets Check (.env)
-  // -------------------------------------------------------------
   console.log(chalk.bold("[1/5] Environment & Configuration (.env):"));
   if (!fs.existsSync(envPath)) {
     console.log(chalk.red("  [FAIL] .env file is missing in project root."));
@@ -158,9 +151,6 @@ export async function runDoctor() {
   }
   console.log("");
 
-  // -------------------------------------------------------------
-  // 2. Filesystem Hierarchy & Permissions (FHS)
-  // -------------------------------------------------------------
   console.log(chalk.bold("[2/5] Filesystem Hierarchy Standard & Static Asset Structure:"));
   if (isLinux) {
     if (projectDir.startsWith("/home/")) {
@@ -173,25 +163,30 @@ export async function runDoctor() {
     }
   }
 
-  const frontendDir = path.resolve(process.cwd(), "frontend");
-  if (!fs.existsSync(frontendDir)) {
-    console.log(chalk.red("  [FAIL] 'frontend/' directory is missing."));
-    issuesFound++;
+  const publicDir = path.resolve(process.cwd(), "public");
+  if (!fs.existsSync(publicDir)) {
+    console.log(chalk.yellow("  [WARN] 'public/' directory is missing. Static assets will not be served by Nginx."));
+    warningsFound++;
   } else {
-    console.log(chalk.green("  [PASS] 'frontend/' directory exists."));
+    console.log(chalk.green("  [PASS] 'public/' directory exists."));
     const sampleAsset = findSampleStaticAsset();
     if (sampleAsset) {
-      console.log(chalk.green(`  [PASS] Detected sample static asset: 'frontend/${sampleAsset}'`));
+      console.log(chalk.green(`  [PASS] Detected sample static asset: 'public/${sampleAsset}'`));
     } else {
-      console.log(chalk.yellow("  [WARN] No static files found inside 'frontend/'."));
+      console.log(chalk.yellow("  [WARN] No static files found inside 'public/'."));
       warningsFound++;
     }
   }
+
+  const appDir = path.resolve(process.cwd(), "app");
+  if (!fs.existsSync(appDir)) {
+    console.log(chalk.red("  [FAIL] 'app/' directory is missing."));
+    issuesFound++;
+  } else {
+    console.log(chalk.green("  [PASS] 'app/' directory exists."));
+  }
   console.log("");
 
-  // -------------------------------------------------------------
-  // 3. Port & Local Network Binding Check
-  // -------------------------------------------------------------
   console.log(chalk.bold("[3/5] Port Availability & Binding:"));
   const portFree = await isPortAvailable(port);
   if (portFree) {
@@ -201,9 +196,6 @@ export async function runDoctor() {
   }
   console.log("");
 
-  // -------------------------------------------------------------
-  // 4. Live Smoke Test (API & Nginx Static Asset Delivery)
-  // -------------------------------------------------------------
   console.log(chalk.bold("[4/5] Live HTTP Smoke Test (Health & Static Delivery):"));
   const sampleAsset = findSampleStaticAsset();
   const testUrls = [
@@ -235,8 +227,8 @@ export async function runDoctor() {
         console.log(chalk.yellow("         Cause: Unprivileged Nginx worker (UID 101) lacks path traversal (+x) or read (+r) permissions."));
         console.log(chalk.yellow("         Remediation: Run the following commands on your host:"));
         console.log(chalk.white(`           chmod 755 ${projectDir}`));
-        console.log(chalk.white("           find frontend -type d -exec chmod 755 {} +"));
-        console.log(chalk.white("           find frontend -type f -exec chmod 644 {} +"));
+        console.log(chalk.white("           find public -type d -exec chmod 755 {} +"));
+        console.log(chalk.white("           find public -type f -exec chmod 644 {} +"));
         issuesFound++;
       } else if (res.status === 404) {
         console.log(chalk.red(`  [FAIL] ${item.name} returned HTTP 404 Not Found.`));
@@ -264,9 +256,6 @@ export async function runDoctor() {
   }
   console.log("");
 
-  // -------------------------------------------------------------
-  // 5. Database & Cache Driver Status
-  // -------------------------------------------------------------
   console.log(chalk.bold("[5/5] Database & Cache Architecture:"));
   const rawDbType = (env.DB_TYPE || "").toLowerCase().trim();
   let dbType = "sqlite";
@@ -284,9 +273,6 @@ export async function runDoctor() {
   console.log(chalk.green(`  [INFO] Cache Mode:    ${cacheMode.toUpperCase()}`));
   console.log("");
 
-  // -------------------------------------------------------------
-  // Summary
-  // -------------------------------------------------------------
   console.log(chalk.bold.cyan("============================================================="));
   if (issuesFound === 0 && warningsFound === 0) {
     console.log(chalk.bold.green(" Diagnostic Summary: All checks passed with zero issues!"));
@@ -298,7 +284,6 @@ export async function runDoctor() {
   console.log(chalk.bold.cyan("============================================================="));
 }
 
-// If executed directly from CLI
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("doctor.js") || process.argv[2] === "doctor") {
   runDoctor();
 }

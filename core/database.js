@@ -88,11 +88,19 @@ if (DB_TYPE === "postgres") {
   }
 } else if (DB_TYPE === "sqlite") {
   try {
-    sqlitePromise = await import("better-sqlite3");
-  } catch (err) {
-    console.error(
-      "[DATABASE ERROR] better-sqlite3 package is not installed. Database wrapper is disabled.",
-    );
+    const { DatabaseSync } = await import("node:sqlite");
+    const _test = new DatabaseSync(":memory:");
+    _test.close();
+    sqlitePromise = { source: "node:sqlite", DatabaseSync };
+  } catch {
+    try {
+      const mod = await import("better-sqlite3");
+      sqlitePromise = { source: "better-sqlite3", BetterSqlite: mod.default || mod };
+    } catch {
+      console.error(
+        "[DATABASE] No SQLite driver available. Node.js 22+ required for node:sqlite, or install better-sqlite3."
+      );
+    }
   }
 }
 
@@ -213,7 +221,6 @@ class Database {
 
     if (this.type === "sqlite" && sqlitePromise) {
       try {
-        const BetterSqlite = sqlitePromise.default || sqlitePromise;
         const dbFilePath = path.isAbsolute(this.sqliteConfig.filename)
           ? this.sqliteConfig.filename
           : path.resolve(process.cwd(), this.sqliteConfig.filename);
@@ -223,20 +230,34 @@ class Database {
           fs.mkdirSync(dir, { recursive: true });
         }
 
-        this.db = new BetterSqlite(dbFilePath, {
-          timeout: this.sqliteConfig.busyTimeout,
-        });
-
-        this.db.pragma(`journal_mode = ${this.sqliteConfig.journalMode}`);
-        this.db.pragma(`synchronous = ${this.sqliteConfig.synchronous}`);
-        this.db.pragma("foreign_keys = ON");
-        this.db.pragma(`busy_timeout = ${this.sqliteConfig.busyTimeout}`);
-        this.db.pragma("temp_store = MEMORY");
+        if (sqlitePromise.source === "node:sqlite") {
+          const { DatabaseSync } = sqlitePromise;
+          this.db = new DatabaseSync(dbFilePath);
+          this._sqliteDriver = "node:sqlite";
+          this.db.exec(`PRAGMA journal_mode = ${this.sqliteConfig.journalMode};`);
+          this.db.exec(`PRAGMA synchronous = ${this.sqliteConfig.synchronous};`);
+          this.db.exec(`PRAGMA busy_timeout = ${this.sqliteConfig.busyTimeout};`);
+          this.db.exec("PRAGMA foreign_keys = ON;");
+          this.db.exec("PRAGMA temp_store = MEMORY;");
+          this.db.exec("PRAGMA cache_size = -8000;");
+          this.db.exec("PRAGMA mmap_size = 268435456;");
+        } else {
+          const { BetterSqlite } = sqlitePromise;
+          this.db = new BetterSqlite(dbFilePath, { timeout: this.sqliteConfig.busyTimeout });
+          this._sqliteDriver = "better-sqlite3";
+          this.db.pragma(`journal_mode = ${this.sqliteConfig.journalMode}`);
+          this.db.pragma(`synchronous = ${this.sqliteConfig.synchronous}`);
+          this.db.pragma("foreign_keys = ON");
+          this.db.pragma(`busy_timeout = ${this.sqliteConfig.busyTimeout}`);
+          this.db.pragma("temp_store = MEMORY");
+          this.db.pragma("cache_size = -8000");
+          this.db.pragma("mmap_size = 268435456");
+        }
 
         return true;
       } catch (err) {
         console.error(
-          "[DATABASE ERROR] Failed to initialize SQLite database:",
+          "[DATABASE] Failed to initialize SQLite database:",
           err.message,
         );
         this.db = null;

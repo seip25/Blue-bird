@@ -36,7 +36,7 @@ services:
     ports:
       - "${PORT:-3000}:80"
     volumes:
-      - .:/app:ro
+      - ./public:/app/public:ro
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - bluebird_net

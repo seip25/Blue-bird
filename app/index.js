@@ -1,12 +1,13 @@
 import App from "@seip/blue-bird/core/app.js";
 import routerApi from "./routes/api.js";
+import routerWeb from "./routes/web.js";
 
 /**
  * Main entry point for the Blue Bird application.
  * Initializes the App instance with routes, configuration, and starts the server.
  */
 const app = new App({
-  routes: [routerApi],
+  routes: [routerWeb, routerApi],
 
   cors: [],
 

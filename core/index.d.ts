@@ -101,9 +101,9 @@ export class App {
     urlencoded?: boolean;
     static?: { path: string; options?: any };
     cookieParser?: boolean;
-    rateLimit?: boolean | any;
     swagger?: boolean | any;
     compression?: boolean;
+    security?: boolean | any;
   });
 
   use(record: any): void;
@@ -115,7 +115,8 @@ export class App {
   ): WebSocketManager;
   run(): void;
 
-  static helmet(options?: any): any;
+  static helmet(options?: any): Promise<any>;
+  static securityHeaders(options?: any): any;
 }
 
 export class WebSocketManager {
@@ -165,16 +166,24 @@ export class Auth {
 }
 
 export class Cache {
-  static middleware(seconds?: number): (req: Request, res: Response, next: NextFunction) => Promise<any>;
-  static get(key: string): Promise<any | null>;
-  static set(key: string, value: any, seconds?: number): Promise<boolean>;
+  static middleware(seconds?: number, options?: { driver?: "memory" | "redis" }): (req: Request, res: Response, next: NextFunction) => Promise<any>;
+  static get(key: string, options?: { driver?: "memory" | "redis" }): Promise<any | null>;
+  static set(key: string, value: any, seconds?: number, options?: { driver?: "memory" | "redis"; fallbackDriver?: "memory" | "redis" }): Promise<boolean>;
   static delete(keys: string | string[]): Promise<boolean>;
   static del(keys: string | string[]): Promise<boolean>;
   static clear(): Promise<boolean>;
   static getMode(): string;
+  static size(): number;
 }
 
 export function getRedisClient(): any;
+
+export class Render {
+  static send(res: Response, viewName: string, data?: Record<string, any>, ttl?: number): Promise<void>;
+  static view(viewName: string, staticData?: Record<string, any>): (req: Request, res: Response) => void;
+  static cache(seconds?: number): (req: Request, res: Response, next: NextFunction) => Promise<any>;
+  static invalidate(keys: string | string[]): Promise<void>;
+}
 
 export class Database {
   constructor(connectionLimit?: number, queueLimit?: number, config?: any);

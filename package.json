@@ -1,7 +1,7 @@
 {
   "name": "@seip/blue-bird",
-  "version": "1.4.0",
-  "description": "Express opinionated API framework with built-in JWT auth, validation, and caching",
+  "version": "2.0.0",
+  "description": "Performance-first Node.js API and web framework with built-in JWT auth, HTML rendering, validation, and multi-level caching",
   "type": "module",
   "types": "core/index.d.ts",
   "exports": {
@@ -20,6 +20,7 @@
     "html",
     "api",
     "jwt",
+    "render",
     "seo"
   ],
   "author": "Seip25",
@@ -28,16 +29,21 @@
     "url": "https://github.com/seip25/Blue-bird/issues"
   },
   "homepage": "https://seip25.github.io/Blue-bird/",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
-    "dev": "node --watch --env-file=.env backend/index.js",
-    "start": "node --env-file=.env backend/index.js",
-    "init": "node core/cli/init.js",
-    "doctor": "node core/cli/init.js doctor",
-    "route": "node core/cli/route.js",
-    "migrate": "node core/cli/init.js migrate",
-    "seed": "node core/cli/init.js seed",
-    "swagger-install": "node core/cli/swagger.js",
-    "docker": "node core/cli/init.js docker",
+    "dev": "node --watch --env-file=.env app/index.js",
+    "start": "node --env-file=.env app/index.js",
+    "init": "blue-bird",
+    "doctor": "blue-bird doctor",
+    "route": "blue-bird make:route",
+    "view": "blue-bird make:view",
+    "migrate": "blue-bird migrate",
+    "seed": "blue-bird seed",
+    "ecosystem": "blue-bird make:ecosystem",
+    "swagger-install": "blue-bird swagger-install",
+    "docker": "blue-bird docker",
     "test": "node test/test_suite.js"
   },
   "publishConfig": {
@@ -45,8 +51,8 @@
   },
   "files": [
     "core",
-    "backend",
-    "frontend",
+    "app",
+    "public",
     "docker",
     "docker-compose.yml",
     "AGENTS.md",
@@ -55,18 +61,19 @@
     ".vscode"
   ],
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
     "chalk": "^5.6.2",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.2.1",
+    "redis": "^6.1.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^13.0.3",
+    "ejs": "^3.1.10",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "redis": "^6.1.0",
     "ws": "^8.18.0",
-    "xss": "^1.0.15"
+    "express-rate-limit": "^8.2.1"
   }
 }

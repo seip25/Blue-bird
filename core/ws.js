@@ -5,9 +5,7 @@ try {
   const wsModule = await import("ws");
   WebSocketServer = wsModule.WebSocketServer || wsModule.default?.WebSocketServer;
   WebSocket = wsModule.WebSocket || wsModule.default?.WebSocket;
-} catch {
-  // ws not installed
-}
+} catch {}
 
 import { getRedisClient } from "./cache.js";
 import Auth from "./auth.js";

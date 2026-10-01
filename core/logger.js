@@ -13,7 +13,7 @@ class Logger {
    * Initializes the Logger instance and ensures the logs directory exists.
    */
   constructor() {
-    this.folder = path.join(__dirname, "backend", "logs");
+    this.folder = path.join(__dirname, "logs");
     this._currentDay = null;
     this._currentDayFolder = null;
     if (!fs.existsSync(this.folder)) {

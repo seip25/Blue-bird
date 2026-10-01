@@ -1,15 +1,15 @@
 # Blue Bird Framework - AI Agent Guide
 
-This document serves as the primary manual for any AI Agent interacting with the codebase. It details the architecture of Blue Bird, its internal modules, and how features should be written or modified.
+This document serves as the primary manual for any AI Agent interacting with the codebase. It details the architecture of Blue Bird v2, its internal modules, and how features should be written or modified.
 
 ## 1. Core Architecture
 
-Blue Bird is a performance-first API framework built on **Express**. It saves developers from repetitive configuration, validation, security, JWT authentication, and database environment configuration out of the box, delegating all static frontend rendering to Nginx.
+Blue Bird is a performance-first web and API framework built on **Express** (Node.js 22+). It provides JWT auth, HTML rendering with multi-level caching, validation, database access, and queue processing out of the box.
 
-- **Entrypoint (`backend/index.js`)**: Initializes the server using `App` from `core/app.js` and registers the routes.
-- **Backend (`backend/`)**: Application routes and logic (e.g. `backend/routes/`).
-- **Frontend (`frontend/`)**: Static assets (HTML, CSS, JS). Handled directly by Nginx in production, bypassing Express.
-- **Core (`core/`)**: The framework core. Contains wrapper classes such as `Router`, `Validator`, `Auth`, `Cache`, etc. **DO NOT MODIFY** the core unless explicitly requested, as it could break other apps.
+- **Entrypoint (`app/index.js`)**: Initializes the server using `App` from `core/app.js` and registers the routes.
+- **Application (`app/`)**: Application code — `app/routes/` (API + web), `app/views/` (HTML templates), `app/jobs/` (background workers).
+- **Public assets (`public/`)**: Static files only (CSS, JS, images, fonts). Served directly by Nginx in Docker. Express also serves `public/` as a fallback for standalone mode.
+- **Core (`core/`)**: The framework core. Contains `Router`, `Render`, `Validator`, `Auth`, `Cache`, `Database`, `Hash`, etc. **DO NOT MODIFY** the core unless explicitly requested.
 
 ## 2. Routing (Router)
 
@@ -176,7 +176,7 @@ apiRouter.use(App.helmet());
 Blue Bird features a built-in Docker Compose CLI wrapper (`core/cli/docker.js`) to deploy and manage containerized development databases and production stacks across SQLite (default), MySQL, PostgreSQL, or no-database (`none`) architectures.
 
 Production deployments always use Docker for orchestration, running:
-- Nginx: Serves static files directly from `frontend/` (stripping `.html` extensions) and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express for APIs.
+- Nginx: Serves static files directly from `public/` and blocks common scanner requests (`.env`, `.git`, etc.) with fallback to Express for HTML views and APIs.
 - Node.js App: Managed via PM2 in cluster mode using `PM2_INSTANCES` configuration (defaults to `1`, can be set to `max`).
 - Database: SQLite (default, embedded in app with volume `./database`), MySQL (`mysql:8.0`), or PostgreSQL (`postgres:18-alpine`), dynamically detected via `getDbType()` reading `DB_TYPE` / `DATABASE_URL` from `.env`.
 - Redis: Memory caching and session store.
@@ -245,7 +245,7 @@ await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });
 
 ## 13. AI Development Guidelines
 
-1. **Frontend**: Static files are stored in `frontend/` (e.g. `frontend/css`, `frontend/js`). HTML files will be served without the `.html` extension (e.g. `login.html` is accessible as `/login`).
+1. **Assets & Views**: Static assets are stored in `public/` (e.g. `public/css`, `public/js`). HTML views are stored in `app/views/` and served via `Render` (`Render.view()`, `Render.send()`).
 2. **JSON Responses**: API endpoints should return standardized responses formatted as `{ message: "..." }` or `{ data: ... }`.
 3. **Magic Imports**: Stick to pure relative imports or well-configured aliases (imports natively resolve from `@seip/blue-bird/...` or relative directories like `../../`).
 4. **No inline comments**: Only use JSDoc for documentation.
@@ -283,12 +283,45 @@ await connection.transaction(async (tx) => {
 });
 ```
 
-## 15. Nginx Static Asset Caching
+## 15. Nginx Static Asset Caching & Routing
 
-In production, Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.png`, etc.) in the user's browser with the `Cache-Control` header (valid for 1 month). 
-HTML and API endpoints (`/api/*`) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
+In production, Nginx serves **static assets** (`public/`) directly with `Cache-Control: max-age=2592000, immutable` (1 month).
 
-## 16. VPS Permissions & Security Hardening
+**HTML pages are NOT served by Nginx.** All page routes fall through to Express via the `@node_app` proxy location. `Render.send()` handles caching at the application layer.
+
+- `Render` caches the raw HTML template (not the interpolated result) so dynamic data (`{{key}}` placeholders) is always fresh.
+- In single-instance mode, only in-memory LRU is used.
+- In multi-instance mode (`PM2_INSTANCES > 1`), Redis is used as L2. If Redis is unavailable, file cache (`app/cache/`) is used as L3 fallback.
+
+## 16. HTML Rendering (Render)
+
+Blue Bird includes a native HTML render engine (`core/render.js`) for serving HTML pages with optional template interpolation.
+
+```javascript
+import Render from "@seip/blue-bird/core/render.js";
+import Auth from "@seip/blue-bird/core/auth.js";
+import Router from "@seip/blue-bird/core/router.js";
+
+const web = new Router("/");
+
+web.get("/", Render.view("index"));
+
+web.get("/about", Render.cache(300), Render.view("about", { company: "Blue Bird" }));
+
+web.get("/dashboard", Auth.protect({ redirect: "/login" }), async (req, res) => {
+  await Render.send(res, "dashboard", { user: req.user });
+});
+
+await Render.invalidate("index");
+```
+
+Template syntax (`app/views/index.html`):
+- `{{key}}` — HTML-escaped interpolation (XSS-safe)
+- `{{{key}}}` — Raw (unescaped) interpolation
+
+**EJS support** is opt-in: install `ejs` with `npx blue-bird add ejs`, then name views `.ejs` instead of `.html`.
+
+## 17. Nginx Architecture
 
 When deploying Blue Bird to Linux VPS servers using Docker Compose orchestration:
 
@@ -298,20 +331,20 @@ When deploying Blue Bird to Linux VPS servers using Docker Compose orchestration
   - `/var/www/<project-name>` (Recommended for web applications)
   - `/srv/<project-name>` (Alternative for site-specific service payloads)
 
-### 2. Permissions & Ownership Matrix
-
 | Path / Target | Recommended Mode | Ownership | Description & Rationale |
 |---|---|---|---|
 | `/var/www/<project-name>` | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Allows unprivileged Nginx container (`UID 101`) path traversal. |
-| `frontend/` (directories) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Directory traversal for static web workers. |
-| `frontend/` (files) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Public read access for Nginx static serving. |
+| `public/` (directories) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Directory traversal for Nginx static file serving. |
+| `public/` (files) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Public read access for Nginx static serving. |
+| `app/cache/` | Dir `755`, Files `644` | `$(whoami):$(whoami)` | Writable by Node.js for file-based render cache fallback. |
 | `node_modules/` | Dirs `755`, Files `644` | `$(whoami):$(whoami)` | Strict security. Avoid blanket `chmod -R 755`. |
 | `node_modules/.bin/` | `+x` (`chmod -R +x`) | `$(whoami):$(whoami)` | Preserves execution bits for CLI binaries and symlinks. |
 | `.env` | `600` (`-rw-------`) | `$(whoami):$(whoami)` | Strict isolation for database credentials and JWT keys. Never `777`. |
 | `database/` (SQLite) | Dir `755`, Files `644` | `$(whoami):$(whoami)` | Allows Node.js application process to read/write WAL journals. |
 
 ### 3. Container-Level Hardening (Docker)
-- Mount static assets as **read-only (`:ro`)** in `docker-compose.yml` for the Nginx service (e.g. `./frontend:/app/frontend:ro` or `/var/www/<project-name>/frontend:/app/frontend:ro`).
+- Mount static assets as **read-only (`:ro`)** in `docker-compose.yml` for the Nginx service (e.g. `./public:/app/public:ro`).
+- Nginx only has access to `public/`. HTML pages are served by Express via `@node_app` proxy fallback.
 - Enforces the principle of least privilege: the web server worker cannot write or overwrite host assets even if compromised.
 
 ### 4. Production Hardening Commands
@@ -324,9 +357,9 @@ cd /var/www/<project-name>
 # 2. Ensure parent directory traversal permissions
 chmod 755 /var /var/www /var/www/<project-name>
 
-# 3. Set directory (755) and file (644) permissions for static frontend assets
-find frontend -type d -exec chmod 755 {} +
-find frontend -type f -exec chmod 644 {} +
+# 3. Set directory (755) and file (644) permissions for static assets
+find public -type d -exec chmod 755 {} +
+find public -type f -exec chmod 644 {} +
 
 # 4. Secure node_modules while preserving executable bits in .bin
 find node_modules -type d -exec chmod 755 {} +
@@ -344,7 +377,7 @@ chmod 644 database/*.db 2>/dev/null || true
 ### 5. Failure Modes & Remediation Playbook
 * **Error 13: Permission Denied on static assets (`stat() failed (13: Permission denied)`):**
   - Cause: Nginx worker (`UID 101`) lacks path traversal (`+x`) or read (`+r`) permissions.
-  - Fix: `chmod 755 /var/www/<project-name> && find frontend -type d -exec chmod 755 {} + && find frontend -type f -exec chmod 644 {} +`
+  - Fix: `chmod 755 /var/www/<project-name> && find public -type d -exec chmod 755 {} + && find public -type f -exec chmod 644 {} +`
 * **`sh: 1: blue-bird: Permission denied` on CLI:**
   - Cause: Blanket `chmod 644` stripped execution permissions from binary links in `node_modules/.bin/`.
   - Fix: `chmod -R +x node_modules/.bin` (or `npm rebuild`)
@@ -353,8 +386,8 @@ chmod 644 database/*.db 2>/dev/null || true
   - Fix: `npx blue-bird docker stop && npx blue-bird docker start prod` (or `docker compose down && docker compose up -d`)
 * **Real-time Diagnostics:**
   - Nginx log stream: `docker compose logs -f nginx`
-  - Container visibility check: `docker exec -it <container_name>-nginx su -s /bin/sh nginx -c "ls -la /app/frontend"`
-  - Host path traversal audit: `namei -l /var/www/<project-name>/frontend/css/bluebird.css`
+  - Container visibility check: `docker exec -it <container_name>-nginx su -s /bin/sh nginx -c "ls -la /app/public"`
+  - Host path traversal audit: `namei -l /var/www/<project-name>/public/css/style.css`
 
 ---
 

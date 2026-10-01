@@ -50,7 +50,6 @@ class QueueManager {
       }
     }
 
-    // In-memory fallback
     if (options.delayMs && options.delayMs > 0) {
       setTimeout(() => {
         this.memoryQueue.push(jobItem);
@@ -93,10 +92,14 @@ class QueueManager {
   }
 
   /**
-   * Auto-loads all job definition files from backend/jobs/.
+   * Auto-loads all job definition files from app/jobs/ (or legacy backend/jobs/).
+   * @param {string} [jobsDir]
    */
-  async loadJobs(jobsDir = path.resolve(process.cwd(), "backend/jobs")) {
-    if (!fs.existsSync(jobsDir)) return;
+  async loadJobs(jobsDir) {
+    const targetDir = jobsDir || (fs.existsSync(path.resolve(process.cwd(), "app/jobs"))
+      ? path.resolve(process.cwd(), "app/jobs")
+      : path.resolve(process.cwd(), "backend/jobs"));
+    if (!fs.existsSync(targetDir)) return;
 
     const files = fs
       .readdirSync(jobsDir)

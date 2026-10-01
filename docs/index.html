@@ -164,10 +164,7 @@
                             </div>
                             <h4 class="font-bold text-slate-900 text-lg mb-2">Decoupled &amp; Multi-Platform</h4>
                             <p class="text-sm text-slate-500 leading-relaxed">
-                                Nginx natively serves static frontend assets and extensionless HTML pages from
-                                <code>frontend/</code>. Express owns the API layer, allowing you to easily target
-                                <strong>Web</strong>, <strong>Mobile</strong> (Capacitor, Cordova), and
-                                <strong>Desktop</strong> (Electron, Tauri) using the exact same backend logic.
+                                Nginx natively serves static frontend assets from <code>public/</code> with long-lived browser caching, while Express renders dynamic HTML views from <code>app/views/</code> using the built-in Render engine. Express also serves <code>public/</code> as a built-in fallback for standalone environments.
                             </p>
                         </div>
                     </div>
@@ -233,6 +230,9 @@
                             <a href="#doc-router"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Routing
                                 &amp; Endpoints</a>
+                            <a href="#doc-render"
+                                class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">HTML
+                                Render Engine</a>
                             <a href="#doc-validator"
                                 class="block px-3 py-2 rounded-lg text-slate-600 hover:bg-white hover:text-brand-500 transition-all font-medium text-sm">Schema
                                 Validation</a>
@@ -330,8 +330,8 @@
                             </p>
                             <pre><code class="language-bash">npx blue-bird</code></pre>
                             <p class="text-slate-600 mb-4 leading-relaxed text-sm">
-                                This generates <code>.env</code>, <code>backend/</code>, <code>frontend/</code>,
-                                <code>index.js</code>, and sets <code>type: "module"</code> automatically.
+                                This generates <code>.env</code>, <code>app/</code>, <code>public/</code>,
+                                <code>docker/</code>, and sets <code>type: "module"</code> automatically.
                             </p>
 
                             <h4 class="font-bold text-slate-800 mt-6 mb-2">3. Available Commands &amp; Scripts</h4>
@@ -347,15 +347,13 @@
                                     <tbody class="divide-y divide-slate-100">
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm run dev</td>
-                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env
-                                                index.js</td>
-                                            <td class="px-4 py-3 text-slate-500">Express API with file-watcher</td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --watch --env-file=.env app/index.js</td>
+                                            <td class="px-4 py-3 text-slate-500">Express server with native file-watcher</td>
                                         </tr>
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npm start</td>
-                                            <td class="px-4 py-3 font-mono text-xs">node --env-file=.env index.js</td>
-                                            <td class="px-4 py-3 text-slate-500">Standalone production server startup
-                                            </td>
+                                            <td class="px-4 py-3 font-mono text-xs">node --env-file=.env app/index.js</td>
+                                            <td class="px-4 py-3 text-slate-500">Standalone production server startup</td>
                                         </tr>
                                         <tr>
                                             <td class="px-4 py-3 font-mono text-brand-600">npx blue-bird docker dev</td>
@@ -387,51 +385,20 @@
                                 </table>
                             </div>
 
-                            <!-- IDE Autocompletion Card -->
+                            <!-- Design System and CDN Card -->
                             <div
                                 class="my-8 p-6 bg-gradient-to-br from-indigo-50/70 to-brand-50/70 border border-indigo-100 rounded-2xl">
                                 <div class="flex items-center gap-3 mb-3">
-                                    <span class="text-xl">✨</span>
-                                    <h4 class="text-lg font-bold text-slate-900">IDE Autocompletion &amp; Developer
-                                        Experience (CSS &amp; JS)</h4>
+                                    <h4 class="text-lg font-bold text-slate-900">Blue Bird Design System &amp; CDN</h4>
                                 </div>
                                 <p class="text-sm text-slate-600 mb-4 leading-relaxed">
-                                    When you run <code>npx blue-bird</code>, the CLI automatically generates
-                                    <code>jsconfig.json</code>, <code>.vscode/settings.json</code>,
-                                    <code>.vscode/extensions.json</code>, and <code>frontend/js/bluebird.d.ts</code> so
-                                    your IDE immediately provides instant IntelliSense for both CSS classes and
-                                    JavaScript helpers.
+                                    Blue Bird provides an optional, modern CSS stylesheet and UI helper library published as <code>@seip/blue-bird-css</code> and served through high-speed CDN. Custom static styles can also be placed directly in <code>public/css/style.css</code>.
                                 </p>
+                                <pre><code class="language-html">&lt;!-- Blue Bird CSS (Minified) --&gt;
+&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seip/blue-bird-css@latest/dist/bluebird.min.css" /&gt;
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                                    <div class="p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
-                                        <p class="font-bold text-indigo-900 mb-1">🎨 HTML &amp; CSS Class IntelliSense
-                                        </p>
-                                        <p class="text-slate-500 mb-2 leading-relaxed">Auto-completes all
-                                            <code>bluebird.css</code> utilities and components when writing
-                                            <code>class="..."</code> in HTML.</p>
-                                        <div class="flex flex-wrap gap-2 pt-1 font-sans">
-                                            <a href="https://open-vsx.org/vscode/item?itemName=Zignd.html-css-class-completion"
-                                                target="_blank" rel="noopener"
-                                                class="text-brand-600 hover:underline font-semibold">HTML CSS Class
-                                                Completion (Open VSX)</a>
-                                            <span class="text-slate-300">|</span>
-                                            <a href="https://open-vsx.org/vscode/item?itemName=pranaygp.vscode-css-peek"
-                                                target="_blank" rel="noopener"
-                                                class="text-brand-600 hover:underline font-semibold">CSS Peek (Open
-                                                VSX)</a>
-                                        </div>
-                                    </div>
-                                    <div class="p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
-                                        <p class="font-bold text-indigo-900 mb-1">⚡ JavaScript Helpers &amp; Tooltips
-                                        </p>
-                                        <p class="text-slate-500 mb-2 leading-relaxed">Typed definitions in
-                                            <code>bluebird.d.ts</code> give hover tooltips, options autocomplete, and
-                                            inline code examples for <code>bluebird('toast', {...})</code>.</p>
-                                        <p class="text-emerald-600 font-semibold font-mono">Zero config required
-                                            (built-in jsconfig.json)</p>
-                                    </div>
-                                </div>
+&lt;!-- Blue Bird JavaScript UI Helper --&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/@seip/blue-bird-css@latest/dist/bluebird.min.js" defer&gt;&lt;/script&gt;</code></pre>
                             </div>
                         </article>
 
@@ -500,15 +467,17 @@ DB_PORT=5432</code></pre>
                                 policies, cookies, and route handlers.
                             </p>
                             <pre><code class="language-javascript">import App from "@seip/blue-bird/core/app.js";
-import routerApi from "./backend/routes/api.js";
+import routerWeb from "./app/routes/web.js";
+import routerApi from "./app/routes/api.js";
 
 const app = new App({
   port: process.env.PORT || 3000,
   host: "http://localhost",
-  routes: [routerApi],
-  cors: [],
+  routes: [routerWeb, routerApi],
+  cors: {},
   middlewares: [],
-  logger: false
+  logger: false,
+  static: { path: "public" }
 });
 
 app.run();</code></pre>
@@ -590,8 +559,8 @@ router.get("/users/:id", async (req, res) => {
   logger: false,
   // Configure static asset serving directly inside Express
   static: {
-    path: "../frontend", // relative path to static files directory
-    options: {}           // express.static options
+    path: "public",
+    options: {}
   }
 });
 
@@ -633,14 +602,84 @@ router.get("/users", (req, res) => {
 });
 
 export default router;</code></pre>
+                            </article>
 
+                            <!-- HTML Render Engine Section -->
+                            <article id="doc-render" class="mb-24 scroll-mt-24">
+                                <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                                    <span
+                                        class="w-8 h-8 rounded-lg bg-pink-600 text-white flex items-center justify-center text-sm font-bold">5</span>
+                                    HTML Render Engine (Render)
+                                </h3>
+                                <p class="text-slate-600 mb-4 leading-relaxed">
+                                    Blue Bird includes a native, lightweight HTML render engine (<code>core/render.js</code>) with built-in multi-level caching, raw and escaped template placeholder interpolation, and optional EJS support. HTML templates are located in <code>app/views/</code>.
+                                </p>
 
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Multi-Level Cache Hierarchy</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4 text-xs">
+                                    <div class="p-4 bg-slate-100 rounded-xl border border-slate-200">
+                                        <p class="font-bold text-slate-800 uppercase tracking-wider mb-1">Development (DEBUG=true)</p>
+                                        <p class="text-slate-600">Caching is disabled. Templates are read fresh from disk on every incoming request.</p>
+                                    </div>
+                                    <div class="p-4 bg-slate-100 rounded-xl border border-slate-200">
+                                        <p class="font-bold text-slate-800 uppercase tracking-wider mb-1">Single Instance (PM2_INSTANCES=1)</p>
+                                        <p class="text-slate-600">In-memory LRU cache with automatic size eviction (capped at RENDER_CACHE_MAX=500).</p>
+                                    </div>
+                                    <div class="p-4 bg-slate-100 rounded-xl border border-slate-200">
+                                        <p class="font-bold text-slate-800 uppercase tracking-wider mb-1">Cluster Mode (PM2_INSTANCES&gt;1)</p>
+                                        <p class="text-slate-600">Distributed Redis cache (L2) with automatic fallback to memory LRU (L1) and safe file caching in app/cache/ (L3).</p>
+                                    </div>
+                                </div>
 
-                            <!-- Validation Section -->
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Routing and View Delivery</h4>
+                                <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
+import Render from "@seip/blue-bird/core/render.js";
+import Auth from "@seip/blue-bird/core/auth.js";
+
+const web = new Router("/");
+
+// Public page with 5-minute cache
+web.get("/", Render.cache(300), Render.view("index"));
+
+// Public page with pre-rendered data
+web.get("/about", Render.cache(300), Render.view("about", { company: "Blue Bird" }));
+
+// Protected page: unauthenticated users redirect to /login
+web.get("/dashboard", Auth.protect({ redirect: "/login" }), async (req, res) => {
+  await Render.send(res, "dashboard", { user: req.user });
+});
+
+// Programmatic cache invalidation
+await Render.invalidate("index");
+
+export default web;</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Template Syntax (Built-in)</h4>
+                                <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                    Use <code>{{key}}</code> for XSS-safe HTML-escaped values and <code>{{{key}}}</code> for unescaped raw HTML. Supports dot notation for nested properties:
+                                </p>
+                                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8" /&gt;
+  &lt;title&gt;{{title}}&lt;/title&gt;
+  &lt;link rel="stylesheet" href="/css/style.css" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Welcome, {{user.name}}&lt;/h1&gt;
+  &lt;div&gt;{{{user.bioHtml}}}&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">Opt-in EJS Support</h4>
+                                <p class="text-slate-600 mb-2 leading-relaxed text-sm">
+                                    To use full EJS syntax, install EJS via <code>npx blue-bird add ejs</code> and name your view files with the <code>.ejs</code> extension in <code>app/views/</code>.
+                                </p>
+                            </article>
                             <article id="doc-validator" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">5</span>
+                                        class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center text-sm font-bold">6</span>
                                     Validation (Validator)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -655,7 +694,7 @@ export default router;</code></pre>
 const userSchema = {
   email: { required: true, email: true },
   password: { required: true, min: 8 },
-  bio: { required: false } // Cleansed from XSS scripts automatically
+  bio: { required: false }
 };
 
 const validateUser = new Validator(userSchema, "en");
@@ -669,7 +708,7 @@ routerApi.post("/users", validateUser.middleware(), (req, res) => {
                             <article id="doc-hash" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-violet-500 text-white flex items-center justify-center text-sm font-bold">6</span>
+                                        class="w-8 h-8 rounded-lg bg-violet-500 text-white flex items-center justify-center text-sm font-bold">7</span>
                                     Password Hashing (Hash)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
@@ -699,14 +738,12 @@ const bcryptHash = await Hash.make("mySecretPassword123", { driver: "bcrypt", ro
                             <article id="doc-auth" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">7</span>
+                                        class="w-8 h-8 rounded-lg bg-pink-500 text-white flex items-center justify-center text-sm font-bold">8</span>
                                     Authentication (Auth)
                                 </h3>
 
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Implements stateless and Redis-backed session authentication. Token payloads are
-                                    encrypted with military-grade AES-256-GCM algorithms and transmitted via secure
-                                    HTTP-Only cookies or <code>Authorization</code> headers.
+                                    Implements stateless and Redis-backed session authentication. Tokens are signed with native HMAC-SHA256 and encrypted with AES-256-GCM algorithms via <code>node:crypto</code> (zero external dependencies). In production, session lookups in Redis automatically fall back to the decrypted token payload if Redis is temporarily unreachable.
                                 </p>
                                 <pre><code class="language-javascript">import Auth from "@seip/blue-bird/core/auth.js";
 
@@ -824,12 +861,12 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                             <article id="doc-database" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">10</span>
+                                        class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">11</span>
                                     Database Module (SQLite, MySQL, PostgreSQL)
                                 </h3>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    Blue Bird includes a unified database wrapper (`core/database.js`) supporting
-                                    <strong>SQLite</strong> (<code>better-sqlite3</code>, default),
+                                    Blue Bird includes a unified database wrapper (<code>core/database.js</code>) supporting
+                                    <strong>SQLite</strong> (native <code>node:sqlite</code> in Node 22+ with <code>better-sqlite3</code> fallback),
                                     <strong>MySQL</strong> (<code>mysql2/promise</code>), and
                                     <strong>PostgreSQL</strong>
                                     (<code>pg</code>).
@@ -1004,7 +1041,16 @@ await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });</code><
                                     loading optional modules only when needed. You can install optional capabilities on
                                     demand via the CLI:
                                 </p>
-                                <pre><code class="language-bash"># Install Multer for file uploads (core/upload.js)
+                                <pre><code class="language-bash"># Install Rate Limiting
+npx blue-bird add rate-limit
+
+# Install Helmet Security Headers
+npx blue-bird add helmet
+
+# Install EJS Template Engine
+npx blue-bird add ejs
+
+# Install Multer for file uploads (core/upload.js)
 npx blue-bird add upload
 
 # Install WebSocket server (core/ws.js)
@@ -1110,95 +1156,46 @@ npx blue-bird docker redis info                       # Get Redis server status 
 npx blue-bird docker prune</code></pre>
                             </article>
 
-                            <!-- Nginx Caching & Auth Request Section -->
+                            <!-- Nginx Caching & Routing Section -->
                             <article id="doc-nginx-cache" class="mb-24 scroll-mt-24">
                                 <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                                     <span
-                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">15</span>
-                                    Nginx Caching &amp; Protected Static Pages (auth_request)
+                                        class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-sm font-bold">16</span>
+                                    Nginx Static Caching &amp; Express Routing
                                 </h3>
 
                                 <p class="text-slate-600 mb-4 leading-relaxed">
-                                    In production, Nginx is configured to explicitly cache static assets
-                                    (<code>.js</code>, <code>.css</code>, <code>.jpg</code>, <code>.png</code>, etc.) in
-                                    the user's browser with the <code>Cache-Control</code> header (valid for 1 month).
+                                    In production, Nginx serves <strong>static assets</strong> directly from <code>public/</code> (<code>.css</code>, <code>.js</code>, <code>.jpg</code>, <code>.png</code>, <code>.ico</code>, <code>.woff2</code>) with aggressive browser caching: <code>Cache-Control: public, max-age=2592000, immutable</code> (1 month).
                                 </p>
                                 <p class="text-slate-600 mb-6 leading-relaxed">
-                                    HTML pages and API endpoints (<code>/api/*</code>) are strictly non-cached by Nginx
-                                    to ensure they
-                                    serve dynamic and up-to-date content, relying instead on the Node.js application and
-                                    Redis for data-layer caching.
+                                    <strong>HTML pages are served by Express, not Nginx.</strong> All web page routes and API endpoints fall through Nginx via <code>try_files $uri @node_app</code> to the Express backend. This architecture allows Express to execute route-level authentication guards (<code>Auth.protect()</code>), schema validations, and multi-tier HTML template rendering natively.
                                 </p>
 
-                                <!-- auth_request Guide Card -->
                                 <div class="my-8 p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
                                     <div class="flex items-center gap-3 mb-4">
-                                        <span class="text-xl">🛡️</span>
-                                        <h4 class="text-lg font-bold text-white">Protecting Private Static HTML (Nginx
-                                            auth_request)</h4>
+                                        <h4 class="text-lg font-bold text-white">How Page Protection Works in v2</h4>
                                     </div>
                                     <p class="text-sm text-slate-300 mb-4 leading-relaxed">
-                                        By default, Nginx delivers HTML files directly from disk (e.g.
-                                        <code>frontend/dashboard.html</code>) without invoking Node.js. If you want to
-                                        protect private static pages (e.g. <code>/dashboard</code>, <code>/admin</code>)
-                                        so unauthenticated users cannot even download the raw HTML, you can enable
-                                        Nginx's built-in <code>auth_request</code> module.
-                                    </p>
-                                    <p class="text-sm text-slate-300 mb-6 leading-relaxed">
-                                        When enabled, Nginx sends an internal, lightweight subrequest to Express
-                                        (<code>/api/auth/check</code>) <strong>before</strong> serving the file. If
-                                        Express returns HTTP <code>200 OK</code>, Nginx serves the HTML. If Express
-                                        returns HTTP <code>401 Unauthorized</code>, Nginx automatically intercepts the
-                                        response and redirects the browser to <code>/login?redirect=$request_uri</code>.
-                                    </p>
-
-                                    <h5 class="text-sm font-bold text-teal-400 mb-2">Step 1: Uncomment the Protected
-                                        Block in <code>docker/nginx.conf</code></h5>
-                                    <pre><code class="language-nginx"># Inside the server { ... } block in docker/nginx.conf:
-
-location ~ ^/(dashboard|admin|app|account) {
-    auth_request /api/auth/check;
-    error_page 401 = @login_redirect;
-    try_files $uri $uri.html /index.html =404;
-}
-
-location = /api/auth/check {
-    internal;
-    proxy_pass http://app:3000/api/auth/check;
-    proxy_pass_request_body off;
-    proxy_set_header Content-Length "";
-    proxy_set_header X-Original-URI $request_uri;
-}
-
-location @login_redirect {
-    return 302 /login?redirect=$request_uri;
-}</code></pre>
-
-                                    <h5 class="text-sm font-bold text-teal-400 mt-6 mb-2">Step 2: Add the Auth Check
-                                        Endpoint in Express (<code>backend/routes/auth.js</code>)</h5>
-                                    <p class="text-xs text-slate-400 mb-3">
-                                        Create a lightweight endpoint in your Express application protected by Blue
-                                        Bird's <code>Auth.protect()</code> middleware:
+                                        Unlike setups requiring complex Nginx <code>auth_request</code> subrequest blocks, Blue Bird v2 protects HTML routes directly in JavaScript:
                                     </p>
                                     <pre><code class="language-javascript">import Router from "@seip/blue-bird/core/router.js";
+import Render from "@seip/blue-bird/core/render.js";
 import Auth from "@seip/blue-bird/core/auth.js";
 
-const authRouter = new Router("/api/auth");
+const web = new Router("/");
 
-/**
- * GET /api/auth/check
- * Called internally by Nginx auth_request before serving protected HTML
- */
-authRouter.get("/check", Auth.protect(), (req, res) => {
-  // If Auth.protect() succeeds, req.user is verified. Return HTTP 200 to Nginx.
-  res.ok({ authenticated: true, user: req.user });
-});
+// Public page with 5-minute cache
+web.get("/", Render.cache(300), Render.view("index"));
 
-export default authRouter;</code></pre>
+// Protected page: unauthenticated visitors are automatically redirected to /login
+web.get("/dashboard", Auth.protect({ redirect: "/login" }), Render.view("dashboard"));
 
-                                    <h5 class="text-sm font-bold text-teal-400 mt-6 mb-2">Step 3: Restart Containers
-                                    </h5>
-                                    <pre><code class="language-bash">npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</code></pre>
+export default web;</code></pre>
+
+                                    <h5 class="text-sm font-bold text-teal-400 mt-6 mb-2">Standalone &amp; Local Dev Fallback</h5>
+                                    <p class="text-xs text-slate-400">
+                                        Express also serves <code>public/</code> as a built-in fallback. If Nginx is not deployed or when running locally in development, Express seamlessly serves static files without requiring any configuration changes.
+                                    </p>
                                 </div>
                             </article>
 
@@ -1239,7 +1236,7 @@ export default authRouter;</code></pre>
                                         </div>
                                         <p class="text-sm text-slate-600 leading-relaxed">
                                             Warns if deployed inside <code>/home/user/</code> (which restricts Nginx
-                                            path traversal), verifies <code>frontend/</code> exists, and checks for
+                                            path traversal), verifies <code>public/</code> exists, and checks for
                                             valid static assets.
                                         </p>
                                     </div>
@@ -1265,7 +1262,7 @@ export default authRouter;</code></pre>
                                         </div>
                                         <p class="text-sm text-slate-600 leading-relaxed">
                                             Sends real HTTP GET requests to <code>/api/health</code> and sample assets
-                                            (<code>/css/bluebird.css</code>). Automatically diagnoses <strong>403
+                                            (<code>/css/style.css</code>). Automatically diagnoses <strong>403
                                                 Forbidden</strong> and <strong>404 Inode Desync</strong> with exact
                                             remediation commands.
                                         </p>
@@ -1295,9 +1292,9 @@ npm run doctor</code></pre>
                                     <br>
                                     <p class="text-slate-300 font-bold">[2/5] Filesystem Hierarchy Standard &amp; Static
                                         Asset Structure:</p>
-                                    <p class="text-emerald-400"> [PASS] 'frontend/' directory exists.</p>
+                                    <p class="text-emerald-400"> [PASS] 'public/' directory exists.</p>
                                     <p class="text-emerald-400"> [PASS] Detected sample static asset:
-                                        'frontend/css/bluebird.css'</p>
+                                        'public/css/style.css'</p>
                                     <br>
                                     <p class="text-slate-300 font-bold">[3/5] Port Availability &amp; Binding:</p>
                                     <p class="text-emerald-400"> [INFO] Port 3000 is currently in use (application
@@ -1306,7 +1303,7 @@ npm run doctor</code></pre>
                                     <p class="text-slate-300 font-bold">[4/5] Live HTTP Smoke Test (Health &amp; Static
                                         Delivery):</p>
                                     <p class="text-emerald-400"> [PASS] API Health Endpoint returned HTTP 200 OK.</p>
-                                    <p class="text-emerald-400"> [PASS] Static Asset (/css/bluebird.css) returned HTTP
+                                    <p class="text-emerald-400"> [PASS] Static Asset (/css/style.css) returned HTTP
                                         200 OK.</p>
                                     <br>
                                     <p class="text-slate-300 font-bold">[5/5] Database &amp; Cache Architecture:</p>
@@ -1336,7 +1333,7 @@ npm run doctor</code></pre>
 
                                 <h4 class="font-bold text-slate-800 mt-6 mb-2">1. Rapid CRUD Route Scaffolding</h4>
                                 <p class="text-slate-600 mb-3 text-sm leading-relaxed">
-                                    Generates <code>backend/routes/&lt;name&gt;.js</code> with complete RESTful
+                                    Generates <code>app/routes/&lt;name&gt;.js</code> with complete RESTful
                                     endpoints (<code>GET /</code>, <code>GET /:id</code>, <code>POST /</code>,
                                     <code>PUT /:id</code>, <code>DELETE /:id</code>), <code>Validator</code> schema,
                                     <code>Cache.middleware()</code>, and automatic <code>Cache.delete()</code>
@@ -1347,6 +1344,19 @@ npx blue-bird make:route products
 
 # Scaffold CRUD route protected by Auth.protect() middleware
 npx blue-bird make:route articles --auth</code></pre>
+
+                                <h4 class="font-bold text-slate-800 mt-6 mb-2">2. View &amp; PM2 Scaffolding</h4>
+                                <p class="text-slate-600 mb-3 text-sm leading-relaxed">
+                                    Quickly scaffold HTML or EJS views in <code>app/views/</code> and generate PM2 cluster configurations:
+                                </p>
+                                <pre><code class="language-bash"># Scaffold an HTML view template in app/views/
+npx blue-bird make:view dashboard
+
+# Scaffold an EJS view template in app/views/
+npx blue-bird make:view profile --ejs
+
+# Generate ecosystem.config.cjs for PM2 cluster mode and background workers
+npx blue-bird make:ecosystem</code></pre>
 
                                 <h4 class="font-bold text-slate-800 mt-6 mb-2">2. Unified Database Migrations Engine
                                 </h4>
@@ -1470,12 +1480,9 @@ PM2_INSTANCES='max'
 npx blue-bird docker build
 
 # 3. Run the production containers stack
-npx blue-bird docker start prod</code></pre>
-
-                                <!-- Security & Permissions Card -->
+npx blue-bird docker start prod</code></pre>                                <!-- Security & Permissions Card -->
                                 <div class="my-8 p-6 bg-amber-50/60 border border-amber-200 rounded-2xl">
                                     <div class="flex items-center gap-3 mb-3">
-                                        <span class="text-xl">🛡️</span>
                                         <h4 class="text-lg font-bold text-amber-900">VPS Permissions &amp; Security
                                             Hardening</h4>
                                     </div>
@@ -1489,7 +1496,7 @@ npx blue-bird docker start prod</code></pre>
                                     <p class="text-sm text-amber-800 mb-4 leading-relaxed">
                                         Nginx runs inside Alpine as an unprivileged user (<code>nginx</code>, UID 101).
                                         Static assets should be mounted as read-only
-                                        (<code>./frontend:/app/frontend:ro</code>) in <code>docker-compose.yml</code>
+                                        (<code>./public:/app/public:ro</code>) in <code>docker-compose.yml</code>
                                         for container-level hardening.
                                     </p>
                                     <div
@@ -1499,13 +1506,13 @@ npx blue-bird docker start prod</code></pre>
                                         <p><span class="font-bold text-indigo-600">/var/www/&lt;project&gt;</span> :
                                             <code>chmod 755</code> (Allows unprivileged Nginx container path traversal)
                                         </p>
-                                        <p><span class="font-bold text-indigo-600">frontend/</span> : <code>755</code>
+                                        <p><span class="font-bold text-indigo-600">public/</span> : <code>755</code>
                                             (dirs) / <code>644</code> (files)</p>
+                                        <p><span class="font-bold text-indigo-600">app/cache/</span> : <code>755</code>
+                                            (dir) / <code>644</code> (files) (Writable by Node.js for render file cache)</p>
                                         <p><span class="font-bold text-indigo-600">node_modules/</span> :
                                             <code>755</code> (dirs) / <code>644</code> (files) &amp;
                                             <code>chmod -R +x node_modules/.bin</code>
-                                            Or
-                                            <code>chmod -R +x node_modules/</code>
                                         </p>
                                         <p><span class="font-bold text-red-600">.env</span> : <code>chmod 600</code>
                                             (Restricted private access - NEVER 777)</p>
@@ -1515,8 +1522,8 @@ sudo chown -R $(whoami):$(whoami) /var/www/my-project && cd /var/www/my-project
 chmod 755 /var /var/www /var/www/my-project
 
 # 2. Set directory (755) and file (644) permissions for static assets:
-find frontend -type d -exec chmod 755 {} +
-find frontend -type f -exec chmod 644 {} +
+find public -type d -exec chmod 755 {} +
+find public -type f -exec chmod 644 {} +
 
 # 3. Secure node_modules while preserving execution bits in .bin:
 find node_modules -type d -exec chmod 755 {} +
@@ -1530,25 +1537,24 @@ chmod 600 .env</code></pre>
                                 <!-- Troubleshooting Card -->
                                 <div class="my-8 p-6 bg-slate-900 text-white rounded-2xl shadow-xl">
                                     <div class="flex items-center gap-3 mb-4">
-                                        <span class="text-xl">🔧</span>
                                         <h4 class="text-lg font-bold text-white">VPS Troubleshooting Guide (Problems
                                             &amp; Solutions)</h4>
                                     </div>
                                     <div class="space-y-6 text-sm text-slate-300">
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-red-400 mb-1">❌ Problem 1: Static files return 404
+                                            <p class="font-bold text-red-400 mb-1">Problem 1: Static files return 404
                                                 / 403 (stat() failed 13: Permission denied)</p>
                                             <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Parent
-                                                directories on host lack <code>+x</code> traversal permission or files
-                                                lack <code>+r</code> read permission for unprivileged <code>nginx</code>
-                                                worker.</p>
+                                                 directories on host lack <code>+x</code> traversal permission or files
+                                                 lack <code>+r</code> read permission for unprivileged <code>nginx</code>
+                                                 worker.</p>
                                             <p
                                                 class="text-xs text-emerald-400 font-mono bg-slate-800/80 p-2 rounded-lg">
-                                                chmod 755 /var/www/my-project &amp;&amp; find frontend -type d -exec
-                                                chmod 755 {} + &amp;&amp; find frontend -type f -exec chmod 644 {} +</p>
+                                                chmod 755 /var/www/my-project &amp;&amp; find public -type d -exec
+                                                chmod 755 {} + &amp;&amp; find public -type f -exec chmod 644 {} +</p>
                                         </div>
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-amber-400 mb-1">❌ Problem 2:
+                                            <p class="font-bold text-amber-400 mb-1">Problem 2:
                                                 <code>npx blue-bird</code> fails with
                                                 <code>sh: 1: blue-bird: Permission denied</code>
                                             </p>
@@ -1561,7 +1567,7 @@ chmod 600 .env</code></pre>
                                                 chmod -R +x node_modules/.bin</p>
                                         </div>
                                         <div class="border-b border-slate-800 pb-4">
-                                            <p class="font-bold text-blue-400 mb-1">❌ Problem 3: 404 after renaming or
+                                            <p class="font-bold text-blue-400 mb-1">Problem 3: 404 after renaming or
                                                 recreating project folder (<code>mv</code> / <code>rm -rf</code>)</p>
                                             <p class="text-xs text-slate-400 mb-2"><strong>Cause:</strong> Docker volume
                                                 mounts bind to disk inodes. Recreating the folder desynchronizes active
@@ -1571,12 +1577,12 @@ chmod 600 .env</code></pre>
                                                 npx blue-bird docker stop &amp;&amp; npx blue-bird docker start prod</p>
                                         </div>
                                         <div>
-                                            <p class="font-bold text-indigo-400 mb-1">🔍 Diagnostic Commands</p>
+                                            <p class="font-bold text-indigo-400 mb-1">Diagnostic Commands</p>
                                             <p class="text-xs text-slate-400 mb-2">Tail real-time Nginx logs or inspect
                                                 path traversal:</p>
                                             <p class="text-xs text-slate-300 font-mono bg-slate-800/80 p-2 rounded-lg">
                                                 docker compose logs -f nginx<br>namei -l
-                                                /var/www/my-project/frontend/css/bluebird.css</p>
+                                                /var/www/my-project/public/css/style.css</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1584,17 +1590,19 @@ chmod 600 .env</code></pre>
                                 <h4 class="text-lg font-bold text-slate-900 mb-4 mt-8">Option B: Standalone PM2
                                     Deployment</h4>
                                 <p class="text-slate-600 mb-4 leading-relaxed">
-                                    If running on a standalone server environment outside Docker, you can manage the
-                                    Node.js application process using PM2. Note that reverse proxies and databases
-                                    must be configured manually.
+                                    If running on a standalone server environment outside Docker, use the built-in ecosystem generator:
                                 </p>
-                                <pre><code class="language-bash"># 1. Install PM2 globally
-npm install pm2 -g
+                                <pre><code class="language-bash"># 1. Generate the PM2 ecosystem configuration
+npx blue-bird make:ecosystem
 
-# 2. Start the application in production cluster mode
-pm2 start index.js --name "blue-bird-app" --node-args="--env-file=.env" -i max
+# 2. Start PM2 cluster
+pm2 start ecosystem.config.cjs
 
-# 3. Save PM2 layout and enable automatic startup on boot
+# 3. Monitor status
+pm2 status
+pm2 logs
+
+# 4. Save PM2 layout and enable automatic startup on boot
 pm2 save
 pm2 startup</code></pre>
                             </article>
@@ -1607,7 +1615,7 @@ pm2 startup</code></pre>
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-100 py-16">
         <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-slate-500 italic">Blue Bird Framework &copy; 2026. Made with ❤️ by Seip25.</p>
+            <p class="text-slate-500 italic">Blue Bird Framework &copy; 2026. Made by Seip25.</p>
         </div>
     </footer>
 

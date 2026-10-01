@@ -63,7 +63,6 @@ function generateNginxConfig() {
     console.log(chalk.gray(`       (You can override via: npx blue-bird nginx:conf <domain> [port])\n`));
   }
 
-  // Clean domain name (strip protocol, path, port)
   domain = domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/:\d+$/, "").trim();
 
   const nginxSnippet = `# =============================================================

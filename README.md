@@ -1,149 +1,218 @@
 # Blue Bird Framework
 
-**High-Performance Express Framework — Built for Speed, Caching, and Visual Excellence**
-
-![Blue Bird Logo](https://seip25.github.io/Blue-bird/favicon.ico)
+**Performance-first Node.js API and web framework with built-in JWT auth, HTML rendering, validation, and multi-level caching.**
 
 [![npm version](https://img.shields.io/npm/v/@seip/blue-bird.svg)](https://www.npmjs.com/package/@seip/blue-bird)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org)
 
 ---
 
 ## Introduction
 
-Blue Bird is a powerful, performance-first API framework built on Express. It features pre-configured data validation, security middlewares, GCM-encrypted JWT authentication, and CLI/Docker developer workflows out of the box, with static frontend assets handled directly by Nginx.
+Blue Bird is an opinionated, high-performance web and API framework built on Express (Node.js 22+). It combines native template rendering, multi-layer caching, AES-256-GCM encrypted JWT authentication, validation schemas, background queues, and container orchestration into a cohesive developer experience.
+
+In Blue Bird v2:
+- Static assets are strictly separated into `public/`, served directly by Nginx in Docker with aggressive browser caching.
+- HTML views are stored in `app/views/` and rendered dynamically by Express via the built-in `Render` engine, enabling route-level authentication, validation, and multi-level caching.
+- Express serves `public/` as a built-in fallback, ensuring that a single codebase runs seamlessly across Docker, standalone PM2, and local development.
+- Native `node:sqlite` is used in Node.js 22+, eliminating native compilation overhead while retaining `better-sqlite3` as an on-demand fallback.
+- Native `node:crypto` powers HMAC-SHA256 JWT signatures and AES-256-GCM payload encryption, removing external dependencies.
 
 ---
 
-## 🕊️ The Blue Bird Philosophy
+## Architecture Overview
 
-Stop wasting time configuring CORS, security headers, database connections, and authentication flows. Blue Bird provides an opinionated, highly efficient core structure allowing you to focus on writing clean business logic. Nginx handles the static frontend directly from the filesystem, Express handles the backend APIs. Includes a preconfigured Docker stack with Nginx reverse proxy, Redis cache, and PM2 cluster scaling.
+### Decoupled Static Assets and Server-Side Views
 
-### 🧩 Decoupled Architecture
-Nginx natively serves static frontend assets and extensionless HTML pages from `frontend/`. Express owns the API layer, keeping your backend entirely focused on performance and logic.
+```
+Client Request
+      │
+      ├────────► Nginx (Port 80/443)
+      │               │
+      │               ├─► /css/*, /js/*, /images/* ──► Directly from public/ (Disk Cache)
+      │               │
+      │               └─► Page routes & /api/* ─────► Reverse Proxy to Node.js / Express (@node_app)
+      │                                                     │
+      └────────────────────────────────────────► Express (Port 3000)
+                                                            ├─► App static fallback (public/)
+                                                            ├─► HTML Render Engine (app/views/)
+                                                            │     ├─ L1: Memory LRU
+                                                            │     ├─ L2: Redis (multi-instance)
+                                                            │     └─ L3: File Cache (app/cache/)
+                                                            └─► REST API (app/routes/)
+```
 
-- **Cross-Platform Versatility**: Because the Express backend API is fully decoupled from the HTML/JS/CSS frontend layer, developers can easily build and maintain multiple application targets pointing to the same core API:
-  - **Web Applications**: Static HTML, CSS, and client-side JS served natively by Nginx.
-  - **Mobile Applications**: Powered by **Capacitor**, Cordova, or React Native.
-  - **Desktop Applications**: Built with **Electron** or **Tauri**.
-- **Strong Business Logic**: Enforces a strict separation of concerns — Nginx excels at ultra-fast static file delivery and public assets, while Express handles API routing, business rules, validation, and data operations without UI rendering overhead.
-- **Lightweight Footprint**: Offloading static assets to Nginx optimizes Node.js event loop performance, resulting in extremely minimal RAM, CPU, and disk consumption under high concurrent workloads.
-
-### 🐳 Built-in Orchestration
-Includes a comprehensive Docker Compose CLI wrapper to bootstrap, build, stop, and clean dev and production environments with zero manual scripting.
+- **Static Assets (`public/`)**: CSS, client JavaScript, images, and fonts. In Docker deployments, Nginx mounts `public/` as read-only (`:ro`) and serves assets directly with `Cache-Control: public, max-age=2592000, immutable`.
+- **Application Code (`app/`)**: Route handlers (`app/routes/`), HTML templates (`app/views/`), background jobs (`app/jobs/`), and the entrypoint (`app/index.js`).
+- **Framework Core (`core/`)**: Router, Render, Validator, Auth, Cache, Database, Queue, Logger, and CLI tooling.
+- **Universal Portability**: Because Express serves `public/` when Nginx is not present, applications run identically in local development, standalone PM2 environments, and containerized Docker stacks.
 
 ---
 
-## 🚀 Key Features / Características Clave
+## Quick Start
 
-- All-In-One: Pre-configured Express API server with JSON, URL encoding, Cookies, and CORS.
-- Nginx Static Frontend: Lightning-fast static asset and extensionless HTML serving via Nginx, decoupled from Node.js.
-- Premium Security: AES-256-GCM encrypted JWT cookie auth, secure route filters, and built-in Helmet configurator.
-- File Uploads: Easy Multer-based single/multiple file storage handling.
-- Docker & PM2 Devops: Pre-built Docker Compose/Dockerfile templates and CLI tools for zero-config dev and VPS production.
+### 1. Requirements
 
----
+- Node.js 22.0.0 or higher
+- npm 10+
+- Docker and Docker Compose (optional, for containerized deployments)
 
-## 🛠️ Quick Start / Inicio Rápido
-
-### 1. Installation / Instalación
+### 2. Installation and Initialization
 
 ```bash
 npm install @seip/blue-bird
-```
-
-### 2. Initialize Project / Inicializar
-
-```bash
 npx blue-bird
 ```
 
-When run, the interactive CLI prompts for your preferred infrastructure configuration:
-- Database Selection: Choose between `sqlite` (default), `mysql`, `postgres`, or `none`.
-- Credentials / Path: Set your SQLite database path (default `database/blue_bird.db`), or MySQL/PostgreSQL host, port, user, and password.
+The interactive CLI will configure:
+- Project title and port settings
+- Database engine: `sqlite` (default, zero-configuration), `mysql`, `postgres`, or `none`
+- Connection credentials and database paths
+- Automatic generation of `.env`, `docker-compose.yml`, `app/`, and `public/`
 
-The CLI intelligently copies the appropriate Docker configuration (`docker/docker-compose.sqlite.yml`, `docker/docker-compose.mysql.yml`, `docker/docker-compose.postgres.yml`, or `docker/docker-compose.none.yml`) to your project root as `docker-compose.yml`. It also writes the environment settings (`DB_TYPE`, `DB_FILE`, `DATABASE_URL`) to `.env` and installs the required database packages (`better-sqlite3`, `mysql2`, or `pg`) automatically.
-
-
-### 3. Run Development Server / Modo Desarrollo
+### 3. Development Server
 
 ```bash
 npm run dev
 ```
 
+The server starts with Node's native file watcher (`--watch`) and loads `.env` automatically via `--env-file=.env`.
+
 ---
 
-## 📁 Project Structure / Estructura del Proyecto
+## Project Structure
 
 ```
 project/
-├── backend/
-│   └── routes/              # Express route files
-│       └── api.js           # REST API routes
-├── frontend/
-│   ├── css/                 # CSS files
-│   ├── js/                  # JavaScript files
-│   └── index.html           # Static HTML files
-├── docker/
-│   └── Dockerfile           # Optimized production build file
-├── docker-compose.yml       # Dev/Prod container configurations
-├── index.js                 # App startup and initialization entrypoint
-├── AGENTS.md                # AI coding assistant guidebook
-└── .env                     # App configuration (git-ignored)
+├── app/
+│   ├── index.js             # Main server entrypoint
+│   ├── routes/              # Application routes
+│   │   ├── api.js           # REST API routes
+│   │   └── web.js           # HTML page routes
+│   ├── views/               # HTML and EJS templates
+│   │   ├── index.html       # Public home view
+│   │   ├── about.html       # Public about view
+│   │   └── dashboard.html   # Authenticated dashboard view
+│   ├── jobs/                # Background queue worker jobs
+│   └── cache/               # File-based render cache fallback (auto-created)
+├── public/                  # Static assets served directly by Nginx / Express
+│   ├── css/                 # Custom CSS stylesheets
+│   ├── js/                  # Custom client JavaScript files
+│   └── images/              # Static images and icons
+├── docker/                  # Production Dockerfile and Nginx configuration
+├── docker-compose.yml       # Docker Compose service definition
+├── AGENTS.md                # AI agent manual and architectural reference
+├── jsconfig.json            # IDE path mapping and IntelliSense configuration
+└── .env                     # Environment variables (git-ignored)
 ```
 
 ---
 
-## 📖 Core Modules Documentation / Documentación de Módulos
+## Core Modules
 
 ### 1. Application Class (`App`)
 
-Initializes the Express server. If Docker/Nginx is not used (or for lightweight setups like Express + SQLite), you can configure Express to serve static frontend files directly via the `static` parameter:
+Initializes the Express application with security defaults, compression, cookie parsing, body parsers, and route dispatching.
 
 ```javascript
 import App from "@seip/blue-bird/core/app.js";
-import routerApi from "./backend/routes/api.js";
+import routerWeb from "./routes/web.js";
+import routerApi from "./routes/api.js";
 
 const app = new App({
   port: process.env.PORT || 3000,
-  host: "http://localhost",
-  routes: [routerApi],
-  cors: [],
+  host: process.env.HOST || "http://localhost",
+  routes: [routerWeb, routerApi],
+  cors: {},
   middlewares: [],
   logger: false,
-  // Standalone Express Static Asset Serving (No Nginx/Docker required)
+  compression: true,
+  cookieParser: true,
   static: {
-    path: "../frontend", // relative directory path to frontend files
-    options: {}           // express.static options
+    path: "public",
+    options: {}
   }
 });
 
 app.run();
 ```
 
----
+### 2. HTML Render Engine (`Render`)
 
-### 2. Routing (`Router`)
+Blue Bird features an integrated HTML render engine (`core/render.js`) designed for performance and flexibility.
 
-Do not use Express' native router. Always use Blue Bird's wrapper class:
+#### Features
+- Zero required dependencies for standard HTML rendering.
+- Built-in placeholder interpolation with automatic XSS escaping (`{{key}}`) and raw output (`{{{key}}}`). Dot-notation keys such as `{{user.name}}` are fully supported.
+- Multi-tier caching architecture:
+  - `DEBUG=true`: Caching disabled. Templates are read fresh from disk on each request.
+  - `DEBUG=false` and `PM2_INSTANCES=1`: In-memory LRU cache (`RENDER_CACHE_MAX=500`).
+  - `DEBUG=false` and `PM2_INSTANCES>1`: Distributed Redis cache (L2) with automatic fallback to in-memory LRU (L1) and safe file caching in `app/cache/` (L3).
+- Opt-in EJS support: Install `ejs` via `npx blue-bird add ejs` and name templates with the `.ejs` extension.
+
+#### Route Definition Example
+
+```javascript
+import Router from "@seip/blue-bird/core/router.js";
+import Render from "@seip/blue-bird/core/render.js";
+import Auth from "@seip/blue-bird/core/auth.js";
+
+const web = new Router("/");
+
+// Public page with 5-minute cache
+web.get("/", Render.cache(300), Render.view("index"));
+
+// Public page with static template data
+web.get("/about", Render.cache(300), Render.view("about", { company: "Blue Bird" }));
+
+// Protected page: redirects unauthenticated users to /login
+web.get("/dashboard", Auth.protect({ redirect: "/login" }), async (req, res) => {
+  await Render.send(res, "dashboard", { user: req.user });
+});
+
+// Programmatic cache invalidation
+await Render.invalidate("index");
+
+export default web;
+```
+
+#### Template Syntax (`app/views/dashboard.html`)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <h1>Welcome, {{user.name}}</h1>
+  <div>{{{rawHtmlSnippet}}}</div>
+</body>
+</html>
+```
+
+### 3. Routing (`Router`)
+
+Always use Blue Bird's `Router` wrapper instead of Express' native router to benefit from consistent route prefixing and middleware chaining.
 
 ```javascript
 import Router from "@seip/blue-bird/core/router.js";
 
-const routerApi = new Router("/api");
-routerApi.get("/users", (req, res) => {
-  res.json({ users: [] });
+const api = new Router("/api");
+
+api.get("/users", (req, res) => {
+  res.ok({ users: [] }, "Users fetched successfully");
 });
-export default routerApi;
+
+export default api;
 ```
 
----
+### 4. Request Validation (`Validator`)
 
-
-
-### 3. Data Validation (`Validator`)
-
-Validates request payloads using a JSON schema. Returns structured `400 Bad Request` payloads automatically on schema failures.
+Validates request bodies and parameters against declarative JSON schemas. Returns structured HTTP 400 JSON errors automatically when validation fails.
 
 ```javascript
 import Validator from "@seip/blue-bird/core/validate.js";
@@ -151,570 +220,306 @@ import Validator from "@seip/blue-bird/core/validate.js";
 const userSchema = {
   email: { required: true, email: true },
   password: { required: true, min: 8 },
-  bio: { required: false },
+  name: { required: true, min: 2, max: 100 },
 };
 
 const validateUser = new Validator(userSchema, "en");
 
-routerApi.post("/users", validateUser.middleware(), (req, res) => {
-  res.json({ success: true });
+api.post("/users", validateUser.middleware(), (req, res) => {
+  res.created({ id: 1 }, "User registered successfully");
 });
 ```
 
----
-
-### 4. Authentication & Password Hashing (`Auth` & `Hash`)
+### 5. Authentication and Password Hashing (`Auth` and `Hash`)
 
 #### Password Hashing (`Hash`)
 
-Blue Bird includes high-performance password hashing using `node:crypto.scrypt` with random salt and timing-safe comparison out of the box (zero npm dependencies). It also supports `bcrypt` if installed or when verifying `$2a$/$2b$` hashes.
+Provides native password hashing using `node:crypto.scrypt` with random salting and timing-safe equality verification (zero npm dependencies). Supports `bcrypt` when installed.
 
 ```javascript
 import Hash from "@seip/blue-bird/core/hash.js";
 
-// 1. Hash password with scrypt (default)
-const hash = await Hash.make("mySecretPassword");
+// Hash using scrypt (default, zero dependencies)
+const hash = await Hash.make("userPassword123");
 
-// 2. Verify password (timing-safe comparison)
-const isValid = await Hash.verify("mySecretPassword", hash);
+// Verify password
+const isValid = await Hash.verify("userPassword123", hash);
 
-// 3. Hash with bcrypt (if 'bcrypt' package is installed)
-const bcryptHash = await Hash.make("mySecretPassword", { driver: "bcrypt", rounds: 10 });
+// Hash with bcrypt (if 'bcrypt' package is installed)
+const bcryptHash = await Hash.make("userPassword123", { driver: "bcrypt", rounds: 10 });
 ```
 
-#### JWT Authentication & Sessions (`Auth`)
+#### Native JWT and Session Management (`Auth`)
 
-Secure user authentication with AES-256-GCM encrypted tokens. Transmitted via HTTP-Only cookies or `Authorization` headers, with optional Redis session storage and invalidation.
-
-##### Protecting Routes
+Tokens are signed using HMAC-SHA256 and encrypted with AES-256-GCM via `node:crypto`. No external `jsonwebtoken` dependency is required.
 
 ```javascript
 import Auth from "@seip/blue-bird/core/auth.js";
 
-// 1. Secure API endpoint (returns 401 JSON on failure)
-router.get("/profile", Auth.protect(), (req, res) => {
+// Protect API endpoint (returns HTTP 401 JSON on unauthenticated request)
+api.get("/profile", Auth.protect(), (req, res) => {
   res.ok({ user: req.user });
 });
 
-// 2. Secure web page (redirects to /login on failure)
-router.get("/dashboard", Auth.protect({ redirect: "/login", key: "user", cookieKey: "auth" }), (req, res) => {
-  res.send(`<h1>Welcome ${req.user.name}</h1>`);
-});
-```
+// Protect Web view (redirects to /login on unauthenticated request)
+web.get("/account", Auth.protect({ redirect: "/login" }), Render.view("account"));
 
-##### Authentication Sessions & Utilities
-
-```javascript
-// Login & Sync Session state in Redis (if active)
-router.post("/login", async (req, res) => {
-  const user = { id: 1, name: "John Doe", role: "admin" };
+// User login: issues signed token, syncs session with Redis (if active), and sets HttpOnly cookie
+api.post("/login", async (req, res) => {
+  const user = { id: 1, name: "Alice", email: "alice@example.com" };
   await Auth.login(res, user, "auth", { expiresIn: "7d" });
   res.ok(user, "Logged in successfully");
 });
 
-// Logout & Delete Session from Redis
-router.post("/logout", async (req, res) => {
+// User logout: clears cookie and removes Redis session
+api.post("/logout", async (req, res) => {
   await Auth.logout(res, "auth", {}, req);
-  res.ok(null, "Logged out");
+  res.ok(null, "Logged out successfully");
 });
-
-// Manual Encrypted JWT Tokens & AES-256-GCM Encryption
-const token = Auth.generateToken({ id: 1 }, process.env.JWT_SECRET, "2h");
-const decoded = Auth.verifyToken(token, process.env.JWT_SECRET);
-const encrypted = Auth.encrypt({ secret: "1234" }, process.env.JWT_SECRET);
-const decrypted = Auth.decrypt(encrypted, process.env.JWT_SECRET);
 ```
 
----
+### 6. Standardized HTTP Response Helpers
 
-### 5. HTTP Response Helpers & Health Check
-
-Blue Bird enhances Express' `res` object with standardized helper methods:
+Blue Bird extends Express' `res` object with consistent response methods:
 
 ```javascript
-// Standard Success Responses
-res.ok(data, "Success");                      // HTTP 200 { status: "success", message, data }
-res.created(newItem, "Item created");         // HTTP 201 { status: "success", message, data }
-res.paginate(items, pagination, "Fetched");   // HTTP 200 { status: "success", message, data, pagination }
+// Success
+res.ok(data, "Success message");            // HTTP 200 { status: "success", message, data }
+res.created(data, "Created successfully");  // HTTP 201 { status: "success", message, data }
+res.paginate(items, pagination, "Fetched"); // HTTP 200 { status: "success", message, data, pagination }
 
-// Standard Error Responses
-res.badRequest("Invalid input", errors);      // HTTP 400 { status: "error", message, errors }
-res.unauthorized("Authentication required");  // HTTP 401 { status: "error", message }
-res.forbidden("Access denied");               // HTTP 403 { status: "error", message }
-res.notFound("Resource not found");           // HTTP 404 { status: "error", message }
-res.serverError("Internal failure", err);     // HTTP 500 { status: "error", message }
+// Errors
+res.badRequest("Validation failed", errors);// HTTP 400 { status: "error", message, errors }
+res.unauthorized("Authentication required");// HTTP 401 { status: "error", message }
+res.forbidden("Access denied");             // HTTP 403 { status: "error", message }
+res.notFound("Resource not found");         // HTTP 404 { status: "error", message }
+res.serverError("Internal failure", err);   // HTTP 500 { status: "error", message }
 ```
 
-#### Health Check Endpoint (`/api/health`)
+#### Health Endpoint (`/api/health`)
 
-Every application includes an automatic `/api/health` route returning server status, uptime, environment, and memory consumption.
+Every Blue Bird application provides an automatic `/api/health` endpoint reporting uptime, memory usage, environment, and status.
 
----
-
-### 6. Performance Cache & Modes (`Cache`)
+### 7. Performance Cache (`Cache`)
 
 Configured via `CACHE_MODE` in `.env`:
-- `CACHE_MODE="memory"`: Fast local RAM cache inside Node.js with automated TTL cleanup (default when Redis is not used). Zero network overhead.
-- `CACHE_MODE="redis"`: Distributed cache across Docker containers with automatic fallback to memory if Redis is unavailable.
+- `CACHE_MODE="memory"`: Fast local in-memory cache with automatic TTL eviction.
+- `CACHE_MODE="redis"`: Distributed cache across containers with memory fallback.
 - `CACHE_MODE="none"`: Caching disabled.
 
-#### Route Caching Middleware
-
 ```javascript
-import Cache, { getRedisClient } from "@seip/blue-bird/core/cache.js";
+import Cache from "@seip/blue-bird/core/cache.js";
 
-// Cache endpoint for 60 seconds (sets X-Blue-Bird-Cache: HIT/MISS headers)
-router.get("/stats", Cache.middleware(60), (req, res) => {
-  res.ok({ usersOnline: 42 });
+// Cache route output for 60 seconds
+api.get("/metrics", Cache.middleware(60), (req, res) => {
+  res.ok({ activeUsers: 142 });
 });
+
+// Programmatic manipulation
+await Cache.set("item:1", { name: "Widget" }, 120);
+const item = await Cache.get("item:1");
+await Cache.delete("/api/metrics");
 ```
 
-#### Programmatic Cache Manipulation & Invalidation
+### 8. Database Layer (`Database`)
+
+A unified database client (`core/database.js`) supporting SQLite, MySQL, and PostgreSQL with connection pooling, startup retries, unified parameter syntax, and Redis query caching.
+
+- **SQLite**: Uses native `node:sqlite` in Node 22+, falling back to `better-sqlite3` on older runtimes. Configured with `PRAGMA journal_mode = WAL;`, `busy_timeout = 5000;`, and `synchronous = NORMAL;`.
+- **MySQL**: Connection pool via `mysql2/promise`.
+- **PostgreSQL**: Connection pool via `pg`. Parameter placeholders (`?`) are automatically converted to `$1, $2, ...` syntax.
 
 ```javascript
-// Get / Set keys programmatically
-await Cache.set("custom_key", { data: "value" }, 120);
-const cachedData = await Cache.get("custom_key");
+import { Database } from "@seip/blue-bird/core/database.js";
 
-// Manually invalidate route cache (e.g. after updating DB)
-await Cache.delete("/api/public/config");
+const db = new Database(20);
 
-// Clear all cache entries
-await Cache.clear();
-```
+// Unified parameter syntax with ? placeholders across all engines
+const user = await db.query("SELECT * FROM users WHERE id = ?", [1], "return_row");
 
+// Redis query caching (stores result in Redis for 60 seconds)
+const stats = await db.query("SELECT COUNT(*) AS total FROM orders", [], { cache: 60 });
 
-#### Custom Database & Data Caching with `getRedisClient()`
-
-```javascript
-// Direct access to the active Redis client for database query or custom key caching
-router.get("/custom-cache", async (req, res) => {
-  const redis = getRedisClient();
-  if (redis) {
-    const cached = await redis.get("my_custom_key");
-    if (cached) return res.json(JSON.parse(cached));
-
-    const dbData = await fetchHeavyDataFromDB();
-    await redis.set("my_custom_key", JSON.stringify(dbData), { EX: 120 }); // Expiry 120s
-    return res.json(dbData);
-  }
-  
-  // Fallback if Redis is disabled
-  const dbData = await fetchHeavyDataFromDB();
-  res.json(dbData);
+// Transactions
+await db.transaction(async (tx) => {
+  const id = await tx.query("INSERT INTO orders (total) VALUES (?)", [99.95]);
+  await tx.query("INSERT INTO audit_log (order_id) VALUES (?)", [id]);
 });
+
+// Pagination
+const page = await db.paginate("SELECT * FROM products ORDER BY id DESC", [], { page: 1, limit: 20 });
 ```
+
+### 9. Background Jobs and Queues (`Queue`)
+
+Lightweight queue worker backed by Redis with an in-memory fallback:
+
+```javascript
+import Queue from "@seip/blue-bird/core/queue.js";
+
+// Register processor
+Queue.process("sendEmail", async (payload) => {
+  console.log(`Sending email to ${payload.to}...`);
+});
+
+// Dispatch job
+await Queue.dispatch("sendEmail", { to: "user@example.com" });
+```
+
+Job files in `app/jobs/*.js` exporting a default handler function are automatically registered on startup via `Queue.loadJobs()`.
 
 ---
 
-### 6. Security Headers (`Helmet`)
+## Blue Bird Design System (CDN)
 
-Apply security headers per-router. Preserves the framework's custom powered-by header by default:
+Blue Bird provides an optional, modern CSS and UI helper bundle hosted on CDN:
 
-```javascript
-import App from "@seip/blue-bird/core/app.js";
+```html
+<!-- Blue Bird CSS (Minified) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@seip/blue-bird-css@latest/dist/bluebird.min.css" />
 
-const webRouter = new Router("/web");
-webRouter.use(App.helmet());
+<!-- Blue Bird JavaScript UI Helper -->
+<script src="https://cdn.jsdelivr.net/npm/@seip/blue-bird-css@latest/dist/bluebird.min.js" defer></script>
 ```
+
+The CSS package is maintained independently at `@seip/blue-bird-css`, allowing projects to use the design system standalone or customize styling in `public/css/style.css`.
 
 ---
 
-### 7. Database wrapper (`Database`)
+## CLI Developer Suite
 
-Blue Bird provides a unified, multi-database client wrapper (`core/database.js`) supporting **SQLite** (default), **MySQL**, and **PostgreSQL** with automated connection retry loops, query formatting utilities, and Redis query caching.
-
-#### Driver Support
-- **Native SQLite (`better-sqlite3`) [Default]**: Embedded, ultra-fast zero-latency database. Automatically applies `PRAGMA journal_mode = WAL;`, `PRAGMA busy_timeout = 5000;`, `PRAGMA synchronous = NORMAL;`, and `PRAGMA foreign_keys = ON;` to eliminate locking errors and support concurrent reader and writer operations.
-- **Native MySQL (`mysql2/promise`)**: High-performance connection pool for MySQL 8.0+.
-- **Native PostgreSQL (`pg`)**: Connection pool for PostgreSQL 18+. When running standard queries with `connection.query(sql, params)`, the wrapper automatically converts `?` parameter placeholders into PostgreSQL `$1, $2, ...` syntax, allowing unified SQL query writing across all database engines.
-- **No Database (`none`)**: If no database is configured, the wrapper is disabled gracefully without crashing the server.
-
-#### Standalone & Remote Database Configuration
-You can connect to any local or remote database instance (outside Docker, such as Supabase, Neon, AWS RDS, local SQLite files, or MySQL/Postgres services) simply by defining the `DATABASE_URL` or `DB_FILE` in your `.env` file:
-
-```env
-# SQLite (Default)
-DB_TYPE="sqlite"
-DB_FILE="database/blue_bird.db"
-DATABASE_URL="sqlite:database/blue_bird.db"
-
-# PostgreSQL (Remote or local)
-# DB_TYPE="postgres"
-# DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_bird?schema=public"
-
-# MySQL (Remote or local)
-# DB_TYPE="mysql"
-# DATABASE_URL="mysql://root:password@localhost:3306/blue_bird"
-```
-
-#### Usage Examples
-
-```javascript
-import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
-
-// Instantiate the database connection pool or SQLite instance
-const connection = new Database(20);
-
-// 1. Basic SELECT query returning single row (Works for SQLite, MySQL, and PostgreSQL using ? placeholders)
-const user = await connection.query("SELECT * FROM users WHERE email = ?", ["test@example.com"], "return_row");
-
-// 2. Fetch rows with 60 seconds Redis caching enabled
-const stats = await connection.query("SELECT COUNT(*) as count FROM access_logs", [], { cache: 60 });
-
-// 3. INSERT query (returns insertId / lastInsertRowid across SQLite, MySQL, and PostgreSQL)
-const newId = await connection.query("INSERT INTO users (name) VALUES (?)", ["John"]);
-
-// 4. Automatic SQL Query Pagination (Runs count query + LIMIT/OFFSET calculation)
-const paginated = await connection.paginate(
-  "SELECT * FROM users WHERE status = ?",
-  ["active"],
-  { page: 1, limit: 10, cache: 60 }
-);
-
-// 5. Atomic Database Transactions with Automatic Commit & Rollback (uses BEGIN IMMEDIATE for SQLite)
-const txUserId = await connection.transaction(async (tx) => {
-  const userId = await tx.query("INSERT INTO users (name, email) VALUES (?, ?)", ["Alice", "alice@example.com"]);
-  await tx.query("INSERT INTO profiles (user_id) VALUES (?, ?)", [userId]);
-  return userId;
-});
-```
-
----
-
-### 8. Real-Time WebSockets Engine (`WebSocketManager`)
-
-Built-in high-performance vanilla WebSocket server (`ws`) sharing the **exact same HTTP server and port as Express** (port 3000), supporting room subscriptions, JWT authentication, 30s heartbeat ping/pong, and Redis Pub/Sub cluster synchronization:
-
-```javascript
-import App from "@seip/blue-bird/core/app.js";
-
-const app = new App({ ... });
-
-// 1. Initialize WebSocket server on route /ws with optional JWT Auth check
-const ws = app.websocket({ path: "/ws", auth: true });
-
-ws.onConnection((socket, req) => {
-  socket.join("lobby");
-  socket.sendJSON({ status: "connected", user: socket.user });
-
-  socket.on("message", (raw) => {
-    // Broadcast to room (synced across PM2 cluster via Redis Pub/Sub)
-    ws.broadcast({ room: "lobby", text: raw.toString() }, "lobby");
-  });
-});
-
-app.run();
-```
-
-#### Broadcasting from Express API Routes:
-```javascript
-router.post("/api/comments", async (req, res) => {
-  // 1. Save comment into database...
-  const comment = { id: 1, text: req.body.text };
-
-  // 2. Broadcast in real time to all WebSocket clients in the "lobby" room
-  app.wsManager.broadcast({ type: "NEW_COMMENT", data: comment }, "lobby");
-
-  return res.success(comment, "Comment created");
-});
-```
-
-#### Native Client Connection (Browser & Node.js v22+):
-```javascript
-// Native W3C Standard WebSocket Client (Browser & Node.js v22+)
-const socket = new WebSocket("ws://localhost:3000/ws");
-
-socket.addEventListener("open", () => {
-  console.log("Connected to WebSocket server!");
-  socket.send("Hello server from native client!");
-});
-
-socket.addEventListener("message", (event) => {
-  const data = JSON.parse(event.data);
-  console.log("Message received from server:", data);
-});
-```
-
----
-
-### 9. Nginx Static Asset Caching
-
-Nginx is configured to explicitly cache static assets (`.js`, `.css`, `.jpg`, `.png`, etc.) in the user's browser with the `Cache-Control` header (valid for 1 month). HTML and API endpoints (`/api/*`) are not cached by Nginx to ensure they serve dynamic and up-to-date content, relying instead on the Node.js application and Redis for data-layer caching.
-
----
-
-## 🛠️ Developer Tooling & CLI Suite
-
-Blue Bird includes built-in developer productivity commands:
+Blue Bird includes an extensive command-line interface for development, scaffolding, and operations:
 
 ```bash
-# System Diagnostics & Smoke Testing
+# Project Diagnostics
 npx blue-bird doctor                 # Audits .env, ports, permissions, and runs live HTTP smoke test
 
 # Route Scaffolding
-npx blue-bird make:route <name>      # Generates full CRUD route with Validation & Cache invalidation
-npx blue-bird make:route <name> -a   # Generates route with Auth.protect() middleware
+npx blue-bird make:route <name>      # Generates full CRUD route in app/routes/
+npx blue-bird make:route <name> -a   # Generates CRUD route with Auth.protect() middleware
 
-# Database Migrations & Seeds
-npx blue-bird make:migration <name>  # Creates timestamped SQL migration in database/migrations/
-npx blue-bird migrate                # Executes pending migrations across SQLite, MySQL, or Postgres
+# View Scaffolding
+npx blue-bird make:view <name>       # Scaffolds an HTML view in app/views/
+npx blue-bird make:view <name> --ejs # Scaffolds an EJS view in app/views/
+
+# PM2 Ecosystem Scaffolding
+npx blue-bird make:ecosystem         # Generates ecosystem.config.cjs with automatic worker detection
+
+# Database Migrations and Seeds
+npx blue-bird make:migration <name>  # Creates SQL migration in database/migrations/
+npx blue-bird migrate                # Runs pending migrations
 npx blue-bird migrate:status         # Displays applied and pending migration batches
 npx blue-bird make:seed <name>       # Creates SQL seed file in database/seeds/
-npx blue-bird seed                   # Executes seed files in database/seeds/
+npx blue-bird seed                   # Runs seed files
 
-# VPS Host Nginx & SSL Automation (Auto-resolves APP_URL & PORT from .env if omitted)
+# On-Demand Feature Installation
+npx blue-bird add rate-limit         # Installs express-rate-limit
+npx blue-bird add helmet             # Installs helmet
+npx blue-bird add ejs                # Installs ejs
+npx blue-bird add upload             # Installs multer
+npx blue-bird add ws                 # Installs ws
+npx blue-bird add redis              # Installs redis
+npx blue-bird add sqlite             # Installs better-sqlite3
+npx blue-bird add mysql              # Installs mysql2
+npx blue-bird add postgres           # Installs pg
+npx blue-bird add bcrypt             # Installs bcrypt
+npx blue-bird add swagger            # Installs swagger-ui-express
+
+# Host Nginx and SSL Automation
 npx blue-bird nginx:conf [domain] [port]
 ```
 
 ---
 
-## ✨ IDE Autocompletion & Developer Experience (CSS & JS)
+## Deployment Strategies
 
-When initializing a project with `npx blue-bird`, the CLI generates `jsconfig.json`, `.vscode/settings.json`, `.vscode/extensions.json`, and `frontend/js/bluebird.d.ts` for zero-configuration IntelliSense:
+### Strategy A: Docker Container Stack (Recommended for Production)
 
-- **HTML & CSS Class IntelliSense:** Autocompletes all `bluebird.css` utilities and component classes in HTML attributes (`class="..."`). Recommended extensions:
-  - [HTML CSS Class Completion (Open VSX)](https://open-vsx.org/vscode/item?itemName=Zignd.html-css-class-completion) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Zignd.html-css-class-completion)
-  - [CSS Peek (Open VSX)](https://open-vsx.org/vscode/item?itemName=pranaygp.vscode-css-peek) / [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pranaygp.vscode-css-peek)
-- **JavaScript Tooltips & Autocomplete:** Built-in typed definitions (`bluebird.d.ts`) provide hover tooltips, options autocomplete, and inline code examples for `bluebird('toast', {...})`, `bluebird('snackbar', {...})`, `bluebird('drawer', {...})`, and other UI helpers.
+Orchestrated using the built-in Docker CLI wrapper:
 
----
-
-## 📬 Background Jobs & Queue (Queue)
-
-Blue Bird includes a lightweight queue worker (`core/queue.js`) backed by Redis with an automatic in-memory fallback for local development or non-redis architectures:
-
-```javascript
-import Queue from "@seip/blue-bird/core/queue.js";
-
-// 1. Register job processor
-Queue.process("sendWelcomeEmail", async (payload) => {
-  console.log(`Sending email to ${payload.email}...`);
-});
-
-// 2. Dispatch job from route or service
-await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });
-```
-
----
-
-## Docker CLI Workflow
-
-Blue Bird comes with a built-in Docker CLI wrapper that handles both local development database bootstrapping and full-stack VPS production deployments across MySQL, PostgreSQL, or no-database architectures.
-
-### Commands Syntax:
+- **Nginx**: Serves `public/` assets directly (`:ro` mount) and proxies all application routes to Express.
+- **Node.js**: Runs under PM2 in cluster mode based on `PM2_INSTANCES` configuration.
+- **Database**: SQLite (mounted `./database`), MySQL, or PostgreSQL.
+- **Redis**: Caching and distributed sessions.
 
 ```bash
-npx blue-bird docker <command> [options]
+# Start production container stack
+npx blue-bird docker start
+
+# Tail application logs
+npx blue-bird docker logs
+
+# Interactive database terminal
+npx blue-bird docker db
+
+# Export database backup
+npx blue-bird docker export
+
+# Stop all containers
+npx blue-bird docker stop
 ```
 
-### Supported Actions:
+### Strategy B: Standalone PM2 (Without Docker)
 
-- **`npx blue-bird docker dev`**: Boots the development database and Redis containers. Run `npm run dev` locally on your host machine.
-- **`npx blue-bird docker start`**: Boots the production stack (Node.js App + Nginx + Database + Redis) and runs the automatic health smoke test.
-- **`npx blue-bird docker start db`** (or `postgres` / `mysql`): Boots the configured database container only (great for local development outside Docker).
-- **`npx blue-bird docker start redis`**: Boots the Redis container only.
-- **`npx blue-bird docker start dbs`**: Boots both database containers (configured DB + Redis).
-- **`npx blue-bird docker stop`**: Stops all active project containers.
-- **`npx blue-bird docker build [--no-cache]`**: Builds or updates the Node.js production image.
-- **`npx blue-bird docker ps`**: Lists running project containers and ports.
-- **`npx blue-bird docker logs [app|db|postgres|mysql]`**: Tails logs for the specified container.
-- **`npx blue-bird docker pm2 [args]`**: Runs PM2 commands inside the Node.js application container (e.g. `status`, `monit`, `reload all`).
-- **`npx blue-bird docker db`** (or `psql` / `mysql`): Connects into the container's interactive database shell (`psql` for PostgreSQL, `mysql` for MySQL). Supports smart table queries, schema inspection, and backups:
-  - `npx blue-bird docker mysql users` -> executes `SELECT * FROM users;` formatted as ASCII table.
-  - `npx blue-bird docker mysql users --limit=10 --where="id > 5"` -> executes filtered query.
-  - `npx blue-bird docker mysql tables` -> lists database tables (`SHOW TABLES`).
-  - `npx blue-bird docker mysql columns users` -> describes table schema (`SHOW COLUMNS`).
-- **`npx blue-bird docker export [filename.sql]`** (or `npx blue-bird docker mysql export`): Dumps database schema and data into `backups/backup_YYYY-MM-DD.sql` (creates `backups/` folder automatically).
-- **`npx blue-bird docker import [filename.sql]`** (or `npx blue-bird docker mysql import`): Restores database from a `.sql` file in `backups/` (uses the most recent `.sql` backup if no filename is specified).
-- **`npx blue-bird docker redis`**: Connects into the container's interactive Redis CLI terminal. Supports smart subcommands:
-  - `npx blue-bird docker redis monitor` -> live stream of all incoming Redis commands.
-  - `npx blue-bird docker redis keys [pattern]` -> lists all matching Redis keys (defaults to `*`).
-  - `npx blue-bird docker redis key <keyname>` -> gets value for specific Redis key.
-- **`npx blue-bird docker prune`**: Safely clears orphaned volumes, dangling build caches, and images.
+For environments running Node.js directly on a virtual private server:
+
+```bash
+# 1. Generate the PM2 ecosystem configuration
+npx blue-bird make:ecosystem
+
+# 2. Start PM2 cluster
+pm2 start ecosystem.config.cjs
+
+# 3. Monitor
+pm2 status
+pm2 logs
+```
 
 ---
 
-## 🚀 Production Deployment Options
+## Production Security and VPS Hardening
 
-You can deploy Blue Bird applications to production using two main workflows:
+When deploying to Linux VPS servers (Ubuntu, Debian, AlmaLinux), apply standard Filesystem Hierarchy Standard (FHS) locations:
+- Deploy to `/var/www/<project-name>` (Recommended) or `/srv/<project-name>`.
+- Avoid deploying inside `/home/user/` to prevent directory traversal permission conflicts.
 
-### A. Docker Container Stack (Highly Recommended)
+### Recommended Permissions Matrix
 
-Using the built-in Docker stack is the recommended deployment method because it sets up a complete, hardened production environment automatically:
-- **Nginx Reverse Proxy:** Captures traffic on port 3000 (or custom PORT), serves static assets and extensionless HTML directly from the filesystem to offload the Node.js server, and proxies API traffic to Express.
-- **PM2 Clustering:** Launches Node.js in cluster mode inside the container, utilizing all available CPU cores based on `PM2_INSTANCES` configuration (defaulting to 1).
-- **Security Mitigation:** Nginx blocks common malicious scanners (e.g. `/.env`, `/.git`, `/wp-admin`) instantly using a 444 status code and implements a `10r/s` request rate-limit.
-- **Services Stack:** MySQL and Redis are configured in the same bridge network automatically.
-
-To deploy via Docker:
-1. Configure `.env` with production keys, `DEBUG=false` and your custom `TITLE`.
-2. Build the production image:
-   ```bash
-   npx blue-bird docker build
-   ```
-3. Run the container cluster:
-   ```bash
-   npx blue-bird docker start prod
-   ```
-
----
-
-### 🛡️ Production VPS Security & Permissions Hardening Guide
-
-When deploying Blue Bird to a Linux VPS (Ubuntu, Debian, AlmaLinux, Rocky Linux), file permissions must strictly balance **least-privilege security** (preventing unauthorized read/write access to sensitive files) with **container accessibility** (allowing unprivileged container users like `nginx` to read static assets).
-
-> [!CAUTION]
-> **Never use `chmod -R 777` in production!** Giving full write permissions to all users creates severe security vulnerabilities, allowing compromised processes or unauthorized local users to modify application code, inject backdoors, or tamper with `.env` secrets.
-
-#### 1. Deployment Directory (Filesystem Hierarchy Standard)
-
-* ❌ **Avoid deploying inside `/home/user/`**: Deploying in home directories introduces security risks in multi-user environments and frequently causes `403 Forbidden` / `stat() failed (13: Permission denied)` errors due to restrictive default parent directory permissions (`700`/`750`). Recklessly loosening `/home/user/` exposes user SSH keys and profile data.
-* ✅ **Recommended Production Standard**: Deploy in dedicated Filesystem Hierarchy Standard (FHS) system directories:
-  * `/var/www/<project-name>` (Standard for web applications and static content)
-  * `/srv/<project-name>` (Alternative standard for site-specific payloads)
-
-#### 2. Recommended Permissions & Ownership Matrix
-
-| Target Directory / File | Mode | Ownership | Description & Security Rationale |
+| Target | Mode | Ownership | Security Rationale |
 |---|---|---|---|
-| **Project Root** (`/var/www/<project-name>`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Allows unprivileged container processes (`nginx` UID 101) to traverse down to the project tree. |
-| **Static Frontend Dirs** (`frontend/`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Grants traversal and read access for Nginx static serving. |
-| **Static Frontend Files** (`frontend/**/*`) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Read-only access for web server worker processes. |
-| **Node Module Dirs** (`node_modules/`) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Standard directory access. Avoid blanket `chmod -R 755`. |
-| **Node Module Files** (`node_modules/**/*`) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Standard read-only permissions for non-binary dependencies. |
-| **Executable Binaries** (`node_modules/.bin/`) | `+x` (`chmod -R +x`) | `$(whoami):$(whoami)` | Grants execution bit exclusively to CLI wrapper symlinks (`npx blue-bird`). |
-| **Environment File** (`.env`) | `600` (`-rw-------`) | `$(whoami):$(whoami)` | Restricts database passwords, JWT secrets, and API keys exclusively to the owning user. Never `644` or `777`. |
-| **Database Directory** (`database/` for SQLite) | `755` (dir) / `644` (file) | `$(whoami):$(whoami)` | Allows the Node.js application process inside the container to read and write WAL journal files. |
+| `/var/www/<project-name>` | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Allows unprivileged Nginx container (`UID 101`) directory traversal. |
+| `public/` (directories) | `755` (`drwxr-xr-x`) | `$(whoami):$(whoami)` | Traversal access for Nginx static serving. |
+| `public/` (files) | `644` (`-rw-r--r--`) | `$(whoami):$(whoami)` | Read access for Nginx static file serving. |
+| `app/cache/` | `755` (dir) / `644` (files) | `$(whoami):$(whoami)` | Writable by Node.js process for file render cache fallback. |
+| `node_modules/` | `755` (dirs) / `644` (files) | `$(whoami):$(whoami)` | Standard dependency access without blanket permissions. |
+| `node_modules/.bin/` | `+x` (`chmod -R +x`) | `$(whoami):$(whoami)` | Grants execution permissions to CLI binary symlinks. |
+| `.env` | `600` (`-rw-------`) | `$(whoami):$(whoami)` | Strictly isolates database credentials and JWT keys. Never `777`. |
+| `database/` (SQLite) | `755` (dir) / `644` (files) | `$(whoami):$(whoami)` | Allows Node.js application process to read and write WAL journals. |
 
-#### 3. Container-Level Hardening (Docker)
-
-To enforce the principle of least privilege at the container boundary, explicitly mount static frontend assets in **read-only mode (`:ro`)** inside `docker-compose.yml` for the Nginx service:
-
-```yaml
-services:
-  nginx:
-    image: nginx:alpine
-    volumes:
-      - ./frontend:/app/frontend:ro
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-```
-
-This guarantees that even in the event of an Nginx worker compromise, static web assets cannot be overwritten or modified from within the container.
-
-#### 4. Applying Secure Permissions on VPS
-
-Run the following chained commands inside your VPS project directory:
+### Production Hardening Commands
 
 ```bash
-# 1. Set project ownership to current deploy user
 sudo chown -R $(whoami):$(whoami) /var/www/<project-name>
 cd /var/www/<project-name>
 
-# 2. Ensure parent directory traversal permissions
 chmod 755 /var /var/www /var/www/<project-name>
+find public -type d -exec chmod 755 {} +
+find public -type f -exec chmod 644 {} +
 
-# 3. Apply safe permissions for static frontend assets
-find frontend -type d -exec chmod 755 {} +
-find frontend -type f -exec chmod 644 {} +
-
-# 4. Secure node_modules while preserving executable bits in .bin
 find node_modules -type d -exec chmod 755 {} +
 find node_modules -type f -exec chmod 644 {} +
 chmod -R +x node_modules/.bin 2>/dev/null || true
 
-# 5. Lock down environment credentials
 chmod 600 .env
 
-# 6. Set database directory permissions (for SQLite)
 chmod 755 database 2>/dev/null || true
 chmod 644 database/*.db 2>/dev/null || true
 ```
 
 ---
 
-### 🔧 VPS Production Troubleshooting (Problems & Solutions)
-
-#### 1. Static Assets Return 404 / 403 (`Permission denied`)
-* **Symptom:** Opening pages returns 404 or missing CSS/JS (e.g. `/css/bluebird.css`, `/favicon.ico`), and `docker compose logs -f nginx` reports:
-  ```text
-  [crit] stat() "/app/frontend/css/bluebird.css" failed (13: Permission denied)
-  ```
-* **Cause:** The Nginx container runs as an unprivileged user (`nginx`, UID 101 on Alpine). If parent directories lack traversal (`+x`) permissions, or files lack read (`+r`) permissions, Nginx is blocked from reading `/app/frontend`.
-* **Solution:**
-  ```bash
-  # Grant traversal and read permissions:
-  chmod 755 /var/www/<project-name>
-  find frontend -type d -exec chmod 755 {} +
-  find frontend -type f -exec chmod 644 {} +
-  ```
-
-#### 2. `npx blue-bird` fails with `sh: 1: blue-bird: Permission denied`
-* **Symptom:** Running CLI commands like `npx blue-bird docker stop` or `npx blue-bird docker start prod` fails with permission errors.
-* **Cause:** An overly aggressive global `find . -type f -exec chmod 644` stripped execution permissions from binary wrappers and symlinks in `node_modules/.bin/`.
-* **Solution:**
-  ```bash
-  chmod -R +x node_modules/.bin
-  # Or rebuild native binaries:
-  npm rebuild
-  ```
-
-#### 3. 404 Not Found after Folder Renaming or Moving (Docker Inode Desync)
-* **Symptom:** Moving, replacing, or recreating the project folder (e.g. `mv project_old project` or `git clone` / `rm -rf`) while Docker containers were running leads to persistent 404 errors even though files exist on disk.
-* **Cause:** Linux file descriptors and Docker volume mounts bind to disk **inodes**. When a directory is deleted and recreated, Docker mounts remain attached to the stale/dead inode until the container stack is restarted.
-* **Solution:**
-  ```bash
-  docker compose down
-  docker compose up -d
-  # Or with Blue Bird CLI:
-  npx blue-bird docker stop
-  npx blue-bird docker start prod
-  ```
-
-#### 4. Real-time Container Diagnostics
-* **Inspect Nginx logs in real time:**
-  ```bash
-  docker compose logs -f nginx
-  ```
-* **Test file visibility directly as the Nginx container user:**
-  ```bash
-  docker exec -it <container_name>-nginx su -s /bin/sh nginx -c "ls -la /app/frontend/css/bluebird.css"
-  ```
-* **Inspect path traversal permissions on host:**
-  ```bash
-  namei -l /var/www/<project-name>/frontend/css/bluebird.css
-  ```
-
----
-
-### B. Standard Standalone PM2 / Node.js Runtime
-
-If you choose to run outside of Docker, you must set up the reverse proxy and databases manually. To deploy in a standard Linux environment using PM2:
-
-1. Install PM2 globally:
-   ```bash
-   npm install pm2 -g
-   ```
-2. Start the application under PM2:
-   ```bash
-   pm2 start index.js --name "bluebird-app" --node-args="--env-file=.env" -i max
-   ```
-3. Monitor status:
-   ```bash
-   pm2 status
-   pm2 logs
-   ```
-
----
-
-## 📄 License / Licencia
+## License
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
 
-Distribuido bajo la **Licencia MIT**. Mira `LICENSE` para más información.
-
----
-
-<div align="center">
-  <p>Made with ❤️ by <strong>Seip25</strong></p>
-</div>
+Developed by **Seip25**.

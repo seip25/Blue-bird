@@ -1,4 +1,19 @@
-import xss from "xss";
+
+/**
+ * Escapes HTML special characters to prevent XSS in string field values.
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeXss(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
+
 
 const messages_default = {
   es: {
@@ -167,7 +182,7 @@ class Validator {
       let value = body[field];
 
       if (config.xss !== false && typeof value === "string") {
-        body[field] = xss(value);
+        body[field] = escapeXss(value);
         value = body[field];
       }
 

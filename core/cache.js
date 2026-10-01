@@ -1,13 +1,18 @@
 import fs from "node:fs";
 
-const CACHE = {};
+const CACHE_MAX_KEYS = parseInt(process.env.CACHE_MAX_KEYS || "1000", 10);
+
+/**
+ * LRU in-memory store backed by a Map (insertion-order iteration for eviction).
+ * @type {Map<string, {type: string, data: any, expiry: number}>}
+ */
+const lruMap = new Map();
 
 let redisClient = null;
 let isRedisConnected = false;
 
 const rawCacheMode = (process.env.CACHE_MODE || "").toLowerCase().trim();
-const CACHE_MODE =
-  rawCacheMode || (process.env.REDIS_HOST ? "redis" : "memory");
+const CACHE_MODE = rawCacheMode || (process.env.REDIS_HOST ? "redis" : "memory");
 const isRedisMode = CACHE_MODE === "redis";
 const isMemoryMode = CACHE_MODE === "memory" || CACHE_MODE === "inmemory";
 const isNoneMode =
@@ -23,7 +28,17 @@ const redisUrl = redisPassword
   : `redis://${redisHost}:${redisPort}`;
 
 /**
- * Initializes the Redis client connection if CACHE_MODE is 'redis' and REDIS_HOST is configured.
+ * Evicts the oldest entry from the LRU map when the cap is reached.
+ */
+function evictIfNeeded() {
+  if (lruMap.size >= CACHE_MAX_KEYS) {
+    const oldestKey = lruMap.keys().next().value;
+    if (oldestKey !== undefined) lruMap.delete(oldestKey);
+  }
+}
+
+/**
+ * Initializes the Redis client connection.
  * @returns {Promise<void>}
  */
 async function initRedis() {
@@ -35,21 +50,17 @@ async function initRedis() {
     if (host === "localhost" && fs.existsSync("/.dockerenv")) {
       host = "redis";
     }
-    const url = redisUrl;
+    const url = redisPassword
+      ? `redis://:${redisPassword}@${host}:${redisPort}`
+      : `redis://${host}:${redisPort}`;
 
     redisClient = createClient({ url });
-    redisClient.on("error", () => {
-      isRedisConnected = false;
-    });
-    redisClient.on("ready", () => {
-      isRedisConnected = true;
-    });
-    redisClient.on("connect", () => {
-      isRedisConnected = true;
-    });
+    redisClient.on("error", () => { isRedisConnected = false; });
+    redisClient.on("ready", () => { isRedisConnected = true; });
+    redisClient.on("connect", () => { isRedisConnected = true; });
     await redisClient.connect();
     isRedisConnected = true;
-  } catch (err) {
+  } catch {
     redisClient = null;
     isRedisConnected = false;
   }
@@ -59,94 +70,84 @@ if (isRedisMode && redisHost) {
   initRedis().catch(() => {});
 }
 
-// Background cleanup timer for in-memory cache
 setInterval(() => {
+  if (lruMap.size === 0) return;
   const now = Date.now();
-  for (const key in CACHE) {
-    if (CACHE[key].expiry <= now) {
-      delete CACHE[key];
-    }
+  for (const [key, entry] of lruMap) {
+    if (entry.expiry <= now) lruMap.delete(key);
   }
 }, 300000).unref();
 
 /**
- * High-performance Caching class supporting both local memory and Redis backends.
+ * High-performance Caching class supporting LRU memory and Redis backends.
+ * Configure via CACHE_MODE, CACHE_MAX_KEYS env variables.
  */
 class Cache {
   /**
    * Express middleware to cache route JSON and HTML responses.
+   * Skips caching for non-GET requests automatically.
    * @param {number} [seconds=60] - Expiry time in seconds.
+   * @param {Object} [options={}] - Override options.
+   * @param {"memory"|"redis"} [options.driver] - Force a specific driver for this route.
    * @returns {Function} Express middleware.
    */
-  static middleware(seconds = 60) {
+  static middleware(seconds = 60, options = {}) {
     return async (req, res, next) => {
-      if (isNoneMode) {
-        return next();
-      }
+      if (isNoneMode || req.method !== "GET") return next();
 
+      const driver = options.driver || null;
+      const useRedis = driver === "redis" || (!driver && isRedisMode);
       const key = req.originalUrl;
 
-      // 1. Redis Cache Lookup (if enabled)
-      if (isRedisMode && redisHost && !redisClient) {
+      if (useRedis && redisHost && !redisClient) {
         await initRedis().catch(() => {});
       }
 
-      if (isRedisMode && isRedisConnected && redisClient) {
+      if (useRedis && isRedisConnected && redisClient) {
         try {
-          const cachedData = await redisClient.get(key);
-          if (cachedData) {
-            const cached = JSON.parse(cachedData);
-            if (cached.type === "json") {
-              res.set("X-Blue-Bird-Cache", "HIT");
-              return res.json(cached.data);
-            } else {
-              res.type("text/html");
-              res.set("X-Blue-Bird-Cache", "HIT");
-              return res.send(cached.data);
-            }
+          const raw = await redisClient.get(key);
+          if (raw) {
+            const cached = JSON.parse(raw);
+            res.set("X-Blue-Bird-Cache", "HIT");
+            if (cached.type === "json") return res.json(cached.data);
+            res.type("text/html");
+            return res.send(cached.data);
           }
         } catch {
           isRedisConnected = false;
         }
       }
 
-      // 2. In-Memory Cache Lookup (memory mode or fallback)
-      if (!isRedisMode || !isRedisConnected || !redisClient) {
-        if (CACHE[key] && CACHE[key].expiry > Date.now()) {
-          const cached = CACHE[key];
-          if (cached.type === "json") {
-            res.set("X-Blue-Bird-Cache", "HIT");
-            return res.json(cached.data);
-          } else {
-            res.type("text/html");
-            res.set("X-Blue-Bird-Cache", "HIT");
-            return res.send(cached.data);
-          }
+      if (!isRedisMode || !isRedisConnected || !redisClient || driver === "memory") {
+        const entry = lruMap.get(key);
+        if (entry && entry.expiry > Date.now()) {
+          lruMap.delete(key);
+          lruMap.set(key, entry);
+          res.set("X-Blue-Bird-Cache", "HIT");
+          if (entry.type === "json") return res.json(entry.data);
+          res.type("text/html");
+          return res.send(entry.data);
         }
       }
 
       const originalJson = res.json.bind(res);
       const originalSend = res.send.bind(res);
-      let cachedInRequest = false;
+      let stored = false;
 
       res.json = async (body) => {
-        if (!cachedInRequest) {
-          cachedInRequest = true;
-          const cacheObject = {
-            type: "json",
-            data: body,
-            expiry: Date.now() + seconds * 1000,
-          };
-          if (isRedisMode && isRedisConnected && redisClient) {
+        if (!stored) {
+          stored = true;
+          const obj = { type: "json", data: body, expiry: Date.now() + seconds * 1000 };
+          if (useRedis && isRedisConnected && redisClient) {
             try {
-              await redisClient.set(key, JSON.stringify(cacheObject), {
-                EX: seconds,
-              });
+              await redisClient.set(key, JSON.stringify(obj), { EX: seconds });
             } catch {
-              CACHE[key] = cacheObject;
+              evictIfNeeded();
+              lruMap.set(key, obj);
             }
           } else {
-            CACHE[key] = cacheObject;
+            evictIfNeeded();
+            lruMap.set(key, obj);
           }
         }
         res.set("X-Blue-Bird-Cache", "MISS");
@@ -154,23 +155,19 @@ class Cache {
       };
 
       res.send = async (body) => {
-        if (!cachedInRequest && typeof body === "string") {
-          cachedInRequest = true;
-          const cacheObject = {
-            type: "html",
-            data: body,
-            expiry: Date.now() + seconds * 1000,
-          };
-          if (isRedisMode && isRedisConnected && redisClient) {
+        if (!stored && typeof body === "string") {
+          stored = true;
+          const obj = { type: "html", data: body, expiry: Date.now() + seconds * 1000 };
+          if (useRedis && isRedisConnected && redisClient) {
             try {
-              await redisClient.set(key, JSON.stringify(cacheObject), {
-                EX: seconds,
-              });
+              await redisClient.set(key, JSON.stringify(obj), { EX: seconds });
             } catch {
-              CACHE[key] = cacheObject;
+              evictIfNeeded();
+              lruMap.set(key, obj);
             }
           } else {
-            CACHE[key] = cacheObject;
+            evictIfNeeded();
+            lruMap.set(key, obj);
           }
         }
         res.set("X-Blue-Bird-Cache", "MISS");
@@ -183,30 +180,33 @@ class Cache {
   }
 
   /**
-   * Retrieves cached value by key.
+   * Retrieves a cached value by key.
    * @param {string} key - Cache key.
+   * @param {Object} [options={}] - Override options.
+   * @param {"memory"|"redis"} [options.driver] - Force a specific driver.
    * @returns {Promise<any|null>} Cached payload or null.
    */
-  static async get(key) {
+  static async get(key, options = {}) {
     if (isNoneMode) return null;
     key = key.trim();
     if (!key) return null;
 
-    if (isRedisMode && redisHost && !redisClient) {
+    const driver = options.driver || null;
+    const useRedis = driver === "redis" || (!driver && isRedisMode);
+
+    if (useRedis && redisHost && !redisClient) {
       await initRedis().catch(() => {});
     }
 
-    if (isRedisMode && isRedisConnected && redisClient) {
+    if (useRedis && isRedisConnected && redisClient) {
       try {
-        const cachedData = await redisClient.get(key);
-        if (cachedData) {
+        const raw = await redisClient.get(key);
+        if (raw) {
           try {
-            const cached = JSON.parse(cachedData);
-            return cached && typeof cached === "object" && "data" in cached
-              ? cached.data
-              : cached;
+            const cached = JSON.parse(raw);
+            return cached && typeof cached === "object" && "data" in cached ? cached.data : cached;
           } catch {
-            return cachedData;
+            return raw;
           }
         }
         return null;
@@ -215,49 +215,62 @@ class Cache {
       }
     }
 
-    if (CACHE[key]) {
-      if (CACHE[key].expiry > Date.now()) {
-        const cached = CACHE[key];
-        return cached.data !== undefined ? cached.data : cached;
+    const entry = lruMap.get(key);
+    if (entry) {
+      if (entry.expiry > Date.now()) {
+        lruMap.delete(key);
+        lruMap.set(key, entry);
+        return entry.data !== undefined ? entry.data : entry;
       }
-      delete CACHE[key];
+      lruMap.delete(key);
     }
 
     return null;
   }
 
   /**
-   * Sets data into cache with a specified TTL in seconds.
+   * Stores data in cache with a specified TTL.
    * @param {string} key - Cache key.
    * @param {any} value - Data to cache.
    * @param {number} [seconds=60] - Expiry time in seconds.
-   * @returns {Promise<boolean>} True if set successfully.
+   * @param {Object} [options={}] - Override options.
+   * @param {"memory"|"redis"} [options.driver] - Force a specific driver.
+   * @param {"memory"|"redis"} [options.fallbackDriver] - Fallback driver if primary fails.
+   * @returns {Promise<boolean>}
    */
-  static async set(key, value, seconds = 60) {
+  static async set(key, value, seconds = 60, options = {}) {
     if (isNoneMode) return true;
     key = key.trim();
     if (!key) return false;
 
-    if (isRedisMode && redisHost && !redisClient) {
+    const driver = options.driver || null;
+    const fallbackDriver = options.fallbackDriver || "memory";
+    const useRedis = driver === "redis" || (!driver && isRedisMode);
+
+    if (useRedis && redisHost && !redisClient) {
       await initRedis().catch(() => {});
     }
 
-    const cacheObject = {
+    const obj = {
       type: typeof value === "string" ? "html" : "json",
       data: value,
       expiry: Date.now() + seconds * 1000,
     };
 
-    if (isRedisMode && isRedisConnected && redisClient) {
+    if (useRedis && isRedisConnected && redisClient) {
       try {
-        await redisClient.set(key, JSON.stringify(cacheObject), {
-          EX: seconds,
-        });
+        await redisClient.set(key, JSON.stringify(obj), { EX: seconds });
+        return true;
       } catch {
-        CACHE[key] = cacheObject;
+        isRedisConnected = false;
+        if (fallbackDriver === "memory") {
+          evictIfNeeded();
+          lruMap.set(key, obj);
+        }
       }
     } else {
-      CACHE[key] = cacheObject;
+      evictIfNeeded();
+      lruMap.set(key, obj);
     }
 
     return true;
@@ -265,8 +278,8 @@ class Cache {
 
   /**
    * Deletes one or more entries from cache.
-   * @param {string|string[]} keys - Single key or array of keys to delete.
-   * @returns {Promise<boolean>} True if deleted.
+   * @param {string|string[]} keys - Single key or array of keys.
+   * @returns {Promise<boolean>}
    */
   static async delete(keys) {
     if (isNoneMode || !keys) return false;
@@ -277,7 +290,7 @@ class Cache {
     }
 
     for (const key of keyList) {
-      delete CACHE[key];
+      lruMap.delete(key);
       if (isRedisMode && isRedisConnected && redisClient) {
         try {
           await redisClient.del(key);
@@ -292,21 +305,19 @@ class Cache {
 
   /**
    * Alias for delete.
-   * @param {string|string[]} keys - Single key or array of keys to delete.
-   * @returns {Promise<boolean>} True if deleted.
+   * @param {string|string[]} keys
+   * @returns {Promise<boolean>}
    */
   static async del(keys) {
     return this.delete(keys);
   }
 
   /**
-   * Flushes all cached data in memory (and Redis if connected).
-   * @returns {Promise<boolean>} True if flushed.
+   * Flushes all cached entries from memory and optionally Redis.
+   * @returns {Promise<boolean>}
    */
   static async clear() {
-    for (const key in CACHE) {
-      delete CACHE[key];
-    }
+    lruMap.clear();
     if (isRedisMode && isRedisConnected && redisClient) {
       try {
         await redisClient.flushDb();
@@ -318,21 +329,28 @@ class Cache {
   }
 
   /**
-   * Returns current active cache mode ('redis', 'memory', or 'none').
-   * @returns {string}
+   * Returns the active cache mode.
+   * @returns {"redis"|"memory"|"none"}
    */
   static getMode() {
     return CACHE_MODE;
   }
+
+  /**
+   * Returns the current in-memory entry count.
+   * @returns {number}
+   */
+  static size() {
+    return lruMap.size;
+  }
 }
 
 /**
- * Returns the active Redis client if connected.
- * @returns {Object|null} The Redis client instance or null.
+ * Returns the active Redis client if connected, otherwise null.
+ * @returns {import("redis").RedisClientType|null}
  */
 export function getRedisClient() {
   return isRedisMode && isRedisConnected ? redisClient : null;
 }
 
 export default Cache;
-

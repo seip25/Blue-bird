@@ -1,5 +1,5 @@
 {
-  "html-css-class-completion.includeGlobPattern": "frontend/css/**/*.css",
+  "html-css-class-completion.includeGlobPattern": "public/css/**/*.css",
   "html-css-class-completion.enableEmmetSupport": true,
   "css.validate": true,
   "editor.quickSuggestions": {

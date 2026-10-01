@@ -146,8 +146,8 @@ class ProjectInit {
     }
 
     const itemsToCopy = [
-      "backend",
-      "frontend",
+      "app",
+      "public",
       "docker",
       ".env_example",
       "AGENTS.md",
@@ -176,7 +176,7 @@ class ProjectInit {
         }
       });
 
-      const gitignoreContent = `node_modules\nlogs\n.env\npackage-lock.json\n*.db\n*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n*.db-wal\n*.db-shm\ntest/\n\nbackups/*.sql\nbackups/*.db\n`;
+      const gitignoreContent = `node_modules\nlogs\n.env\npackage-lock.json\n*.db\n*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n*.db-wal\n*.db-shm\n\nbackups/*.sql\nbackups/*.db\n`;
       const gitignoreDest = path.join(this.appDir, ".gitignore");
       const gitignoreSrc = path.join(this.sourceDir, ".gitignore");
 
@@ -329,20 +329,25 @@ ${dbEnvBlock}
       pkg.scripts = pkg.scripts || {};
 
       const scriptsToAdd = {
-        dev: "node --watch --env-file=.env backend/index.js",
-        start: "node --env-file=.env backend/index.js",
+        dev: "node --watch --env-file=.env app/index.js",
+        start: "node --env-file=.env app/index.js",
         init: "blue-bird",
         doctor: "blue-bird doctor",
-        route: "blue-bird route",
+        route: "blue-bird make:route",
+        view: "blue-bird make:view",
         migrate: "blue-bird migrate",
         seed: "blue-bird seed",
         "swagger-install": "blue-bird swagger-install",
         docker: "blue-bird docker",
+        ecosystem: "blue-bird make:ecosystem",
       };
 
       let updated = false;
       for (const [key, value] of Object.entries(scriptsToAdd)) {
-        if (!pkg.scripts[key]) {
+        if (
+          !pkg.scripts[key] ||
+          (typeof pkg.scripts[key] === "string" && pkg.scripts[key].includes("backend/index.js"))
+        ) {
           pkg.scripts[key] = value;
           updated = true;
         }
@@ -399,15 +404,18 @@ ${dbEnvBlock}
 function addCommand(feature) {
   if (!feature) {
     console.log(chalk.yellow("Usage: npx blue-bird add <feature>"));
-    console.log("Available features to add:");
-    console.log("  upload | multer     - Installs multer for file uploads");
-    console.log("  ws | websocket      - Installs ws for WebSockets");
-    console.log("  redis               - Installs redis for distributed caching and sessions");
-    console.log("  sqlite              - Installs better-sqlite3 for local SQLite database");
-    console.log("  mysql               - Installs mysql2 for MySQL database");
-    console.log("  postgres | pg       - Installs pg for PostgreSQL database");
-    console.log("  bcrypt              - Installs bcrypt for password hashing");
-    console.log("  swagger             - Installs swagger-ui-express");
+    console.log("Available features:");
+    console.log("  upload | multer    - Installs multer for file uploads");
+    console.log("  ws | websocket     - Installs ws for WebSockets");
+    console.log("  redis              - Installs redis for distributed caching and sessions");
+    console.log("  sqlite             - Installs better-sqlite3 (fallback for Node < 22)");
+    console.log("  mysql              - Installs mysql2 for MySQL database");
+    console.log("  postgres | pg      - Installs pg for PostgreSQL database");
+    console.log("  bcrypt             - Installs bcrypt for password hashing");
+    console.log("  swagger            - Installs swagger-ui-express for API docs");
+    console.log("  helmet             - Installs helmet for advanced security headers");
+    console.log("  ejs                - Installs ejs for server-side template rendering");
+    console.log("  rate-limit         - Installs express-rate-limit for standalone rate limiting");
     return;
   }
 
@@ -435,21 +443,23 @@ function addCommand(feature) {
     postgr: "pg",
     bcrypt: "bcrypt",
     swagger: "swagger-ui-express",
+    helmet: "helmet",
+    ejs: "ejs",
+    "rate-limit": "express-rate-limit",
+    ratelimit: "express-rate-limit",
+    "express-rate-limit": "express-rate-limit",
   };
 
   const pkgName = packageMap[cleanFeature];
   if (!pkgName) {
     console.error(chalk.red(`[ERROR] Unknown feature '${feature}'.`));
-    console.log("Available features: upload, ws, redis, sqlite, mysql, postgres, bcrypt, swagger");
+    console.log("Run 'npx blue-bird add' to see available features.");
     return;
   }
 
   console.log(chalk.cyan(`[INFO] Installing ${pkgName}...`));
   try {
-    execSync(`npm install ${pkgName}`, {
-      stdio: "inherit",
-      cwd: process.cwd(),
-    });
+    execSync(`npm install ${pkgName}`, { stdio: "inherit", cwd: process.cwd() });
     console.log(chalk.green(`[OK] Successfully installed ${pkgName}.`));
   } catch (err) {
     console.error(chalk.red(`[ERROR] Failed to install ${pkgName}:`), err.message);
@@ -461,7 +471,11 @@ const initializer = new ProjectInit();
 const args = process.argv.slice(2);
 const command = args[0];
 
-if (command === "route" || command === "make:route") {
+if (command === "make:ecosystem" || command === "ecosystem") {
+  import("./ecosystem.js");
+} else if (command === "make:view" || command === "view") {
+  import("./view.js");
+} else if (command === "route" || command === "make:route") {
   import("./route.js");
 } else if (command === "doctor") {
   import("./doctor.js");

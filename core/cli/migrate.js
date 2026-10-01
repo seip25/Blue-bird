@@ -114,7 +114,6 @@ async function ensureMigrationsTable(db) {
       executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`;
   } else {
-    // sqlite default
     ddl = `CREATE TABLE IF NOT EXISTS _bluebird_migrations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -175,7 +174,6 @@ async function runMigrations() {
     try {
       if (file.endsWith(".sql")) {
         const sql = fs.readFileSync(filePath, "utf-8");
-        // Split statements by semicolon where appropriate
         const statements = sql
           .split(/;\s*$/m)
           .map((s) => s.trim())
@@ -325,7 +323,6 @@ async function runSeeds() {
   process.exit(0);
 }
 
-// CLI Dispatcher
 const rawArgs = process.argv.slice(2);
 const cmd = rawArgs[0];
 

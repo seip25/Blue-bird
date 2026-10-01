@@ -8,9 +8,7 @@ const props = Config.props();
 let multer = null;
 try {
   multer = (await import("multer")).default || (await import("multer"));
-} catch {
-  // multer not installed
-}
+} catch {}
 
 /**
  * Upload helper to manage file uploads using multer.

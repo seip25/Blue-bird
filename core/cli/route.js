@@ -10,7 +10,6 @@ class RouteCLI {
    */
   create() {
     const rawArgs = process.argv.slice(2);
-    // Filter out command name if invoked as 'route' or 'make:route'
     const args = rawArgs.filter(
       (a) => a !== "route" && a !== "make:route" && !a.endsWith("route.js")
     );
@@ -30,21 +29,20 @@ class RouteCLI {
       process.exit(1);
     }
 
-    // Normalize casing
     routeName = routeName.toLowerCase().replace(/[^a-z0-9_-]/g, "");
     const singularName = routeName.endsWith("s") ? routeName.slice(0, -1) : routeName;
     const pascalName = routeName.charAt(0).toUpperCase() + routeName.slice(1);
     const routerVarName = `router${pascalName}`;
     const basePath = `/${routeName}`;
 
-    const routesFolder = path.resolve(process.cwd(), "backend/routes");
+    const routesFolder = path.resolve(process.cwd(), "app/routes");
     if (!fs.existsSync(routesFolder)) {
       fs.mkdirSync(routesFolder, { recursive: true });
     }
 
     const filePath = path.join(routesFolder, `${routeName}.js`);
     if (fs.existsSync(filePath)) {
-      console.log(chalk.yellow(`[WARN] Route file '${routeName}.js' already exists at backend/routes/${routeName}.js.`));
+      console.log(chalk.yellow(`[WARN] Route file '${routeName}.js' already exists at app/routes/${routeName}.js.`));
       return;
     }
 
@@ -60,7 +58,6 @@ import Cache from "@seip/blue-bird/core/cache.js";
 ${authImport}
 const ${routerVarName} = new Router("${basePath}");
 
-// Validation schema for incoming requests
 const ${singularName}Schema = {
   name: { required: true, min: 2, max: 255 },
   description: { required: false },
@@ -93,7 +90,6 @@ ${routerVarName}.get("/:id", Cache.middleware(60), (req, res) => {
 ${routerVarName}.post("/", ${authProtect}validate${pascalName}.middleware(), async (req, res) => {
   const data = req.body;
 
-  // Invalidate cached route list
   await Cache.delete("${basePath}");
 
   res.created({ ${singularName}: data }, "${pascalName} created successfully");
@@ -107,7 +103,6 @@ ${routerVarName}.put("/:id", ${authProtect}validate${pascalName}.middleware(), a
   const { id } = req.params;
   const data = req.body;
 
-  // Invalidate cached item and list
   await Cache.delete("${basePath}");
   await Cache.delete(\`${basePath}/\${id}\`);
 
@@ -121,7 +116,6 @@ ${routerVarName}.put("/:id", ${authProtect}validate${pascalName}.middleware(), a
 ${routerVarName}.delete("/:id", ${authProtect}async (req, res) => {
   const { id } = req.params;
 
-  // Invalidate cache
   await Cache.delete("${basePath}");
   await Cache.delete(\`${basePath}/\${id}\`);
 
@@ -132,11 +126,11 @@ export default ${routerVarName};
 `;
 
     fs.writeFileSync(filePath, content, "utf-8");
-    console.log(chalk.green(`[OK] Route '${routeName}' created successfully at backend/routes/${routeName}.js`));
+    console.log(chalk.green(`[OK] Route '${routeName}' created at app/routes/${routeName}.js`));
     console.log("");
-    console.log(chalk.cyan("To register this route, import it in backend/index.js:"));
+    console.log(chalk.cyan("To register this route, import it in app/index.js:"));
     console.log(chalk.gray(`  import ${routerVarName} from "./routes/${routeName}.js";`));
-    console.log(chalk.gray(`  // Pass ${routerVarName} into App({ routes: [...] })`));
+    console.log(chalk.gray(`  Add ${routerVarName} to the routes array in new App({ routes: [...] })`));
   }
 }
 

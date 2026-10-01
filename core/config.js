@@ -7,25 +7,22 @@ let _cachedProps = null;
  */
 class Config {
   /**
-   * Returns the base directory of the application.
-   * @returns {string} The current working directory.
+   * Returns the base directory of the application (process.cwd()).
+   * @returns {string}
    */
   static dirname() {
     return process.cwd();
   }
 
   /**
-   * Retrieves application properties from environment variables or default values.
-   * Results are cached after first call for performance.
-   * @returns {{debug: boolean, descriptionMeta: string, keywordsMeta: string, titleMeta: string, authorMeta: string, description: string, title: string, version: string, langMeta: string, host: string, appUrl: string, port: number, static: {path: string, options: Object}}} The configuration properties object.
-   * @example
-   * const props = Config.props();
-   * console.log(props);
+   * Retrieves application properties from environment variables.
+   * Results are cached after the first call.
+   * @returns {{debug: boolean, title: string, description: string, version: string, host: string, appUrl: string, port: number, jwtSecret: string, langMeta: string, static: {path: string, options: Object}}} Configuration object.
    */
   static props() {
     if (_cachedProps) return _cachedProps;
 
-    const portRaw = parseInt(process.env.PORT);
+    const portRaw = parseInt(process.env.PORT, 10);
 
     _cachedProps = {
       debug: process.env.DEBUG === "true",
@@ -42,13 +39,12 @@ class Config {
       port: Number.isNaN(portRaw) ? 3000 : portRaw,
       jwtSecret: process.env.JWT_SECRET,
       static: {
-        path: process.env.STATIC_PATH || "frontend",
-        options: {
-          extensions: ["html"],
-        },
+        path: process.env.STATIC_PATH || "public",
+        options: {},
       },
     };
     return _cachedProps;
   }
 }
+
 export default Config;
