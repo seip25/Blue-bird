@@ -440,6 +440,15 @@ Orchestrated using the built-in Docker CLI wrapper:
 - **Nginx**: Serves `public/` assets directly (`:ro` mount) and proxies all application routes to Express.
 - **Node.js**: Runs under PM2 in cluster mode based on `PM2_INSTANCES` configuration.
 - **Database**: SQLite (mounted `./database`), MySQL, or PostgreSQL.
+- **SQLite in Docker (`node:sqlite` vs `better-sqlite3`)**: Node.js 22+ includes native `node:sqlite`, which is used automatically by Blue Bird with **zero native compilation** or extra build tools during `docker build`. If your project explicitly installs and uses `better-sqlite3`, Alpine Linux requires build tools (`python3`, `make`, `g++`) for `node-gyp rebuild` in `docker/Dockerfile`:
+  ```dockerfile
+  # Required ONLY if using better-sqlite3 on Alpine (not needed with native node:sqlite):
+  RUN apk add --no-cache python3 make g++ && \
+      npm ci --omit=dev && \
+      npm install -g pm2 && \
+      apk del python3 make g++
+  ```
+  With the native `node:sqlite` driver, this step is **not necessary**.
 - **Redis**: Caching and distributed sessions.
 
 ```bash

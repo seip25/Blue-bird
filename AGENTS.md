@@ -252,12 +252,21 @@ await Queue.dispatch("sendWelcomeEmail", { email: "user@example.com" });
 
 ## 14. Database Module (database.js)
 
-Blue Bird provides a unified wrapper class (`core/database.js`) supporting **SQLite (`better-sqlite3`)**, **MySQL (`mysql2/promise`)**, and **PostgreSQL (`pg`)**. It features connection pooling/reconnection, automatic retries on startup, query formatting, and built-in Redis query caching:
+Blue Bird provides a unified wrapper class (`core/database.js`) supporting **SQLite (native `node:sqlite` in Node 22+ with `better-sqlite3` fallback)**, **MySQL (`mysql2/promise`)**, and **PostgreSQL (`pg`)**. It features connection pooling/reconnection, automatic retries on startup, query formatting, and built-in Redis query caching:
 
 
 - **Dynamic Initialization:** When `npx blue-bird` (`core/cli/init.js`) runs, it prompts the developer for the database type (`sqlite` [default], `mysql`, `postgres`, `none`). It then intelligently copies the correct `docker-compose.yml` template (`docker-compose.sqlite.yml`, `docker-compose.mysql.yml`, `docker-compose.postgres.yml`, or `docker-compose.none.yml`) and configures `.env` with `DB_TYPE`, `DB_FILE`, and `DATABASE_URL`.
 - **SQLite Concurrency & WAL:** SQLite automatically runs with `PRAGMA journal_mode = WAL;`, `PRAGMA busy_timeout = 5000;`, `PRAGMA synchronous = NORMAL;`, and `PRAGMA foreign_keys = ON;` to eliminate "database is locked" errors and ensure high concurrency with readers and writers.
 - **Parameter Placeholders:** Supports `?` placeholders across all drivers (automatically translated to `$1, $2, ...` under the hood for PostgreSQL).
+- **Docker & SQLite Compilation:** In Node.js 22+, Blue Bird leverages native `node:sqlite` directly from the runtime, eliminating native compilation overhead and external dependencies. If your application explicitly installs and uses `better-sqlite3`, Alpine Linux requires build tools (`python3`, `make`, `g++`) for `node-gyp rebuild` in `docker/Dockerfile`:
+```dockerfile
+# Required ONLY when using better-sqlite3 on Alpine (not needed with native node:sqlite):
+RUN apk add --no-cache python3 make g++ && \
+    npm ci --omit=dev && \
+    npm install -g pm2 && \
+    apk del python3 make g++
+```
+With the native `node:sqlite` driver, this is **not necessary** and standard `RUN npm ci --omit=dev && npm install -g pm2` works out of the box.
 
 ```javascript
 import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";

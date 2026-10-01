@@ -882,6 +882,20 @@ secureWebRouter.use(App.helmet({ contentSecurityPolicy: false })); // Disables C
                                     Supports <code>?</code> parameter placeholders across all engines (automatically
                                     translated to <code>$1, $2, ...</code> for PostgreSQL).
                                 </p>
+                                <div class="my-6 p-4 bg-sky-50 border border-sky-200 rounded-xl">
+                                    <div class="flex items-center gap-2 mb-2 font-bold text-sky-900 text-sm">
+                                        <span>🐳 Docker &amp; SQLite: Native Driver vs better-sqlite3</span>
+                                    </div>
+                                    <p class="text-xs text-sky-800 leading-relaxed mb-3">
+                                        In Node.js 22+, Blue Bird uses native <code>node:sqlite</code> with <strong>zero native compilation</strong> or build dependencies.
+                                        If your project explicitly uses <code>better-sqlite3</code>, Alpine Linux requires build tools (<code>python3</code>, <code>make</code>, <code>g++</code>) in <code>docker/Dockerfile</code>:
+                                    </p>
+                                    <pre class="!my-0 text-xs"><code class="language-dockerfile"># Required ONLY when using better-sqlite3 on Alpine (not needed with native node:sqlite):
+RUN apk add --no-cache python3 make g++ &amp;&amp; \
+    npm ci --omit=dev &amp;&amp; \
+    npm install -g pm2 &amp;&amp; \
+    apk del python3 make g++</code></pre>
+                                </div>
 
                                 <pre><code class="language-javascript">import { Database, DB_TYPE } from "@seip/blue-bird/core/database.js";
 
