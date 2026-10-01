@@ -9,6 +9,13 @@ const production = !propsConfig.debug;
 const aesKey = createHash("sha256").update(jwtSecret || "default").digest();
 
 /**
+ * In-memory revocation map for single-instance or non-Redis environments.
+ * Maps sessionId to expiry timestamp (ms).
+ * @type {Map<string, number>}
+ */
+const revokedSessions = new Map();
+
+/**
  * Converts duration strings like "24h", "7d", "30m", "60s" to seconds.
  * @param {string|number} duration
  * @returns {number} Seconds.
@@ -37,9 +44,11 @@ class Auth {
    * @param {string} secret - The secret key for encryption.
    * @returns {string} Encrypted string in format iv:tag:encrypted.
    */
-  static encrypt(payload, secret) {
+  static encrypt(payload, secret = process.env.JWT_SECRET || jwtSecret) {
+    const resolvedSecret = secret || process.env.JWT_SECRET || jwtSecret;
+    if (!resolvedSecret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
     const iv = randomBytes(12);
-    const key = secret === jwtSecret ? aesKey : createHash("sha256").update(secret).digest();
+    const key = resolvedSecret === jwtSecret ? aesKey : createHash("sha256").update(resolvedSecret).digest();
     const cipher = createCipheriv("aes-256-gcm", key, iv);
     let encrypted = cipher.update(JSON.stringify(payload), "utf8", "hex");
     encrypted += cipher.final("hex");
@@ -53,14 +62,16 @@ class Auth {
    * @param {string} secret - The secret key for decryption.
    * @returns {Object|null} Decrypted object or null if decryption failed.
    */
-  static decrypt(data, secret) {
+  static decrypt(data, secret = process.env.JWT_SECRET || jwtSecret) {
+    const resolvedSecret = secret || process.env.JWT_SECRET || jwtSecret;
+    if (!resolvedSecret) return null;
     try {
       const [ivHex, tagHex, encryptedHex] = data.split(":");
       if (!ivHex || !tagHex || !encryptedHex) return null;
 
       const iv = Buffer.from(ivHex, "hex");
       const tag = Buffer.from(tagHex, "hex");
-      const key = secret === jwtSecret ? aesKey : createHash("sha256").update(secret).digest();
+      const key = resolvedSecret === jwtSecret ? aesKey : createHash("sha256").update(resolvedSecret).digest();
       const decipher = createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(tag);
 
@@ -80,10 +91,11 @@ class Auth {
    * @param {string|number} [expiresIn="24h"] - Expiration duration string or seconds.
    * @returns {string} Signed JWT token string.
    */
-  static generateToken(payload, secret = jwtSecret, expiresIn = "24h") {
-    if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
+  static generateToken(payload, secret = process.env.JWT_SECRET || jwtSecret, expiresIn = "24h") {
+    const resolvedSecret = secret || process.env.JWT_SECRET || jwtSecret;
+    if (!resolvedSecret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
 
-    const encrypted = this.encrypt(payload, secret);
+    const encrypted = this.encrypt(payload, resolvedSecret);
     const now = Math.floor(Date.now() / 1000);
     const ttl = parseDuration(expiresIn);
 
@@ -103,8 +115,9 @@ class Auth {
    * @param {string} [secret] - The secret key (defaults to JWT_SECRET env var).
    * @returns {Object|null} Decrypted payload or null if invalid or expired.
    */
-  static verifyToken(token, secret = jwtSecret) {
-    if (!secret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
+  static verifyToken(token, secret = process.env.JWT_SECRET || jwtSecret) {
+    const resolvedSecret = secret || process.env.JWT_SECRET || jwtSecret;
+    if (!resolvedSecret) throw new Error("FATAL: JWT_SECRET environment variable is not defined.");
     try {
       const parts = token.split(".");
       if (parts.length !== 3) return null;
@@ -145,9 +158,9 @@ class Auth {
       const token = req.cookies?.[cookieKey] || req.headers.authorization?.split(" ")[1];
 
       const expectsJson =
-        req.xhr ||
-        req.headers.accept?.includes("application/json") ||
-        req.path.startsWith("/api");
+        Boolean(req.xhr) ||
+        Boolean(req.headers?.accept?.includes("application/json")) ||
+        Boolean(req.path?.startsWith("/api"));
 
       if (!token) {
         if (redirect && !expectsJson) return res.redirect(redirect);
@@ -156,12 +169,24 @@ class Auth {
           : res.status(401).send();
       }
 
-      const decoded = this.verifyToken(token);
+      const secret = options.secret || process.env.JWT_SECRET || jwtSecret;
+      const decoded = this.verifyToken(token, secret);
       if (!decoded) {
         if (redirect && !expectsJson) return res.redirect(redirect);
         return expectsJson
           ? res.status(401).json({ message: "Unauthorized" })
           : res.status(401).send();
+      }
+
+      if (decoded._sessionId && revokedSessions.has(decoded._sessionId)) {
+        const expiry = revokedSessions.get(decoded._sessionId);
+        if (Date.now() <= expiry) {
+          if (redirect && !expectsJson) return res.redirect(redirect);
+          return expectsJson
+            ? res.status(401).json({ message: "Unauthorized" })
+            : res.status(401).send();
+        }
+        revokedSessions.delete(decoded._sessionId);
       }
 
       const redisClient = getRedisClient();
@@ -203,14 +228,15 @@ class Auth {
     const { expiresIn = "24h", cookie = {} } = options;
     const sessionId = randomUUID();
     const tokenPayload = { ...data, _sessionId: sessionId };
-    const token = this.generateToken(tokenPayload, jwtSecret, expiresIn);
+    const secret = options.secret || process.env.JWT_SECRET || jwtSecret;
+    const token = this.generateToken(tokenPayload, secret, expiresIn);
     const ttl = parseDuration(expiresIn);
 
     const defaultCookieOptions = {
       maxAge: ttl * 1000,
-      httpOnly: production,
+      httpOnly: true,
       secure: production,
-      sameSite: production ? "lax" : "strict",
+      sameSite: "lax",
       path: "/",
     };
 
@@ -239,7 +265,8 @@ class Auth {
     if (req) {
       const token = req.cookies?.[key] || req.headers.authorization?.split(" ")[1];
       if (token) {
-        const decoded = this.verifyToken(token);
+        const secret = options.secret || process.env.JWT_SECRET || jwtSecret;
+        const decoded = this.verifyToken(token, secret);
         if (decoded?._sessionId) {
           const redisClient = getRedisClient();
           if (redisClient) {
@@ -248,6 +275,10 @@ class Auth {
             } catch (err) {
               console.error("[AUTH] Failed to delete session from Redis:", err.message);
             }
+          }
+          const ttlMs = (decoded.exp ? decoded.exp * 1000 : Date.now() + 86400000) - Date.now();
+          if (ttlMs > 0) {
+            revokedSessions.set(decoded._sessionId, Date.now() + ttlMs);
           }
         }
       }

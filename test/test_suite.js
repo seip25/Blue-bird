@@ -15,6 +15,7 @@ async function runTests() {
   console.log("[TEST] Starting Blue Bird v2 test suite...");
 
   const testSecret = "test-secret-key-at-least-32-chars-long!";
+  process.env.JWT_SECRET = testSecret;
   const testPayload = { userId: 42, role: "admin", name: "Tester" };
 
   const encrypted = Auth.encrypt(testPayload, testSecret);
@@ -35,6 +36,46 @@ async function runTests() {
   const verifiedInvalid = Auth.verifyToken(invalidToken, testSecret);
   assert.strictEqual(verifiedInvalid, null);
   console.log("[PASS] Invalid token signature rejection");
+
+  let setCookieCall = null;
+  const mockRes = {
+    cookie: (name, val, opts) => {
+      setCookieCall = { name, val, opts };
+    },
+    clearCookie: () => {},
+  };
+  const loginToken = await Auth.login(mockRes, { userId: 99, role: "editor" }, "auth");
+  assert.strictEqual(setCookieCall.opts.httpOnly, true);
+  assert.strictEqual(setCookieCall.opts.sameSite, "lax");
+  console.log("[PASS] Auth.login sets httpOnly: true and sameSite: lax");
+
+  const mockReq = {
+    cookies: { auth: loginToken },
+    headers: {},
+  };
+  let middlewareCalled = false;
+  let middlewareStatus = null;
+  const protectHandler = Auth.protect();
+  await protectHandler(
+    mockReq,
+    { status: (s) => ({ json: () => { middlewareStatus = s; }, send: () => { middlewareStatus = s; } }) },
+    () => { middlewareCalled = true; }
+  );
+  assert.strictEqual(middlewareCalled, true);
+  assert.strictEqual(mockReq.user.userId, 99);
+  console.log("[PASS] Auth.protect allows valid in-memory session");
+
+  await Auth.logout(mockRes, "auth", {}, mockReq);
+  let revokedCalled = false;
+  let revokedStatus = null;
+  await protectHandler(
+    mockReq,
+    { status: (s) => ({ json: () => { revokedStatus = s; }, send: () => { revokedStatus = s; } }) },
+    () => { revokedCalled = true; }
+  );
+  assert.strictEqual(revokedCalled, false);
+  assert.strictEqual(revokedStatus, 401);
+  console.log("[PASS] Auth.logout immediately revokes in-memory session");
 
   const rawPassword = "securePassword123!";
   const hashedPassword = await Hash.make(rawPassword);
